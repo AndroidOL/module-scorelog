@@ -1,4 +1,4 @@
-# Internal Assessment Module
+# Quick Create Internal Assessment
 
 A very, very simple module that can save our teachers some time.
 
