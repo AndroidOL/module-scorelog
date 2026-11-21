@@ -980,7 +980,7 @@ function scoreLogImportHeaderType($value): ?string
         'id' => ['id', 'student id', 'studentid', 'student number', '学号', '学生编号', '编号'],
         'username' => ['username', 'user name', 'login', 'login name', '用户名', '账号', '登录名'],
         'name' => ['name', 'student', 'student name', 'full name', '姓名', '学生姓名'],
-        'score' => ['score', 'mark', 'marks', 'grade', 'result', '成绩', '分数', '得分'],
+        'score' => ['score', 'mark', 'marks', 'grade', 'result', '成绩', '分数', '分值', '得分'],
         'comment' => ['comment', 'comments', 'note', 'notes', 'remark', 'remarks', '评语', '备注'],
     ];
 
