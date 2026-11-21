@@ -93,9 +93,10 @@ are detected automatically. The mapping can be corrected before applying.
 
 Import never changes the draft during upload. The parsed preview shows matched,
 unknown, ambiguous, duplicate, invalid, fill and overwrite rows first. Clicking
-Apply to Draft updates only the private draft. Existing manual values are
-preserved unless overwrite is explicitly selected. Formula cells are rejected
-without evaluation, and rows are limited to 500 with a 2 MiB file limit.
+Apply to Draft updates only the private draft. Blank imported score or comment
+cells are skipped; every nonblank imported value replaces the current draft
+value. Formula cells are rejected without evaluation, and rows are limited to
+500 with a 2 MiB file limit.
 
 Every import, template export and score export targets the draft's assessment.
 
@@ -115,9 +116,8 @@ The XLSX template contains the current roster plus a separate Assessment sheet
 with the assessment name and description, while the score and comment columns
 are blank for editing. Export Scores contains the same roster and metadata with
 the current draft values. The import path reads only the first Scores sheet and
-does not require assessment configuration fields. When overwrite is enabled,
-deliberately blank score or comment cells clear those draft values; previews
-show those clears before Apply.
+does not require assessment configuration fields. Blank cells never clear a
+saved score or comment.
 
 ## Formal Assessment compatibility
 

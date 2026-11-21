@@ -351,7 +351,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertNull($unclear['scoreColumn']);
     }
 
-    public function testImportPreviewPreservesManualValuesUnlessOverwriteIsEnabled()
+    public function testImportPreviewOverwritesEveryNonblankValue()
     {
         $mapping = [
             'headerRow' => null,
@@ -373,28 +373,15 @@ namespace Gibbon\Module\ScoreLog\Tests {
             $payload,
             $this->importRoster(),
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            $this->numericGrades(),
-            [],
-            false
-        );
-        $overwrite = \scoreLogBuildImportPreview(
-            $matrix,
-            $mapping,
-            $payload,
-            $this->importRoster(),
-            ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            $this->numericGrades(),
-            [],
-            true
+            $this->numericGrades()
         );
 
-        $this->assertSame('preserved', $preview['rows'][0]['status']);
-        $this->assertEmpty($preview['updates']);
-        $this->assertSame('wouldOverwrite', $overwrite['rows'][0]['status']);
-        $this->assertSame('88', $overwrite['updates']['0000000001']['attainmentValue']);
+        $this->assertSame('wouldOverwrite', $preview['rows'][0]['status']);
+        $this->assertSame('88', $preview['updates']['0000000001']['attainmentValue']);
+        $this->assertSame('Imported', $preview['updates']['0000000001']['comment']);
     }
 
-    public function testOverwriteModeTreatsBlankMappedCellsAsExplicitClears()
+    public function testImportPreviewSkipsBlankMappedCells()
     {
         $mapping = [
             'headerRow' => null,
@@ -413,15 +400,12 @@ namespace Gibbon\Module\ScoreLog\Tests {
             ],
             $this->importRoster(),
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            $this->numericGrades(),
-            [],
-            true
+            $this->numericGrades()
         );
 
-        $this->assertSame('wouldClear', $preview['rows'][0]['status']);
-        $this->assertSame(['Score', 'Comment'], $preview['rows'][0]['clears']);
-        $this->assertSame('', $preview['updates']['0000000001']['attainmentValue']);
-        $this->assertSame('', $preview['updates']['0000000001']['comment']);
+        $this->assertSame('noChange', $preview['rows'][0]['status']);
+        $this->assertSame([], $preview['rows'][0]['clears']);
+        $this->assertEmpty($preview['updates']);
     }
 
     public function testPreviewHashChangesWhenSkippedRowOutcomeChanges()
@@ -484,9 +468,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
             ],
             $this->importRoster(),
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            $this->numericGrades(),
-            [],
-            true
+            $this->numericGrades()
         );
 
         $this->assertSame($comment, $preview['rows'][0]['importComment']);
@@ -1188,13 +1170,18 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $import = file_get_contents(dirname(__DIR__).'/scorelog_importProcess.php');
         $apply = file_get_contents(dirname(__DIR__).'/scorelog_importApplyProcess.php');
         $template = file_get_contents(dirname(__DIR__).'/scorelog_importTemplate.php');
+        $importPage = file_get_contents(dirname(__DIR__).'/scorelog_import.php');
 
-        foreach ([$import, $apply, $template] as $source) {
+        foreach ([$import, $apply, $template, $importPage] as $source) {
             $this->assertIsString($source);
             $this->assertStringContainsString("'columnID'", $source);
             $this->assertStringContainsString("['columns'][\$columnID]", $source);
         }
         $this->assertStringContainsString("['scores'][\$columnID]", $apply);
+        $this->assertStringNotContainsString("addCheckbox('overwrite')", $importPage);
+        $this->assertStringNotContainsString("addHiddenValue('overwrite'", $importPage);
+        $this->assertStringNotContainsString("addHiddenValue('overwrite'", $apply);
+        $this->assertStringContainsString('Unchanged', $importPage);
     }
 
     public function testTemplateExportsAssessmentMetadataWithoutChangingImportColumns()

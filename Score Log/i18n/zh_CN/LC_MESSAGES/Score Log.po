@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Score Log 1.5.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 18:04+0800\n"
-"PO-Revision-Date: 2026-11-21 18:04+0800\n"
+"POT-Creation-Date: 2026-11-21 18:32+0800\n"
+"PO-Revision-Date: 2026-11-21 18:32+0800\n"
 "Last-Translator: AndroidOL\n"
 "Language-Team: Gibbon zh_CN\n"
 "Language: zh_CN\n"
@@ -265,18 +265,6 @@ msgstr "评语列"
 msgid "Optional. Extra columns are ignored."
 msgstr "可选，额外列将被忽略。"
 
-#: ⁨Score Log/scorelog_import.php⁩:286
-msgid "Overwrite or Clear Existing Values"
-msgstr "覆盖或清除现有值"
-
-#: ⁨Score Log/scorelog_import.php⁩:287
-msgid ""
-"Unchecked preserves existing values. Checked overwrites changed values and "
-"clears an existing mapped Score or Comment when the imported cell is blank."
-msgstr ""
-"未勾选时保留现有值；勾选后，将覆盖发生变化的导入值，并在导入的成绩或评语单元"
-"格为空时清除对应的现有值。"
-
 #: ⁨Score Log/scorelog_import.php⁩:291
 msgid "Refresh Preview"
 msgstr "刷新预览"
@@ -298,12 +286,8 @@ msgid "Would Overwrite"
 msgstr "将覆盖"
 
 #: ⁨Score Log/scorelog_import.php⁩:300
-msgid "Would Clear"
-msgstr "将清除"
-
-#: ⁨Score Log/scorelog_import.php⁩:301
-msgid "Preserved Manual Values"
-msgstr "保留手工值"
+msgid "Unchanged"
+msgstr "未更改"
 
 #: ⁨Score Log/scorelog_import.php⁩:302
 msgid "Skipped / Invalid"
@@ -342,14 +326,6 @@ msgstr "将填入"
 msgid "Would overwrite"
 msgstr "将覆盖"
 
-#: ⁨Score Log/scorelog_import.php⁩:313
-msgid "Would clear"
-msgstr "将清除"
-
-#: ⁨Score Log/scorelog_import.php⁩:314
-msgid "Manual value preserved"
-msgstr "已保留手工值"
-
 #: ⁨Score Log/scorelog_import.php⁩:315
 msgid "Unknown student"
 msgstr "未知学生"
@@ -375,11 +351,6 @@ msgstr "无变更"
 msgid "Overwrites: %s"
 msgstr "覆盖：%s"
 
-#: ⁨Score Log/scorelog_import.php⁩:337
-#, php-format
-msgid "Clears: %s"
-msgstr "清除：%s"
-
 #: ⁨Score Log/scorelog_import.php⁩:344
 msgid "The identifier and score must use different columns."
 msgstr "学生标识列和成绩列不能是同一列。"
@@ -391,9 +362,9 @@ msgstr "请选择学生标识列/类型和成绩列，然后刷新预览。"
 
 #: ⁨Score Log/scorelog_import.php⁩:352
 msgid ""
-"This import would not change the draft. Adjust the mapping or overwrite "
-"setting if necessary."
-msgstr "此次导入不会改变草稿。如有需要，请调整映射或覆盖设置。"
+"This import would not change the draft. Adjust the mapping or imported data "
+"if necessary."
+msgstr "此次导入不会改变草稿。如有需要，请调整映射或导入数据。"
 
 #: ⁨Score Log/scorelog_import.php⁩:359 ⁨Score Log/scorelog_import.php⁩:383
 msgid "Apply to Draft"

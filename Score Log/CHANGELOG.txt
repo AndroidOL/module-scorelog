@@ -10,6 +10,10 @@ v1.5.2
   retaining Reload latest as the safe secondary action.
 - Include assessment name and description in exported workbooks as metadata
   without adding either field to the import mapping.
+- Skip blank imported score/comment cells and overwrite every nonblank imported
+  value without an additional overwrite-mode choice.
+- Restore descriptor-based default comments without replacing teacher-edited
+  text, and keep comment-library controls on one compact row.
 - Flush queued score changes through a shared loop before manual submission.
 
 v1.5.1

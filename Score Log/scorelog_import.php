@@ -202,7 +202,6 @@ if (!$hasMappingInput) {
 if ($commentColumn !== null && ($commentColumn === $identifierColumn || $commentColumn === $scoreColumn)) {
     $commentColumn = null;
 }
-$overwrite = ($_GET['overwrite'] ?? 'N') === 'Y';
 $mapping = [
     'identifierColumn' => $identifierColumn,
     'identifierType'   => $identifierType,
@@ -219,8 +218,7 @@ $preview = scoreLogBuildImportPreview(
     $roster,
     ['usage' => $scale['usage'], 'numeric' => $scale['numeric']],
     $gradeDescriptors,
-    $previewMeta['formulaCells'] ?? [],
-    $overwrite
+    $previewMeta['formulaCells'] ?? []
 );
 $previewHash = scoreLogImportPreviewHash($mapping, $preview, $draft['revision']);
 $skipped = scoreLogImportSkippedCount($preview['counts']);
@@ -286,10 +284,6 @@ $row = $mapForm->addRow();
 $row->addLabel('commentColumn', scoreLogT('Comment Column'))->description(scoreLogT('Optional. Extra columns are ignored.'));
 $row->addSelect('commentColumn')->fromArray($columnOptions)->selected($commentColumn === null ? '' : (string) $commentColumn)->placeholder();
 $row = $mapForm->addRow();
-$row->addLabel('overwrite', scoreLogT('Overwrite or Clear Existing Values'))
-    ->description(scoreLogT('Unchecked preserves existing values. Checked overwrites changed values and clears an existing mapped Score or Comment when the imported cell is blank.'));
-$row->addCheckbox('overwrite')->setValue('Y')->checked($overwrite);
-$row = $mapForm->addRow();
 $row->addFooter();
 $row->addSubmit(scoreLogT('Refresh Preview'));
 $output .= $mapForm->getOutput();
@@ -301,8 +295,7 @@ $countTable->addColumn('total', scoreLogT('Rows'));
 $countTable->addColumn('matched', scoreLogT('Matched'));
 $countTable->addColumn('wouldFill', scoreLogT('Would Fill'));
 $countTable->addColumn('wouldOverwrite', scoreLogT('Would Overwrite'));
-$countTable->addColumn('wouldClear', scoreLogT('Would Clear'));
-$countTable->addColumn('preserved', scoreLogT('Preserved Manual Values'));
+$countTable->addColumn('preserved', scoreLogT('Unchanged'));
 $countTable->addColumn('skipped', scoreLogT('Skipped / Invalid'));
 $output .= $countTable->render([$counts + ['skipped' => $skipped]]);
 
@@ -311,8 +304,7 @@ foreach ($preview['rows'] as $row) {
     $status = [
         'wouldFill' => scoreLogT('Would fill'),
         'wouldOverwrite' => scoreLogT('Would overwrite'),
-        'wouldClear' => scoreLogT('Would clear'),
-        'preserved' => scoreLogT('Manual value preserved'),
+        'preserved' => scoreLogT('Unchanged'),
         'unknown' => scoreLogT('Unknown student'),
         'ambiguous' => scoreLogT('Ambiguous student'),
         'duplicate' => scoreLogT('Duplicate student'),
@@ -336,7 +328,6 @@ foreach ($preview['rows'] as $row) {
         'status' => $status,
         'notes' => implode(' ', array_filter([
             !empty($row['overwrites']) ? sprintf(scoreLogT('Overwrites: %s'), implode(', ', $row['overwrites'])) : '',
-            !empty($row['clears']) ? sprintf(scoreLogT('Clears: %s'), implode(', ', $row['clears'])) : '',
             !empty($row['errors']) ? implode(' ', $row['errors']) : '',
         ])),
     ];
@@ -367,7 +358,7 @@ if ($previewStale) {
 } elseif (!$mappingReady) {
     $output .= '<div class="warning">'.scoreLogT('Choose the identifier column/type and score column, then refresh the preview.').'</div>';
 } elseif (empty($preview['updates'])) {
-    $output .= '<div class="warning">'.scoreLogT('This import would not change the draft. Adjust the mapping or overwrite setting if necessary.').'</div>';
+    $output .= '<div class="warning">'.scoreLogT('This import would not change the draft. Adjust the mapping or imported data if necessary.').'</div>';
 } else {
     $applyForm = Form::create(
         'scoreLogImportApply',
@@ -383,7 +374,6 @@ if ($previewStale) {
     $applyForm->addHiddenValue('identifierType', $identifierType);
     $applyForm->addHiddenValue('scoreColumn', (string) $scoreColumn);
     $applyForm->addHiddenValue('commentColumn', $commentColumn === null ? '' : (string) $commentColumn);
-    $applyForm->addHiddenValue('overwrite', $overwrite ? 'Y' : 'N');
     $applyForm->addHiddenValue('revision', (string) $draft['revision']);
 
     if ($skipped > 0) {

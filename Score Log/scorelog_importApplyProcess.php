@@ -67,7 +67,6 @@ $previewRedirect = function (string $return) use ($session, $scoreLogDraftID, $c
         'identifierType'  => scoreLogInputString($input, 'identifierType'),
         'scoreColumn'     => scoreLogInputString($input, 'scoreColumn'),
         'commentColumn'   => scoreLogInputString($input, 'commentColumn'),
-        'overwrite'       => scoreLogInputString($input, 'overwrite'),
         'return'          => $return,
     ];
 
@@ -111,7 +110,6 @@ $scoreColumn = is_scalar($input['scoreColumn'] ?? null) && is_numeric($input['sc
 $commentColumn = is_scalar($input['commentColumn'] ?? null) && is_numeric($input['commentColumn'])
     ? (int) $input['commentColumn']
     : null;
-$overwrite = scoreLogInputString($input, 'overwrite') === 'Y';
 $columnCount = max(1, count($previewMeta['matrix'][0] ?? []));
 if (
     $identifierColumn < 0 || $identifierColumn >= $columnCount
@@ -169,8 +167,7 @@ $preview = scoreLogBuildImportPreview(
     $roster,
     ['usage' => $scale['usage'], 'numeric' => $scale['numeric']],
     $gradeDescriptors,
-    $previewMeta['formulaCells'] ?? [],
-    $overwrite
+    $previewMeta['formulaCells'] ?? []
 );
 $expectedHash = scoreLogInputString($input, 'previewHash');
 $actualHash = scoreLogImportPreviewHash($mapping, $preview, $draft['revision']);

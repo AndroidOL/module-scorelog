@@ -1222,7 +1222,7 @@ function scoreLogDetectImportMapping(array $matrix, array $roster, array $scale,
     return $mapping;
 }
 
-function scoreLogBuildImportPreview(array $matrix, array $mapping, array $payload, array $roster, array $scale, array $gradeDescriptors, array $formulaCells = [], bool $overwrite = false): array
+function scoreLogBuildImportPreview(array $matrix, array $mapping, array $payload, array $roster, array $scale, array $gradeDescriptors, array $formulaCells = []): array
 {
     $indexes = scoreLogImportRosterIndexes($roster);
     $headerRow = $mapping['headerRow'] ?? null;
@@ -1320,7 +1320,6 @@ function scoreLogBuildImportPreview(array $matrix, array $mapping, array $payloa
         'wouldFill' => 0,
         'preserved' => 0,
         'wouldOverwrite' => 0,
-        'wouldClear' => 0,
         'unknown' => 0,
         'ambiguous' => 0,
         'duplicate' => 0,
@@ -1346,60 +1345,33 @@ function scoreLogBuildImportPreview(array $matrix, array $mapping, array $payloa
         }
 
         $changes = [];
-        $clears = [];
         $overwrites = [];
         $preserved = false;
-        if ($row['existingScore'] === '') {
-            if ($row['normalizedScore'] !== '') {
+        if ($row['normalizedScore'] !== '') {
+            if ($row['existingScore'] === '') {
                 $changes['attainmentValue'] = $row['normalizedScore'];
-            }
-        } elseif ($overwrite) {
-            if ($row['normalizedScore'] === '') {
-                $changes['attainmentValue'] = '';
-                $clears[] = scoreLogImportRoleLabel('score');
             } elseif ($row['existingScore'] !== $row['normalizedScore']) {
                 $changes['attainmentValue'] = $row['normalizedScore'];
                 $overwrites[] = scoreLogImportRoleLabel('score');
             } else {
                 $preserved = true;
             }
-        } else {
-            $preserved = true;
         }
 
-        if ($commentColumn !== null) {
+        if ($commentColumn !== null && $row['importComment'] !== '') {
             if ($row['existingComment'] === '') {
-                if ($row['importComment'] !== '') {
-                    $changes['comment'] = $row['importComment'];
-                }
-            } elseif ($overwrite) {
-                if ($row['importComment'] === '') {
-                    $changes['comment'] = '';
-                    $clears[] = scoreLogImportRoleLabel('comment');
-                } elseif ($row['existingComment'] !== $row['importComment']) {
-                    $changes['comment'] = $row['importComment'];
-                    $overwrites[] = scoreLogImportRoleLabel('comment');
-                } else {
-                    $preserved = true;
-                }
+                $changes['comment'] = $row['importComment'];
+            } elseif ($row['existingComment'] !== $row['importComment']) {
+                $changes['comment'] = $row['importComment'];
+                $overwrites[] = scoreLogImportRoleLabel('comment');
             } else {
                 $preserved = true;
             }
         }
 
-        if ($row['normalizedScore'] !== '' && $row['existingScore'] === $row['normalizedScore']) {
-            $preserved = true;
-        }
-        if ($commentColumn !== null && $row['importComment'] !== '' && $row['existingComment'] === $row['importComment']) {
-            $preserved = true;
-        }
-
         if (!empty($overwrites)) {
             $row['status'] = 'wouldOverwrite';
             $counts['wouldOverwrite']++;
-        } elseif (!empty($clears)) {
-            $row['status'] = 'wouldClear';
-            $counts['wouldClear']++;
         } elseif (!empty($changes)) {
             $row['status'] = 'wouldFill';
             $counts['wouldFill']++;
@@ -1411,7 +1383,7 @@ function scoreLogBuildImportPreview(array $matrix, array $mapping, array $payloa
             $counts['noChange']++;
         }
 
-        $row['clears'] = $clears;
+        $row['clears'] = [];
         $row['overwrites'] = $overwrites;
 
         if (!empty($changes)) {
