@@ -67,7 +67,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                 failed: 'text-red-700',
             };
             autosaveStatus.classList.add(classes[state] || 'text-gray-600');
-            if (autosaveReload) autosaveReload.hidden = !['conflict', 'auth'].includes(state);
+            if (autosaveReload) autosaveReload.classList.toggle('hidden', !['conflict', 'auth'].includes(state));
         };
 
         const updateReloadLink = () => {

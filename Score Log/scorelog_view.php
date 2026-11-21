@@ -417,7 +417,7 @@ $reloadButton = new FormButton(
     'scoreLogAutosaveReload'
 );
 $reloadButton->setSize('sm')
-    ->setAttribute('hidden', 'hidden')
+    ->addClass('hidden')
     ->setAttribute('data-reload-url', $reloadURL);
 $row = $form->addRow();
 $row->addContent(

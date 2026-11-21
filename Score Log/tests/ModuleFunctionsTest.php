@@ -1015,6 +1015,10 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringContainsString("setName('importScores')", $view);
         $this->assertStringContainsString("setName('exportScores')", $view);
         $this->assertStringNotContainsString("setValue(\$columnID)", $view);
+        $process = file_get_contents(dirname(__DIR__).'/scorelog_draftProcess.php');
+        $this->assertStringContainsString("array_key_exists('importScores', \$_POST)", $process);
+        $this->assertStringContainsString("array_key_exists('exportScores', \$_POST)", $process);
+        $this->assertStringContainsString("scoreLogInputString(\$input, 'targetColumnID')", $process);
         foreach ([
             'scoreLogOnlyMissing',
             'scoreLogNextMissing',
