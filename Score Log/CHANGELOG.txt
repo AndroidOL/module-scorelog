@@ -10,6 +10,7 @@ v1.5.0
   advisory lock, random key and monotonic sequence for idempotent recovery.
 - Flush pending autosave before manual submission and never trigger Review or
   Publish automatically. Browser storage is not used as a score source.
+- Render the autosave reload action with Gibbon's standard Button component.
 
 v1.4.1
 ------

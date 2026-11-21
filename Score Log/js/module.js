@@ -54,6 +54,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         let allowManualSubmit = false;
         let submissionPending = false;
 
+        if (autosaveReload) {
+            autosaveReload.addEventListener('click', () => {
+                window.location.assign(autosaveReload.dataset.reloadUrl || window.location.href);
+            });
+        }
+
         const setAutosaveState = (state, message) => {
             if (!autosaveStatus) return;
             autosaveStatus.dataset.state = state;
@@ -76,12 +82,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             if (!autosaveReload) return;
             const draftID = draftIDInput ? draftIDInput.value : '';
             if (draftID === '') {
-                autosaveReload.href = window.location.href;
+                autosaveReload.dataset.reloadUrl = window.location.href;
                 return;
             }
             const url = new URL(window.location.href);
             url.searchParams.set('draftID', draftID);
-            autosaveReload.href = url.toString();
+            autosaveReload.dataset.reloadUrl = url.toString();
         };
 
         const setDraftIdentity = (draftID, revision) => {

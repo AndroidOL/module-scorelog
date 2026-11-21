@@ -22,6 +22,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 use Gibbon\Domain\System\SettingGateway;
 use Gibbon\Forms\DatabaseFormFactory;
 use Gibbon\Forms\Form;
+use Gibbon\Forms\Input\Button as FormButton;
 use Gibbon\Services\Format;
 use Gibbon\Tables\DataTable;
 
@@ -406,6 +407,17 @@ $form->addHiddenValue('gibbonScaleIDAttainment', $gibbonScaleIDAttainment);
 $form->addHiddenValue('columnOrder', $columnID);
 $form->addHiddenValue("columns[$columnID][scaleID]", $gibbonScaleIDAttainment);
 
+$reloadURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php'
+    .($scoreLogDraftID !== '' ? '&draftID='.urlencode($scoreLogDraftID) : '');
+$reloadButton = new FormButton(
+    scoreLogT('Reload latest draft'),
+    'button',
+    null,
+    'scoreLogAutosaveReload'
+);
+$reloadButton->setSize('sm')
+    ->setAttribute('hidden', 'hidden')
+    ->setAttribute('data-reload-url', $reloadURL);
 $row = $form->addRow();
 $row->addContent(
     '<span id="scoreLogAutosaveStatus" class="text-sm font-semibold text-gray-600" data-state="'
@@ -414,9 +426,7 @@ $row->addContent(
         ? sprintf(scoreLogT('Saved · revision %s'), (string) $revision)
         : scoreLogT('Not saved yet'))
     .'</span>'
-    .' <a id="scoreLogAutosaveReload" class="button button-secondary text-xs" href="'
-    .htmlPrep($session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php'.($scoreLogDraftID !== '' ? '&draftID='.urlencode($scoreLogDraftID) : ''))
-    .'" hidden>'.scoreLogT('Reload latest draft').'</a>'
+    .' '.$reloadButton->getOutput()
 );
 
 $form->addRow()->addHeading('assessmentDetails', scoreLogT('Assessment Details'));

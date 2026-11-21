@@ -1094,7 +1094,8 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringContainsString("setAutosaveState('offline'", $script);
         $this->assertStringContainsString("setAutosaveState('auth'", $script);
         $this->assertStringContainsString("setAutosaveState('failed'", $script);
-        $this->assertStringContainsString('autosaveReload.href = window.location.href', $script);
+        $this->assertStringContainsString('autosaveReload.dataset.reloadUrl = window.location.href', $script);
+        $this->assertStringContainsString("setAttribute('data-reload-url', \$reloadURL)", $view);
         $this->assertStringContainsString('response.redirected', $script);
         $this->assertStringContainsString("!contentType.includes('application/json')", $script);
         $this->assertStringNotContainsString('localStorage', $script);
