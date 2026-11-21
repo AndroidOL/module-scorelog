@@ -99,8 +99,13 @@ try {
         'Unsupported file type' => 'error5',
         'Too many rows'       => 'error4',
         'Paste too large'     => 'error4',
+        'Too many worksheets' => 'error4',
         'Unable to read file' => 'error2',
         'Unable to read workbook' => 'error2',
+        'No importable worksheets' => 'error2',
+        'Worksheet header not found' => 'error10',
+        'Worksheet headers do not match' => 'error10',
+        'Worksheet metadata does not match' => 'error10',
     ];
     $redirect($codes[$e->getMessage()] ?? 'error2');
 }

@@ -1523,6 +1523,84 @@ function scoreLogImportWorksheetToMatrix($sheet): array
     ];
 }
 
+function scoreLogCombineImportWorksheets(array $worksheets): array
+{
+    $combined = [];
+    $formulaCells = [];
+    $sheetNames = [];
+    $columnCount = 0;
+    $ignoredColumns = 0;
+    $headerSignature = null;
+    $metadataSignature = null;
+
+    foreach ($worksheets as $worksheet) {
+        $matrix = $worksheet['matrix'] ?? [];
+        $headerRow = null;
+        foreach ($matrix as $index => $row) {
+            if (scoreLogDetectImportHeader($row) !== null) {
+                $headerRow = $index;
+                break;
+            }
+        }
+        if ($headerRow === null) {
+            throw new RuntimeException('Worksheet header not found');
+        }
+
+        $header = array_map('scoreLogNormalizeImportKey', $matrix[$headerRow]);
+        $metadata = array_map(function ($row) {
+            return array_map('scoreLogNormalizeImportKey', $row);
+        }, array_slice($matrix, 0, $headerRow));
+        if ($headerSignature === null) {
+            $headerSignature = $header;
+            $metadataSignature = $metadata;
+            $combined[] = $matrix[$headerRow];
+        } elseif ($header !== $headerSignature) {
+            throw new RuntimeException('Worksheet headers do not match');
+        } elseif ($metadata !== $metadataSignature) {
+            throw new RuntimeException('Worksheet metadata does not match');
+        }
+
+        $sheetNames[] = (string) ($worksheet['sheetName'] ?? '');
+        $columnCount = max($columnCount, (int) ($worksheet['columnCount'] ?? 0));
+        $ignoredColumns = max($ignoredColumns, (int) ($worksheet['ignoredColumns'] ?? 0));
+
+        foreach (array_slice($matrix, $headerRow + 1, null, true) as $sourceRow => $row) {
+            $hasValue = false;
+            foreach ($row as $value) {
+                if (trim((string) $value) !== '') {
+                    $hasValue = true;
+                    break;
+                }
+            }
+            if (!$hasValue) {
+                continue;
+            }
+
+            $targetRow = count($combined);
+            $combined[] = $row;
+            foreach (($worksheet['formulaCells'] ?? []) as $key => $unused) {
+                [$formulaRow, $formulaColumn] = array_pad(explode(':', $key, 2), 2, '');
+                if ((int) $formulaRow === (int) $sourceRow) {
+                    $formulaCells[$targetRow.':'.$formulaColumn] = true;
+                }
+            }
+        }
+    }
+
+    if (empty($combined)) {
+        throw new RuntimeException('No importable worksheets');
+    }
+
+    return [
+        'matrix'         => $combined,
+        'formulaCells'   => $formulaCells,
+        'rowCount'       => count($combined),
+        'columnCount'    => $columnCount,
+        'ignoredColumns' => $ignoredColumns,
+        'sheetName'      => implode(', ', array_filter($sheetNames)),
+    ];
+}
+
 function scoreLogParseImportFile(string $path, string $extension): array
 {
     $extension = strtolower($extension);
@@ -1539,21 +1617,41 @@ function scoreLogParseImportFile(string $path, string $extension): array
         $reader->setInputEncoding(scoreLogImportCsvEncoding($contents));
         $reader->setReadDataOnly(true);
         $spreadsheet = $reader->load($path);
-    } else {
-        $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
-        $reader->setReadDataOnly(true);
-        $sheetInfo = $reader->listWorksheetInfo($path);
-        if (empty($sheetInfo[0]['worksheetName'])) {
-            throw new RuntimeException('Unable to read workbook');
-        }
-        if ((int) ($sheetInfo[0]['totalRows'] ?? 0) > 500) {
-            throw new RuntimeException('Too many rows');
-        }
-        $reader->setLoadSheetsOnly([$sheetInfo[0]['worksheetName']]);
-        $spreadsheet = $reader->load($path);
+
+        return scoreLogImportWorksheetToMatrix($spreadsheet->getSheet(0));
     }
 
-    return scoreLogImportWorksheetToMatrix($spreadsheet->getSheet(0));
+    $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+    $reader->setReadDataOnly(true);
+    $sheetInfo = $reader->listWorksheetInfo($path);
+    if (empty($sheetInfo)) {
+        throw new RuntimeException('Unable to read workbook');
+    }
+    foreach ($sheetInfo as $sheet) {
+        if ((int) ($sheet['totalRows'] ?? 0) > 500) {
+            throw new RuntimeException('Too many rows');
+        }
+    }
+    if (count($sheetInfo) > 20) {
+        throw new RuntimeException('Too many worksheets');
+    }
+
+    $spreadsheet = $reader->load($path);
+    $worksheets = [];
+    foreach ($spreadsheet->getWorksheetIterator() as $sheet) {
+        $worksheet = scoreLogImportWorksheetToMatrix($sheet);
+        if (!empty($worksheet['matrix'])) {
+            $worksheets[] = $worksheet;
+        }
+    }
+    if (empty($worksheets)) {
+        throw new RuntimeException('No importable worksheets');
+    }
+    if (count($worksheets) === 1) {
+        return $worksheets[0];
+    }
+
+    return scoreLogCombineImportWorksheets($worksheets);
 }
 
 function scoreLogBuildAssessmentSpreadsheet(

@@ -1,6 +1,14 @@
 CHANGELOG
 =========
 
+v1.5.4
+------
+- Validate every worksheet in an uploaded workbook and merge data rows only
+  when assessment metadata and column headers match.
+- Reject workbooks whose worksheets describe different assessments instead of
+  silently importing only the first sheet.
+- Recognize the Chinese 分值 score header used by the generated template.
+
 v1.5.3
 ------
 - Fix saved-draft action links so Resume, Import, Export and Discard receive

@@ -41,6 +41,7 @@ $page->return->addReturns([
     'error7'   => scoreLogT('The import mapping changed after preview. Refresh the preview before applying.'),
     'error8'   => scoreLogT('Confirm that unmatched or invalid import rows will be skipped.'),
     'error9'   => scoreLogT('Your session expired. Refresh the page and try again.'),
+    'error10'  => scoreLogT('Every worksheet must use the same assessment metadata and import column headers.'),
 ]);
 
 $gibbonPersonID = (string) $session->get('gibbonPersonID');

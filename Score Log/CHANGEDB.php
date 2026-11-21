@@ -4,6 +4,21 @@
 $sql = [];
 $count = 0;
 
+// v1.5.4
+$sql[$count][0] = "1.5.4";
+$sql[$count][1] = "UPDATE gibbonAction
+SET URLList='scorelog_view.php, scorelog_createProcess.php, scorelog_draftProcess.php, scorelog_autosaveProcess.php, scorelog_discardProcess.php, scorelog_review.php, scorelog_publishProcess.php, scorelog_import.php, scorelog_importProcess.php, scorelog_importApplyProcess.php, scorelog_importTemplate.php, scorelog_drafts.php, scorelog_draftDelete.php, scorelog_comments.php, scorelog_commentManage.php, scorelog_commentProcess.php'
+WHERE gibbonModuleID=(
+      SELECT gibbonModuleID
+      FROM gibbonModule
+      WHERE name='Score Log'
+  )
+  AND (
+      entryURL='scorelog_view.php'
+      OR URLList LIKE '%scorelog_view.php%'
+  );end";
+$count++;
+
 // v1.5.3
 $sql[$count][0] = "1.5.3";
 $sql[$count][1] = "UPDATE gibbonAction
