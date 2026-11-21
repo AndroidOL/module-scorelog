@@ -117,6 +117,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
         const markDirty = () => {
             dirty = true;
+            allowManualSubmit = false;
+            submissionPending = false;
             changeVersion++;
             if (autosaveSequenceInput) autosaveSequenceInput.value = String(changeVersion);
             if (autosaveConflict) {
@@ -250,7 +252,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             const normalized = String(value || '').trim().replace(/%$/, '');
             if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)) return null;
             const number = Number(normalized);
-            return Number.isFinite(number) ? number : null;
+            if (!Number.isFinite(number)) return null;
+            const rounded = Number(number.toFixed(4));
+            const canonical = rounded === 0 ? '0' : String(rounded);
+            return canonical.length <= 10 ? rounded : null;
         };
 
         const scoreStatus = (input) => {
@@ -418,11 +423,14 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                 || event.ctrlKey
                 || event.metaKey
                 || event.isComposing
-                || !event.target.classList.contains('scoreLogScoreInput')
             ) return;
 
+            if (event.target.matches('textarea, button, input[type="submit"], input[type="button"]')) return;
+            if (!event.target.matches('input')) return;
             event.preventDefault();
-            focusNextVisibleScore();
+            if (event.target.classList.contains('scoreLogScoreInput')) {
+                focusNextVisibleScore();
+            }
         });
 
         if (reuseStructureButton) reuseStructureButton.addEventListener('click', copyStructure);

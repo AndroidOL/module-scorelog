@@ -1009,8 +1009,15 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringContainsString('event.key !== \'Enter\'', $script);
         $this->assertStringContainsString('event.shiftKey', $script);
         $this->assertStringContainsString('event.ctrlKey', $script);
+        $this->assertStringContainsString('textarea, button, input[type="submit"], input[type="button"]', $script);
         $this->assertStringContainsString('applyQuickFilter', $script);
         $this->assertStringContainsString('scoreStatus', $script);
+        $this->assertStringContainsString('number.toFixed(4)', $script);
+        $this->assertStringContainsString('setRows(1)', $view);
+        $this->assertStringContainsString('autosize()', $view);
+        $this->assertStringContainsString('max-h-32 overflow-y-auto', $view);
+        $this->assertStringContainsString('allowManualSubmit = false;', $script);
+        $this->assertStringContainsString('submissionPending = false;', $script);
         $this->assertStringContainsString("addHiddenValue('targetColumnID'", $view);
         $this->assertStringContainsString("setName('importScores')", $view);
         $this->assertStringContainsString("setName('exportScores')", $view);

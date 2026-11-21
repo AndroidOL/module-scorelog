@@ -582,7 +582,9 @@ foreach ($roster as $student) {
 
     $commentColumn = $row->addColumn()->addClass('stacked');
     $commentColumn->addTextArea("scores[$studentID][$columnID][comment]")
-        ->setRows(4)
+        ->setRows(1)
+        ->autosize()
+        ->setClass('max-h-32 overflow-y-auto')
         ->maxLength(1000)
         ->setValue((string) ($entry['comment'] ?? ''))
         ->setAttribute('aria-label', sprintf(
@@ -597,7 +599,7 @@ foreach ($roster as $student) {
         }
         $commentColumn->addSelect('commentLibrary['.$studentID.']')
             ->fromArray($commentOptions)
-            ->placeholder(scoreLogT('Choose from comment library...'))
+            ->placeholder(scoreLogT('Add from library...'))
             ->setClass('scoreLogCommentLibrarySelect');
         $commentColumn->addButton(scoreLogT('Append comment'), null)
             ->setClass('scoreLogCommentLibraryInsert')
