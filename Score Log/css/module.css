@@ -219,6 +219,51 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         min-width: 10rem;
         max-width: 10rem;
     }
+
+    #scoreLogSavedDrafts table {
+        min-width: 0;
+        table-layout: fixed;
+    }
+
+    #scoreLogSavedDrafts th:nth-child(3),
+    #scoreLogSavedDrafts td:nth-child(3),
+    #scoreLogSavedDrafts th:nth-child(5),
+    #scoreLogSavedDrafts td:nth-child(5),
+    #scoreLogSavedDrafts th:nth-child(6),
+    #scoreLogSavedDrafts td:nth-child(6) {
+        display: none;
+    }
+
+    #scoreLogSavedDrafts th:nth-child(1) {
+        width: 32%;
+    }
+
+    #scoreLogSavedDrafts th:nth-child(2) {
+        width: 23%;
+    }
+
+    #scoreLogSavedDrafts th:nth-child(4) {
+        width: 27%;
+    }
+
+    #scoreLogSavedDrafts th:nth-child(7) {
+        width: 3rem;
+    }
+
+    #scoreLogSavedDrafts td {
+        overflow-wrap: anywhere;
+    }
+}
+
+.scoreLogGrid .scoreLogScoreInput {
+    max-width: 7rem;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.scoreLogCommentEditor textarea {
+    max-height: 6.5rem;
+    overflow-y: auto !important;
 }
 
 .schoolCommunityImportSummary,

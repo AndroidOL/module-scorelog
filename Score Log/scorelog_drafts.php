@@ -93,7 +93,10 @@ $page->navigator->addHeaderAction('create', scoreLogT('Create New Assessment'))
 
 $table = DataTable::create('scoreLogSavedDrafts');
 $table->setTitle(scoreLogT('Saved Drafts'));
-$table->setDescription(scoreLogT('Private drafts created by you for the current school year. Only you can resume or discard them.'));
+$table->setDescription(
+    scoreLogT('Private drafts created by you for the current school year. Only you can resume or discard them.')
+    .' '.scoreLogT('Export the current scores, edit the XLSX file, then import it back. Import changes are previewed before they are applied.')
+);
 $table->addMetaData('blankSlate', scoreLogT('You do not have any saved drafts.'));
 $table->addColumn('title', scoreLogT('Name'));
 $table->addColumn('className', scoreLogT('Class'));
@@ -111,15 +114,18 @@ $table->addActionColumn()
             ->setURL('/modules/Score Log/scorelog_view.php');
         $actions->addAction('import', scoreLogT('Import Scores'))
             ->setIcon('upload')
-            ->setURL('/modules/Score Log/scorelog_import.php');
+            ->setURL('/modules/Score Log/scorelog_import.php')
+            ->setAttribute('aria-label', scoreLogT('Import Scores'));
         $actions->addAction('export', scoreLogT('Export Current Scores (XLSX)'))
             ->setIcon('download')
             ->setURL('/modules/Score Log/scorelog_importTemplate.php')
-            ->directLink();
+            ->directLink()
+            ->setAttribute('aria-label', scoreLogT('Export Current Scores (XLSX)'));
         $actions->addAction('discard', scoreLogT('Discard Draft'))
             ->setIcon('delete')
             ->setURL('/modules/Score Log/scorelog_draftDelete.php')
-            ->addParam('returnPage', 'drafts');
+            ->addParam('returnPage', 'drafts')
+            ->setAttribute('aria-label', scoreLogT('Discard Draft'));
     });
 
 $page->write($table->render($rows));

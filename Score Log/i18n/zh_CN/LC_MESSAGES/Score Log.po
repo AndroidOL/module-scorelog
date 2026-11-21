@@ -434,7 +434,9 @@ msgid "Choose a valid assessment type."
 msgstr "请选择有效的评估类型。"
 
 #: ⁨Score Log/scorelog_review.php⁩ ⁨Score Log/scorelog_view.php⁩
-msgid "No Formal Assessment types are configured. Ask an administrator to update Formal Assessment settings."
+msgid ""
+"No Formal Assessment types are configured. Ask an administrator to update "
+"Formal Assessment settings."
 msgstr "尚未配置正式评估类型。请联系管理员更新正式评估设置。"
 
 #: ⁨Score Log/moduleFunctions.php⁩:443 ⁨Score Log/moduleFunctions.php⁩:590
@@ -918,3 +920,71 @@ msgstr "修订版本"
 #: ⁨Score Log/scorelog_importProcess.php⁩:93
 msgid "Pasted table"
 msgstr "粘贴的表格"
+
+msgid "Correct these assessment details before publishing:"
+msgstr "发布前请修正以下评估信息："
+
+msgid ""
+"Export the current scores, edit the XLSX file, then import it back. Import "
+"changes are previewed before they are applied."
+msgstr ""
+"导出当前成绩，编辑 XLSX 文件后再导入。导入的变更会先预览，确认后才会应用。"
+
+#, php-format
+msgid "I confirm that %s students will be published without a score."
+msgstr "我确认有 %s 名学生将在无成绩的情况下发布。"
+
+msgid "Maximum 1000 characters."
+msgstr "最多 1000 个字符。"
+
+msgid "Maximum 30 characters."
+msgstr "最多 30 个字符。"
+
+msgid ""
+"Only the current roster will be published. Review all missing scores before "
+"continuing."
+msgstr "仅当前名册会发布。继续前请复核所有未填成绩。"
+
+msgid "Publish Assessment"
+msgstr "发布评估"
+
+msgid "Publish Preview"
+msgstr "发布预览"
+
+msgid "Publish Settings"
+msgstr "发布设置"
+
+#, php-format
+msgid "Publish this assessment to the current roster of %s students?"
+msgstr "确定向当前名册中的 %s 名学生发布此评估吗？"
+
+msgid ""
+"Save this draft before using score import or export from Saved Drafts. "
+"Import changes are previewed before they are applied."
+msgstr ""
+"请先保存此草稿，再从“已保存草稿”使用成绩导入或导出。导入的变更会先预览，确认"
+"后才会应用。"
+
+msgid "Students"
+msgstr "学生"
+
+msgid ""
+"The assessment is hidden from students, parents and reports until this date."
+msgstr "在这个日期之前，学生、家长和报表看不到该评估。"
+
+msgid ""
+"This draft cannot be published until all invalid rows and assessment details "
+"are corrected."
+msgstr "修正所有无效行和评估信息后才能发布此草稿。"
+
+msgid "Visible to Parents"
+msgstr "家长可见"
+
+msgid "Visible to Students"
+msgstr "学生可见"
+
+msgid "Save and Import Scores"
+msgstr "保存并导入成绩"
+
+msgid "Save and Export Current Scores"
+msgstr "保存并导出当前成绩"

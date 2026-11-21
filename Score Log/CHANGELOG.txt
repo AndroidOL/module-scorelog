@@ -18,6 +18,25 @@ v1.3.0
 - Add horizontal grid scrolling, sticky student names, comment drawers and live
   entered/missing/invalid counts.
 
+v1.2.4
+------
+- Add safe Save and Import Scores and Save and Export Current Scores actions to
+  the draft editor.
+
+v1.2.3
+------
+- Align the score-entry and Saved Drafts layouts with official Gibbon controls.
+- Keep the fixed-width desktop grid while enlarging score inputs and auto-sizing
+  compact comments up to four lines.
+- Use responsive per-student cards at narrow widths.
+- Remove unsafe unsaved import/export navigation from the live editor.
+
+v1.2.2
+------
+- Improve the score-entry table proportions, grouped headers and mobile card layout.
+- Put Import Scores and Export Current Scores in the standard draft workflow.
+- Standardize Saved Drafts action-column layout and mobile action menus.
+
 v1.2.1
 ------
 - Add a dedicated Saved Drafts page with progress, revision and last-saved

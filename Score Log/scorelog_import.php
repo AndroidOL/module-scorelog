@@ -95,19 +95,18 @@ if ($columnID === '' || empty($draft['payloadData']['columns'][$columnID])) {
     return;
 }
 
-$actionForm = Form::createBlank('scoreLogImportActions');
-$actionForm->addHeaderAction('back', scoreLogT('Back to Draft'))
+$page->navigator->addHeaderAction('back', scoreLogT('Back to Draft'))
     ->setURL('/modules/Score Log/scorelog_view.php')
     ->addParam('draftID', $scoreLogDraftID)
+    ->setIcon('back')
     ->displayLabel();
-$actionForm->addHeaderAction('template', scoreLogT('Download XLSX Template'))
+$page->navigator->addHeaderAction('exportCurrentScores', scoreLogT('Export Current Scores (XLSX)'))
     ->setURL('/modules/Score Log/scorelog_importTemplate.php')
     ->addParam('draftID', $scoreLogDraftID)
     ->addParam('columnID', $columnID)
     ->setIcon('download')
     ->directLink()
     ->displayLabel();
-$page->write($actionForm->getOutput());
 
 $previews = $session->get('scoreLogImportPreviews', []);
 $previewMeta = $previewToken !== '' ? ($previews[$previewToken] ?? null) : null;

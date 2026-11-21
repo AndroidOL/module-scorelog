@@ -28,7 +28,7 @@ use Gibbon\Tables\DataTable;
 
 require_once __DIR__.'/moduleFunctions.php';
 
-$page->breadcrumbs->add(scoreLogT('Create Internal Assessment'));
+$page->breadcrumbs->add(scoreLogT('Create Internal Assessment'), 'scorelog_view.php');
 
 $page->return->addReturns([
     'success0' => scoreLogT('Assessment published.'),
@@ -196,6 +196,10 @@ if ($scoreLogDraftID === '' && ($gibbonCourseClassID === '' || $gibbonScaleIDAtt
 }
 
 if ($scoreLogDraftID !== '') {
+    $page->breadcrumbs
+        ->add(scoreLogT('Saved Drafts'), 'scorelog_drafts.php')
+        ->add(scoreLogT('Edit Draft'));
+
     $draft = scoreLogLoadDraft($pdo, $scoreLogDraftID, $gibbonPersonID);
     if (
         empty($draft)
