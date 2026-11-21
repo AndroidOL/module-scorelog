@@ -136,7 +136,7 @@ function scoreLogResolveScaleGrade($value, array $scale, array $gradeDescriptors
     $value = is_scalar($value) ? trim((string) $value) : '';
 
     if (($scale['numeric'] ?? 'N') === 'Y') {
-        $numericValue = scoreLogNormalizeNumericValue($value);
+        $numericValue = scoreLogScaleGradeNumericValue($value);
         if ($numericValue === null) {
             return null;
         }
@@ -1006,7 +1006,7 @@ function scoreLogValidateImportScore($value, array $scale, array $gradeDescripto
     }
 
     if (($scale['numeric'] ?? 'N') === 'Y') {
-        $normalized = scoreLogNormalizeNumericValue($value);
+        $normalized = scoreLogScaleGradeNumericValue($value);
         if ($normalized === null) {
             return ['valid' => false, 'normalized' => '', 'descriptor' => '', 'error' => scoreLogT('Enter a valid finite number.')];
         }

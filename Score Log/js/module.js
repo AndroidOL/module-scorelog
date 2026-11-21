@@ -155,15 +155,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
             let rowInvalid = false;
             if (config.numeric === 'Y') {
-                if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value)) {
-                    rowInvalid = true;
-                } else {
-                    const number = Number(value);
-                    rowInvalid = !Number.isFinite(number)
-                        || number < 0
-                        || (config.max !== null && config.max !== undefined && number > Number(config.max))
-                        || !matchesNumericGrade(value, grades);
-                }
+                const number = numericValue(value);
+                rowInvalid = number === null
+                    || number < 0
+                    || (config.max !== null && config.max !== undefined && number > Number(config.max))
+                    || !matchesNumericGrade(value, grades);
             } else {
                 rowInvalid = !Object.prototype.hasOwnProperty.call(grades, value);
             }
