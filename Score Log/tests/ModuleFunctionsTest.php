@@ -989,6 +989,17 @@ namespace Gibbon\Module\ScoreLog\Tests {
         }
     }
 
+    public function testUpgradeRegistersAutosaveActionUrl()
+    {
+        $changedb = file_get_contents(dirname(__DIR__).'/CHANGEDB.php');
+        $this->assertIsString($changedb);
+        $this->assertStringContainsString('$sql[$count][0] = "1.5.1";', $changedb);
+        $this->assertStringContainsString("UPDATE gibbonAction", $changedb);
+        $this->assertStringContainsString('scorelog_autosaveProcess.php', $changedb);
+        $this->assertStringContainsString("WHERE name='Create Assessment'", $changedb);
+        $this->assertStringContainsString("WHERE name='Score Log'", $changedb);
+    }
+
     public function testTeacherRowFlowUsesEditableScoresFilterAndEnterNavigation()
     {
         $view = file_get_contents(dirname(__DIR__).'/scorelog_view.php');

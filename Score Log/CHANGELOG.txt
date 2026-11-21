@@ -9,6 +9,8 @@ v1.5.1
 - Add All, Missing and Invalid filtering and Enter-to-next-visible-row entry.
 - Move save-first Import Scores and Export Current Scores to the editor action
   area and add grade suggestions through a standard datalist.
+- Register the autosave endpoint in the existing installed action URL map
+  through a repeat-safe 1.5.1 upgrade migration.
 
 v1.5.0
 ------
