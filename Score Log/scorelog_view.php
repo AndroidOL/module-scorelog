@@ -213,7 +213,7 @@ if ($scoreLogDraftID !== '') {
         ['gibbonCourseClassID' => $gibbonCourseClassID, 'gibbonSchoolYearID' => $gibbonSchoolYearID]
     );
     $scale = $pdo->selectOne(
-        "SELECT gibbonScaleID, name, `usage`, numeric
+        "SELECT gibbonScaleID, name, `usage`, `numeric`
          FROM gibbonScale WHERE gibbonScaleID=:gibbonScaleID AND active='Y'",
         ['gibbonScaleID' => $gibbonScaleIDAttainment]
     );
