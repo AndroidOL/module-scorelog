@@ -20,6 +20,10 @@ v1.2.0
 - Add a roster-based XLSX round-trip template prefilled with current draft
   scores and comments.
 
+v1.1.1
+------
+- Quote the reserved `numeric` column when loading the selected assessment scale.
+
 v1.1.0
 ------
 - Add private, resumable whole-class drafts with revision checks; core Formal
