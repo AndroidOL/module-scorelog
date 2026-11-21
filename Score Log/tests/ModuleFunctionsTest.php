@@ -1219,6 +1219,23 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertSame('88', $scoresSpreadsheet->getSheetByName('Scores')->getCell('D2')->getValue());
         $this->assertSame('Good work', $scoresSpreadsheet->getSheetByName('Scores')->getCell('E2')->getValue());
 
+        $formulaPayload = $payload;
+        $formulaPayload['columns']['c1']['name'] = '=2+2';
+        $formulaPayload['columns']['c1']['description'] = '=1+1';
+        foreach (['template', 'scores'] as $exportMode) {
+            $formulaSpreadsheet = \scoreLogBuildAssessmentSpreadsheet(
+                $formulaPayload,
+                $this->importRoster(),
+                'c1',
+                $exportMode
+            );
+            $metadata = $formulaSpreadsheet->getSheetByName('Assessment');
+            $this->assertSame(\PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING, $metadata->getCell('B1')->getDataType());
+            $this->assertSame('=2+2', $metadata->getCell('B1')->getValue());
+            $this->assertSame(\PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING, $metadata->getCell('B2')->getDataType());
+            $this->assertSame('=1+1', $metadata->getCell('B2')->getValue());
+        }
+
         $path = tempnam(sys_get_temp_dir(), 'scorelog-template-');
         $this->assertIsString($path);
         (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($scoresSpreadsheet))->save($path);

@@ -1647,10 +1647,10 @@ function scoreLogBuildAssessmentSpreadsheet(
 
     $metadata = $spreadsheet->createSheet();
     $metadata->setTitle(scoreLogT('Assessment'));
-    $metadata->fromArray([
-        [scoreLogT('Assessment Name'), (string) ($column['name'] ?? '')],
-        [scoreLogT('Description'), (string) ($column['description'] ?? '')],
-    ], null, 'A1');
+    $metadata->setCellValueExplicit('A1', scoreLogT('Assessment Name'), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    $metadata->setCellValueExplicit('B1', (string) ($column['name'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    $metadata->setCellValueExplicit('A2', scoreLogT('Description'), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    $metadata->setCellValueExplicit('B2', (string) ($column['description'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
     $metadata->getStyle('A1:A2')->getFont()->setBold(true);
     $metadata->getStyle('B2')->getAlignment()->setWrapText(true);
     $metadata->getColumnDimension('A')->setWidth(24);
