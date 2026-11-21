@@ -967,7 +967,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringNotContainsString("role IN ('Teacher', 'Assistant', 'Technician')", $functions);
     }
 
-    public function testTeacherQuickEntryUsesCheckedStudentsPreviewAndRevisionBoundUndo()
+    public function testTeacherRowFlowUsesEditableScoresFilterAndEnterNavigation()
     {
         $view = file_get_contents(dirname(__DIR__).'/scorelog_view.php');
         $script = file_get_contents(dirname(__DIR__).'/js/module.js');
@@ -975,27 +975,37 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertIsString($view);
         $this->assertIsString($script);
         foreach ([
-            'scoreLogOnlyMissing',
-            'scoreLogNextMissing',
-            'scoreLogBulkValue',
-            'scoreLogBulkOverwrite',
-            'scoreLogBulkFill',
-            'scoreLogBulkClear',
-            'scoreLogBulkPreview',
-            'scoreLogBulkUndo',
-            'scoreLogStudentSelect',
+            'scoreLogQuickFilter',
+            'scoreLogScoreInput',
+            'scoreLogGradeOptions',
+            'scoreLogRowSummary',
         ] as $controlID) {
             $this->assertStringContainsString($controlID, $view);
         }
         $this->assertStringContainsString("addHiddenValue('revision'", $view);
-        $this->assertStringContainsString('focusNextMissing', $script);
-        $this->assertStringContainsString('checkedScoreRows', $script);
-        $this->assertStringContainsString('!row.hidden && checkbox && checkbox.checked', $script);
-        $this->assertStringContainsString('bulkOverwriteInput', $script);
-        $this->assertStringContainsString("labels.confirmBulkClear", $script);
-        $this->assertStringContainsString('revisionInput.value', $script);
-        $this->assertStringContainsString("event.key.toLowerCase() === 'n'", $script);
-        $this->assertStringContainsString('invalidateUndoForRow', $script);
+        $this->assertStringContainsString('focusNextVisibleScore', $script);
+        $this->assertStringContainsString('event.key !== \'Enter\'', $script);
+        $this->assertStringContainsString('event.shiftKey', $script);
+        $this->assertStringContainsString('event.ctrlKey', $script);
+        $this->assertStringContainsString('applyQuickFilter', $script);
+        $this->assertStringContainsString('scoreStatus', $script);
+        $this->assertStringContainsString("addHiddenValue('targetColumnID'", $view);
+        $this->assertStringContainsString("setName('importScores')", $view);
+        $this->assertStringContainsString("setName('exportScores')", $view);
+        $this->assertStringNotContainsString("setValue(\$columnID)", $view);
+        foreach ([
+            'scoreLogOnlyMissing',
+            'scoreLogNextMissing',
+            'scoreLogBulkValue',
+            'scoreLogBulkFill',
+            'scoreLogBulkClear',
+            'scoreLogBulkUndo',
+            'scoreLogStudentSelect',
+            'Quick Entry',
+            'selectStudents',
+        ] as $obsoleteControl) {
+            $this->assertStringNotContainsString($obsoleteControl, $view);
+        }
     }
 
     public function testPrivateCommentLibraryAndStructureReuseRemainDraftOnly()
@@ -1010,9 +1020,9 @@ namespace Gibbon\Module\ScoreLog\Tests {
         foreach ([$manifest, $changedb, $process, $view, $script, $version] as $source) {
             $this->assertIsString($source);
         }
-        $this->assertStringContainsString("\$version     = '1.5.0'", $manifest);
+        $this->assertStringContainsString("\$version     = '1.5.1'", $manifest);
         $this->assertStringContainsString('CREATE TABLE IF NOT EXISTS `score_log_draft`', $changedb);
-        $this->assertStringContainsString("\$moduleVersion = '1.5.0'", $version);
+        $this->assertStringContainsString("\$moduleVersion = '1.5.1'", $version);
         $this->assertStringContainsString('CREATE TABLE `score_log_comment`', $manifest);
         $this->assertStringContainsString('CREATE TABLE IF NOT EXISTS `score_log_comment`', $changedb);
         $this->assertStringContainsString('scorelog_comments.php', $manifest);
@@ -1029,7 +1039,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringContainsString('copyStructure', $script);
         $this->assertStringContainsString('Assessment details copied without scores or comments.', $view);
 
-        $this->assertStringContainsString("addSelectGradeScaleGrade(", $view);
+        $this->assertStringContainsString("addTextField(\"scores[", $view);
         $this->assertStringContainsString("addTable()", $view);
         $this->assertStringNotContainsString('Add Assessment Column', $view);
         $this->assertStringContainsString('count($savedColumnOrder) > 1', $view);

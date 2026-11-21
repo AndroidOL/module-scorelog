@@ -28,12 +28,10 @@ workflow that reads or changes score data.
   official Gibbon scale.
 - Create one assessment per draft using Gibbon's standard form, form-table and
   grade-scale controls.
-- Move through missing scores with Enter or Alt+N and optionally show only
-  missing students in the current assessment.
-- Select students explicitly, preview affected counts, then bulk fill or clear
-  their score with revision-bound undo.
-- Fill only blank scores by default; overwriting existing scores requires an
-  explicit checkbox and confirmation. Clear always asks for confirmation.
+- Enter a score or grade on each student row. Enter moves to the next visible
+  row and wraps to the first missing row.
+- Filter the roster by All, Missing or Invalid using the same score-validity
+  rules as the server review.
 - Reuse a previous assessment's structure without copying scores or comments.
 - Save a private draft and resume it later without losing whole-class input.
 - Autosave private drafts on the server with visible saving, offline and
@@ -59,14 +57,6 @@ carries a revision number so a stale tab cannot overwrite newer work. Reopening 
 publishing re-resolve the current reportable roster; added and removed students
 are shown explicitly. Publishing always goes through a review page. A creator
 can permanently discard their own draft with a CSRF-protected POST.
-
-Bulk fill, clear and undo operate only on the live draft form. They do not
-write a Formal Assessment until the normal Review and Publish flow succeeds.
-Undo is discarded when the draft revision changes or a bulk-affected score is
-edited manually.
-
-Bulk actions target only visible checked students, and rows hidden by Only
-Missing are automatically unchecked.
 
 ## Autosave and recovery
 

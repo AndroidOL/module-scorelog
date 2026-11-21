@@ -21,18 +21,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         const form = document.getElementById('scoreLogAssessment');
         if (!form) return;
 
-        const onlyMissingToggle = document.getElementById('scoreLogOnlyMissing');
-        const nextMissingButton = document.getElementById('scoreLogNextMissing');
-        const focusStatus = document.getElementById('scoreLogFocusStatus');
-        const bulkValueInput = document.getElementById('scoreLogBulkValue');
-        const bulkOverwriteInput = document.getElementById('scoreLogBulkOverwrite');
-        const bulkFillButton = document.getElementById('scoreLogBulkFill');
-        const bulkClearButton = document.getElementById('scoreLogBulkClear');
-        const bulkPreview = document.getElementById('scoreLogBulkPreview');
-        const bulkUndoButton = document.getElementById('scoreLogBulkUndo');
+        const quickFilter = document.getElementById('scoreLogQuickFilter');
         const structureSource = document.getElementById('scoreLogStructureSource');
         const reuseStructureButton = document.getElementById('scoreLogReuseStructure');
-        const selectAll = document.getElementById('scoreLogSelectAll');
+        const structureStatus = document.getElementById('scoreLogStructureStatus');
         const autosaveStatus = document.getElementById('scoreLogAutosaveStatus');
         const autosaveReload = document.getElementById('scoreLogAutosaveReload');
         const draftIDInput = form.querySelector('input[name="scoreLogDraftID"]');
@@ -41,9 +33,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         const autosaveURL = form.dataset.autosaveUrl || '';
         const commentLibraryData = window.scoreLogCommentLibrary || [];
         const reusableAssessments = window.scoreLogReusableAssessments || {};
+        const scaleData = window.scoreLogScaleData || {};
         const labels = window.scoreLogImportLabels || {};
         let dirty = false;
-        let bulkUndo = null;
         let changeVersion = 0;
         let autosaveTimer = null;
         let autosaveInFlight = null;
@@ -248,217 +240,90 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         };
 
         const scoreRows = () => Array.from(form.querySelectorAll('tr[data-student-id]'));
-        const scoreSelectFor = (row) => row ? row.querySelector('.scoreLogScoreSelect') : null;
+        const scoreInputFor = (row) => row ? row.querySelector('input.scoreLogScoreInput') : null;
         const isPersistedField = (field) => {
             const name = field && field.name ? field.name : '';
             return name.startsWith('columns[') || name.startsWith('scores[');
         };
-        const checkedScoreRows = () => scoreRows().filter((row) => {
-            const checkbox = row.querySelector('.scoreLogStudentSelect');
-            return !row.hidden && checkbox && checkbox.checked;
-        });
 
-        const setFocusStatus = (message) => {
-            if (focusStatus) focusStatus.textContent = message || '';
+        const numericValue = (value) => {
+            const normalized = String(value || '').trim().replace(/%$/, '');
+            if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)) return null;
+            const number = Number(normalized);
+            return Number.isFinite(number) ? number : null;
         };
 
-        const clearStudentSelections = () => {
-            scoreRows().forEach((row) => {
-                const checkbox = row.querySelector('.scoreLogStudentSelect');
-                if (checkbox) checkbox.checked = false;
-            });
-            if (selectAll) selectAll.checked = false;
-            updateBulkPreview();
+        const scoreStatus = (input) => {
+            const value = input ? String(input.value || '').trim() : '';
+            if (value === '') return 'missing';
+
+            const grades = scaleData.grades || {};
+            if (scaleData.numeric === 'Y') {
+                const number = numericValue(value);
+                if (number === null || number < 0) return 'invalid';
+                if (scaleData.max !== null && scaleData.max !== undefined && number > Number(scaleData.max)) {
+                    return 'invalid';
+                }
+                return Object.keys(grades).some((grade) => numericValue(grade) === number) ? 'entered' : 'invalid';
+            }
+
+            return Object.prototype.hasOwnProperty.call(grades, value) ? 'entered' : 'invalid';
         };
 
-        const updateCounts = () => {
+        const updateRowStatus = (row) => {
+            const input = scoreInputFor(row);
+            const status = scoreStatus(input);
+            row.dataset.scoreStatus = status;
+            return status;
+        };
+
+        const updateRowSummary = () => {
             let entered = 0;
             let missing = 0;
             let invalid = 0;
             scoreRows().forEach((row) => {
-                const select = scoreSelectFor(row);
-                if (!select) return;
-                if (select.value === '') missing++;
-                else if (select.value !== (select.dataset.invalidValue || '')) entered++;
+                const status = updateRowStatus(row);
+                if (status === 'entered') entered++;
+                else if (status === 'missing') missing++;
                 else invalid++;
             });
 
-            const enteredCount = document.getElementById('scoreLogEnteredCount');
-            const missingCount = document.getElementById('scoreLogMissingCount');
-            const invalidCount = document.getElementById('scoreLogInvalidCount');
-            if (enteredCount) enteredCount.textContent = String(entered);
-            if (missingCount) missingCount.textContent = String(missing);
-            if (invalidCount) invalidCount.textContent = String(invalid);
+            const summary = document.getElementById('scoreLogRowSummary');
+            if (!summary) return;
+            summary.textContent = (labels.rowSummary || '%s entered · %s missing · %s invalid')
+                .replace('%s', String(entered))
+                .replace('%s', String(missing))
+                .replace('%s', String(invalid));
         };
 
-        const applyOnlyMissingView = () => {
-            const onlyMissing = !!(onlyMissingToggle && onlyMissingToggle.checked);
+        const applyQuickFilter = () => {
+            const filter = quickFilter ? quickFilter.value : 'all';
             scoreRows().forEach((row) => {
-                const select = scoreSelectFor(row);
-                row.hidden = onlyMissing && select && select.value !== '';
-                if (row.hidden) {
-                    const checkbox = row.querySelector('.scoreLogStudentSelect');
-                    if (checkbox) checkbox.checked = false;
-                }
+                const status = updateRowStatus(row);
+                row.hidden = (filter === 'missing' && status !== 'missing')
+                    || (filter === 'invalid' && status !== 'invalid');
             });
-            updateBulkPreview();
         };
 
-        const updateUndoButton = () => {
-            if (!bulkUndoButton) return;
-            bulkUndoButton.hidden = !bulkUndo;
-            bulkUndoButton.disabled = false;
-            if (bulkUndo) {
-                bulkUndoButton.textContent = (labels.undoBulk || 'Undo Bulk Change')
-                    + ' (' + bulkUndo.changes.length + ')';
-            }
-        };
-
-        const invalidateUndoForRow = (studentID) => {
-            if (!bulkUndo || !bulkUndo.changes.some((change) => change.studentID === studentID)) return;
-            bulkUndo = null;
-            updateUndoButton();
-            setFocusStatus(labels.undoInvalidated || 'A score changed after the bulk action; undo was cleared.');
-        };
-
-        const updateBulkPreview = () => {
-            if (!bulkPreview || !bulkFillButton || !bulkClearButton) return;
-            const selectedRows = checkedScoreRows();
-            const value = bulkValueInput ? bulkValueInput.value : '';
-            const overwrite = !!(bulkOverwriteInput && bulkOverwriteInput.checked);
-            let blankFillChanges = 0;
-            let overwriteChanges = 0;
-            let clearChanges = 0;
-
-            selectedRows.forEach((row) => {
-                const select = scoreSelectFor(row);
-                const current = select ? select.value : '';
-                if (value !== '' && current === '') blankFillChanges++;
-                if (value !== '' && current !== '' && current !== value) overwriteChanges++;
-                if (current !== '') clearChanges++;
-            });
-            const fillChanges = blankFillChanges + (overwrite ? overwriteChanges : 0);
-
-            bulkFillButton.disabled = selectedRows.length === 0 || value === '' || fillChanges === 0;
-            bulkClearButton.disabled = selectedRows.length === 0 || clearChanges === 0;
-            if (selectedRows.length === 0) {
-                bulkPreview.textContent = labels.selectStudentsFirst || 'Select students to fill or clear.';
-                return;
-            }
-
-            bulkPreview.textContent = [
-                (labels.selected || 'Selected') + ' ' + selectedRows.length,
-                (labels.fillBlanks || 'Fill blanks') + ' ' + blankFillChanges,
-                (labels.overwriteWillChange || 'Overwrite will change') + ' ' + overwriteChanges,
-                (labels.clearWillChange || 'Clear will change') + ' ' + clearChanges,
-            ].join(' · ');
-        };
-
-        const focusNextMissing = () => {
-            const focusedSelect = document.activeElement && document.activeElement.closest
-                ? document.activeElement.closest('.scoreLogScoreSelect')
+        const focusNextVisibleScore = () => {
+            const visibleRows = scoreRows().filter((row) => !row.hidden && scoreInputFor(row));
+            const focusedInput = document.activeElement && document.activeElement.closest
+                ? document.activeElement.closest('.scoreLogScoreInput')
                 : null;
-            const rows = scoreRows();
-            const currentRow = focusedSelect ? focusedSelect.closest('tr') : null;
-            const currentIndex = currentRow ? rows.indexOf(currentRow) : -1;
-            const candidates = rows.filter((row) => {
-                const select = scoreSelectFor(row);
-                return select && !select.disabled && select.value === '';
-            });
-            const afterCurrent = candidates.find((row) => rows.indexOf(row) > currentIndex);
-            const nextRow = afterCurrent || candidates[0];
-
-            if (!nextRow) {
-                setFocusStatus(labels.noMissing || 'No more missing scores.');
+            const currentIndex = focusedInput ? visibleRows.indexOf(focusedInput.closest('tr[data-student-id]')) : -1;
+            if (currentIndex >= 0 && currentIndex + 1 < visibleRows.length) {
+                const next = scoreInputFor(visibleRows[currentIndex + 1]);
+                next.focus();
+                next.select();
                 return;
             }
 
-            setFocusStatus('');
-            const nextSelect = scoreSelectFor(nextRow);
-            nextSelect.focus();
-        };
-
-        const applyBulkChange = (mode) => {
-            const fillValue = bulkValueInput ? bulkValueInput.value : '';
-            const overwrite = !!(bulkOverwriteInput && bulkOverwriteInput.checked);
-            if (mode === 'fill' && fillValue === '') {
-                setFocusStatus(labels.bulkValueInvalid || 'Choose a score before filling.');
-                updateBulkPreview();
-                return;
+            const firstMissing = visibleRows.find((row) => scoreStatus(scoreInputFor(row)) === 'missing');
+            if (firstMissing) {
+                const input = scoreInputFor(firstMissing);
+                input.focus();
+                input.select();
             }
-
-            const changes = [];
-            checkedScoreRows().forEach((row) => {
-                const select = scoreSelectFor(row);
-                if (!select) return;
-                const previous = select.value;
-                const next = mode === 'fill' ? fillValue : '';
-                if (mode === 'fill' && previous !== '' && !overwrite) return;
-                if (previous === next) return;
-                changes.push({
-                    studentID: row.getAttribute('data-student-id'),
-                    previous,
-                    next,
-                    overwritten: mode === 'fill' && previous !== '',
-                });
-            });
-
-            if (changes.length === 0) {
-                setFocusStatus(labels.noBulkChanges || 'The checked students already have these values.');
-                updateBulkPreview();
-                return;
-            }
-
-            if (mode === 'clear' && !window.confirm(
-                (labels.confirmBulkClear || 'Clear %s existing scores?').replace('%s', changes.length)
-            )) {
-                return;
-            }
-            const overwritten = changes.filter((change) => change.overwritten).length;
-            if (mode === 'fill' && overwritten > 0 && !window.confirm(
-                (labels.confirmBulkOverwrite || 'Overwrite %s existing scores?').replace('%s', overwritten)
-            )) {
-                return;
-            }
-
-            changes.forEach((change) => {
-                const row = scoreRows().find((candidate) => candidate.getAttribute('data-student-id') === change.studentID);
-                const select = scoreSelectFor(row);
-                if (select) select.value = change.next;
-            });
-            bulkUndo = {
-                revision: revisionInput ? String(revisionInput.value) : '',
-                changes,
-            };
-            markDirty();
-            updateCounts();
-            applyOnlyMissingView();
-            updateUndoButton();
-            updateBulkPreview();
-            setFocusStatus((labels.bulkChanged || 'Score values changed:') + ' ' + changes.length);
-        };
-
-        const undoBulkChange = () => {
-            if (!bulkUndo) return;
-            if (!revisionInput || String(revisionInput.value) !== bulkUndo.revision) {
-                bulkUndo = null;
-                updateUndoButton();
-                setFocusStatus(labels.undoUnavailable || 'Draft revision changed; undo is no longer available.');
-                return;
-            }
-
-            bulkUndo.changes.forEach((change) => {
-                const row = scoreRows().find((candidate) => candidate.getAttribute('data-student-id') === change.studentID);
-                const select = scoreSelectFor(row);
-                if (select) select.value = change.previous;
-            });
-            bulkUndo = null;
-            markDirty();
-            updateCounts();
-            applyOnlyMissingView();
-            updateUndoButton();
-            updateBulkPreview();
-            setFocusStatus(labels.undoComplete || 'Bulk change undone.');
         };
 
         const commentForID = (commentID) => commentLibraryData
@@ -495,7 +360,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         const copyStructure = () => {
             const assessment = structureSource ? reusableAssessments[structureSource.value] : null;
             if (!assessment) {
-                setFocusStatus(labels.structureRequired || 'Choose an assessment structure to reuse.');
+                if (structureStatus) {
+                    structureStatus.textContent = labels.structureRequired || 'Choose an assessment structure to reuse.';
+                }
                 return;
             }
 
@@ -506,7 +373,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             setToggleValue('[viewableStudents]', assessment.viewableStudents || 'Y');
             setToggleValue('[viewableParents]', assessment.viewableParents || 'Y');
             markDirty();
-            setFocusStatus(labels.structureAdded || 'Assessment details copied.');
+            if (structureStatus) {
+                structureStatus.textContent = labels.structureAdded || 'Assessment details copied without scores or comments.';
+            }
         };
 
         form.addEventListener('click', (event) => {
@@ -519,58 +388,43 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         form.addEventListener('input', (event) => {
             if (!isPersistedField(event.target)) return;
             markDirty();
-            if (event.target.classList.contains('scoreLogScoreSelect')) {
+            if (event.target.classList.contains('scoreLogScoreInput')) {
                 const row = event.target.closest('tr[data-student-id]');
-                if (row) invalidateUndoForRow(row.getAttribute('data-student-id'));
-                updateCounts();
-                updateBulkPreview();
+                if (row) updateRowStatus(row);
+                updateRowSummary();
             }
         });
 
         form.addEventListener('change', (event) => {
-            if (event.target === onlyMissingToggle) {
-                applyOnlyMissingView();
+            if (event.target === quickFilter) {
+                applyQuickFilter();
                 return;
             }
-            if (event.target === bulkValueInput || event.target === bulkOverwriteInput) {
-                updateBulkPreview();
-                return;
-            }
-            if (event.target === selectAll) {
-                const checked = event.target.checked;
-                scoreRows().forEach((row) => {
-                    const checkbox = row.querySelector('.scoreLogStudentSelect');
-                    if (checkbox && !row.hidden) checkbox.checked = checked;
-                });
-                updateBulkPreview();
-                return;
-            }
-            if (event.target.classList.contains('scoreLogStudentSelect')) {
-                updateBulkPreview();
-                return;
-            }
-            if (event.target.classList.contains('scoreLogScoreSelect')) {
+            if (event.target.classList.contains('scoreLogScoreInput')) {
                 markDirty();
                 const row = event.target.closest('tr[data-student-id]');
-                if (row) invalidateUndoForRow(row.getAttribute('data-student-id'));
-                updateCounts();
-                updateBulkPreview();
-                if (onlyMissingToggle && onlyMissingToggle.checked) applyOnlyMissingView();
+                if (row) updateRowStatus(row);
+                updateRowSummary();
+                applyQuickFilter();
             }
             if (isPersistedField(event.target)) markDirty();
         });
 
         form.addEventListener('keydown', (event) => {
-            if (event.altKey && event.key.toLowerCase() === 'n') {
-                event.preventDefault();
-                focusNextMissing();
-            }
+            if (
+                event.key !== 'Enter'
+                || event.shiftKey
+                || event.altKey
+                || event.ctrlKey
+                || event.metaKey
+                || event.isComposing
+                || !event.target.classList.contains('scoreLogScoreInput')
+            ) return;
+
+            event.preventDefault();
+            focusNextVisibleScore();
         });
 
-        if (nextMissingButton) nextMissingButton.addEventListener('click', focusNextMissing);
-        if (bulkFillButton) bulkFillButton.addEventListener('click', () => applyBulkChange('fill'));
-        if (bulkClearButton) bulkClearButton.addEventListener('click', () => applyBulkChange('clear'));
-        if (bulkUndoButton) bulkUndoButton.addEventListener('click', undoBulkChange);
         if (reuseStructureButton) reuseStructureButton.addEventListener('click', copyStructure);
 
         form.addEventListener('submit', async (event) => {
@@ -615,9 +469,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             event.returnValue = labels.unsavedChanges || '';
         });
 
-        updateCounts();
-        applyOnlyMissingView();
-        updateBulkPreview();
+        updateRowSummary();
+        applyQuickFilter();
         updateReloadLink();
     };
 

@@ -1,6 +1,15 @@
 CHANGELOG
 =========
 
+v1.5.1
+------
+- Rebuild the single-assessment editor around one aligned Student, Assessment
+  and Comment row per student with editable score/grade inputs.
+- Remove checkboxes, selection, bulk entry, undo and the Quick Entry block.
+- Add All, Missing and Invalid filtering and Enter-to-next-visible-row entry.
+- Move save-first Import Scores and Export Current Scores to the editor action
+  area and add grade suggestions through a standard datalist.
+
 v1.5.0
 ------
 - Add debounced server-side autosave for the standard single-assessment draft.

@@ -74,9 +74,10 @@ parents and reports until that date.
 Class selection, draft entry, discard, import, review and publish confirmation
 use Gibbon's `Form` API. Class and grade selection also use
 `DatabaseFormFactory`. The draft form uses Gibbon's standard form-table and
-grade-scale controls for one assessment, the server uses Gibbon's `Validator`
-and CSRF tokens, and persistence follows the same SQL shape as the official
-Formal Assessment processes.
+editable score fields for one assessment, with a standard datalist exposing
+the allowed scale grades. The server uses Gibbon's `Validator` and CSRF tokens,
+and persistence follows the same SQL shape as the official Formal Assessment
+processes.
 
 The private draft and comment library remain entirely module-owned. Reusing an
 assessment structure copies only configuration fields and never copies scores

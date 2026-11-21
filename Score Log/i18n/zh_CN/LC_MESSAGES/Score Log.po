@@ -983,12 +983,6 @@ msgstr "家长可见"
 msgid "Visible to Students"
 msgstr "学生可见"
 
-msgid "Save and Import Scores"
-msgstr "保存并导入成绩"
-
-msgid "Save and Export Current Scores"
-msgstr "保存并导出当前成绩"
-
 #, php-format
 msgid "Saved · revision %s"
 msgstr "已保存 · 修订版本 %s"
@@ -1025,71 +1019,6 @@ msgstr "会话已过期。请重新载入页面并再次登录。"
 
 msgid "Autosave stopped: permission denied."
 msgstr "自动保存已停止：权限不足。"
-
-#: ⁨Score Log/scorelog_view.php⁩
-msgid "Quick score entry"
-msgstr "快捷录入"
-
-msgid "Only missing"
-msgstr "仅未填"
-
-msgid "Next Missing"
-msgstr "下一个未填"
-
-msgid "Bulk score or grade"
-msgstr "批量成绩或等级"
-
-msgid "Fill checked"
-msgstr "填充已勾选"
-
-msgid "Clear checked"
-msgstr "清除已勾选"
-
-msgid "Undo Bulk Change"
-msgstr "撤销批量修改"
-
-#, php-format
-msgid "Select %s"
-msgstr "选择 %s"
-
-msgid "Bulk score"
-msgstr "批量成绩"
-
-msgid "Bulk grade"
-msgstr "批量等级"
-
-msgid "Selected"
-msgstr "已选择"
-
-msgid "Fill will change"
-msgstr "填充将修改"
-
-msgid "Clear will change"
-msgstr "清除将修改"
-
-msgid "Select students to fill or clear."
-msgstr "请先勾选学生再填充或清除。"
-
-msgid "Bulk value is not in the selected scale."
-msgstr "批量值不在所选评分量表中。"
-
-msgid "The checked students already have these values."
-msgstr "已勾选学生已具有这些值。"
-
-msgid "Score values changed:"
-msgstr "已修改成绩数量："
-
-msgid "Draft revision changed; undo is no longer available."
-msgstr "草稿修订版本已变化，无法再撤销。"
-
-msgid "Bulk change undone."
-msgstr "已撤销批量修改。"
-
-msgid "A score changed after the bulk action; undo was cleared."
-msgstr "批量操作后成绩已被修改，撤销记录已清除。"
-
-msgid "No more missing scores in this assessment column."
-msgstr "当前评估列没有其他未填成绩。"
 
 msgid "Comment Library"
 msgstr "评语库"
@@ -1176,26 +1105,6 @@ msgstr "已复制评估结构，不包含成绩或评语。"
 msgid "No unused assessment column is available."
 msgstr "没有可用的空白评估列。"
 
-msgid "Overwrite existing scores"
-msgstr "覆盖已有成绩"
-
-msgid "Fill blanks"
-msgstr "填充空白"
-
-msgid "Overwrite will change"
-msgstr "覆盖将修改"
-
-msgid "Student selections were cleared after changing the assessment column."
-msgstr "切换评估列后，已清除学生勾选。"
-
-#, php-format
-msgid "Clear %s existing scores?"
-msgstr "确定清除 %s 个已有成绩吗？"
-
-#, php-format
-msgid "Overwrite %s existing scores?"
-msgstr "确定覆盖 %s 个已有成绩吗？"
-
 msgid ""
 "This draft was created with more than one assessment. It has not been "
 "changed."
@@ -1209,15 +1118,6 @@ msgstr "复制评估结构"
 
 msgid "Assessment details copied without scores or comments."
 msgstr "已复制评估信息，不包含成绩或评语。"
-
-msgid "Choose a score before filling."
-msgstr "请选择要填充的成绩。"
-
-msgid "No more missing scores."
-msgstr "没有其他未填成绩。"
-
-msgid "Save and Export Current Scores (XLSX)"
-msgstr "保存并导出当前成绩（XLSX）"
 
 #, php-format
 msgid "%s score for %s"
@@ -1248,5 +1148,12 @@ msgstr "评估信息"
 msgid "Import Preview"
 msgstr "导入预览"
 
-msgid "Quick Entry"
-msgstr "快捷录入"
+msgid "Show"
+msgstr "显示"
+
+msgid "All"
+msgstr "全部"
+
+#, php-format
+msgid "%s entered · %s missing · %s invalid"
+msgstr "已录入 %s · 未填 %s · 无效 %s"

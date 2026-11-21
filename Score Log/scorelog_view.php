@@ -405,6 +405,7 @@ $form->addHiddenValue('autosaveSequence', '0');
 $form->addHiddenValue('gibbonCourseClassID', $gibbonCourseClassID);
 $form->addHiddenValue('gibbonScaleIDAttainment', $gibbonScaleIDAttainment);
 $form->addHiddenValue('columnOrder', $columnID);
+$form->addHiddenValue('targetColumnID', $columnID);
 $form->addHiddenValue("columns[$columnID][scaleID]", $gibbonScaleIDAttainment);
 
 $reloadURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php'
@@ -428,6 +429,19 @@ $row->addContent(
     .'</span>'
     .' '.$reloadButton->getOutput()
 );
+
+$row = $form->addRow();
+$topActions = $row->addColumn()->addClass('flex flex-wrap gap-2 justify-end');
+$topActions->addSubmit(scoreLogT('Import Scores'))
+    ->setName('importScores')
+    ->setSize('sm')
+    ->setColor('gray')
+    ->setIcon('solid', 'upload');
+$topActions->addSubmit(scoreLogT('Export Current Scores (XLSX)'))
+    ->setName('exportScores')
+    ->setSize('sm')
+    ->setColor('gray')
+    ->setIcon('solid', 'download');
 
 $form->addRow()->addHeading('assessmentDetails', scoreLogT('Assessment Details'));
 
@@ -491,48 +505,33 @@ if (!empty($structureOptions)) {
         ->placeholder(scoreLogT('Please select...'));
     $row->addButton(scoreLogT('Copy Structure'), null, 'scoreLogReuseStructure')
         ->setColor('gray');
+    $row->addContent('<span id="scoreLogStructureStatus" aria-live="polite"></span>');
 }
 
-$form->addRow()->addHeading('quickEntry', scoreLogT('Quick Entry'));
 $row = $form->addRow();
-$row->addCheckbox('scoreLogOnlyMissing')
-    ->setValue('Y')
-    ->setID('scoreLogOnlyMissing')
-    ->alignLeft()
-    ->description(scoreLogT('Only missing'));
-$row->addButton(scoreLogT('Next Missing'), null, 'scoreLogNextMissing')
-    ->setColor('gray');
-$row->addContent('<span id="scoreLogFocusStatus" aria-live="polite"></span>');
-
-$row = $form->addRow();
-$row->addLabel('scoreLogBulkValue', scoreLogT('Bulk score or grade'));
-$row->addSelect('scoreLogBulkValue')
-    ->fromArray($gradesByScale[$gibbonScaleIDAttainment] ?? [])
-    ->placeholder(scoreLogT('Please select...'));
-$row->addCheckbox('scoreLogBulkOverwrite')
-    ->setValue('Y')
-    ->setID('scoreLogBulkOverwrite')
-    ->alignLeft()
-    ->description(scoreLogT('Overwrite existing scores'));
-$row->addButton(scoreLogT('Fill checked'), null, 'scoreLogBulkFill');
-$row->addButton(scoreLogT('Clear checked'), null, 'scoreLogBulkClear')->setColor('gray');
-$row->addButton(scoreLogT('Undo Bulk Change'), null, 'scoreLogBulkUndo')
-    ->setColor('gray')
-    ->setAttribute('hidden', true);
-$row->addContent('<span id="scoreLogBulkPreview" aria-live="polite"></span>');
-
-$row = $form->addRow();
+$row->addLabel('scoreLogQuickFilter', scoreLogT('Show'));
+$row->addSelect('scoreLogQuickFilter')
+    ->setID('scoreLogQuickFilter')
+    ->fromArray([
+        'all' => scoreLogT('All'),
+        'missing' => scoreLogT('Missing'),
+        'invalid' => scoreLogT('Invalid'),
+    ])
+    ->selected('all');
 $row->addContent(
-    '<strong>'.scoreLogT('Entered').':</strong> <span id="scoreLogEnteredCount">'.$columnCounts['entered'].'</span> · '
-    .'<strong>'.scoreLogT('Missing').':</strong> <span id="scoreLogMissingCount">'.$columnCounts['missing'].'</span> · '
-    .'<strong>'.scoreLogT('Invalid').':</strong> <span id="scoreLogInvalidCount">'.$columnCounts['invalid'].'</span>'
+    '<span id="scoreLogRowSummary">'
+    .sprintf(
+        scoreLogT('%s entered · %s missing · %s invalid'),
+        $columnCounts['entered'],
+        $columnCounts['missing'],
+        $columnCounts['invalid']
+    )
+    .'</span>'
 );
 
-$form->addRow()->addHeading('students', scoreLogT('Students'));
 $table = $form->addRow()->setHeading('table')->addTable()
     ->setClass('smallIntBorder w-full colorOddEven noMargin noPadding noBorder');
 $header = $table->addHeaderRow();
-$header->addCheckAll('scoreLogSelectAll');
 $header->addTableCell(scoreLogT('Student'));
 $header->addTableCell((string) ($column['name'] ?? '') ?: scoreLogT('Assessment'))
     ->setTitle((string) ($scale['name'] ?? ''))
@@ -555,32 +554,31 @@ foreach ($roster as $student) {
 
     $row = $table->addRow();
     $row->setAttribute('data-student-id', $studentID);
-    $row->addCheckbox('selectStudents[]')
-        ->setValue($studentID)
-        ->setClass('scoreLogStudentSelect')
-        ->setAttribute('data-student-id', $studentID)
-        ->setAttribute('aria-label', sprintf(scoreLogT('Select %s'), $studentName))
-        ->alignLeft()
-        ->description('<strong>'.htmlPrep($studentName).'</strong>');
+    $row->setAttribute('data-score-status', $savedScore === '' ? 'missing' : ($scoreIsValid ? 'entered' : 'invalid'));
+    $row->addWebLink($studentName)
+        ->setURL($session->get('absoluteURL').'/index.php?q=/modules/Students/student_view_details.php')
+        ->addParam('gibbonPersonID', $studentID)
+        ->addParam('subpage', 'Internal Assessment')
+        ->wrap('<strong>', '</strong>');
 
-    $scoreSelect = $row->addSelectGradeScaleGrade(
-        "scores[$studentID][$columnID][attainmentValue]",
-        $gibbonScaleIDAttainment,
-        ['honourDefault' => false, 'labelMode' => 'both']
-    );
-    if ($selectedScore !== '' && !array_key_exists($selectedScore, $descriptorValues)) {
-        $scoreSelect->fromArray([$selectedScore => $selectedScore.' ('.scoreLogT('Invalid').')']);
-    }
-    $scoreSelect
-        ->selected($selectedScore)
-        ->setClass('scoreLogScoreSelect textCenter gradeSelect')
+    $scoreInput = $row->addTextField("scores[$studentID][$columnID][attainmentValue]")
+        ->setID('scoreLogScore-'.$studentID)
+        ->setClass('scoreLogScoreInput textCenter w-24')
+        ->setValue($selectedScore)
+        ->setAttribute('autocomplete', 'off')
+        ->setAttribute('inputmode', ($scale['numeric'] ?? 'N') === 'Y' ? 'decimal' : 'text')
+        ->setAttribute('list', 'scoreLogGradeOptions')
         ->setAttribute('data-score', 'Y')
-        ->setAttribute('data-invalid-value', $scoreIsValid ? '' : $selectedScore)
         ->setAttribute('aria-label', sprintf(
             scoreLogT('%s score for %s'),
             (string) ($column['name'] ?? ''),
             $studentName
         ));
+    if (($scale['numeric'] ?? 'N') === 'Y') {
+        $scoreInput->setAttribute('placeholder', scoreLogT('Score'));
+    } else {
+        $scoreInput->setAttribute('placeholder', scoreLogT('Grade'));
+    }
 
     $commentColumn = $row->addColumn()->addClass('stacked');
     $commentColumn->addTextArea("scores[$studentID][$columnID][comment]")
@@ -614,23 +612,18 @@ $row = $form->addRow();
 $actions = $row->addColumn();
 $actions->addSubmit(scoreLogT('Save Draft'))
     ->setName('saveDraft')
-    ->setValue('Y')
     ->setColor('gray')
     ->setAttribute('formnovalidate', 'formnovalidate');
 $actions->addSubmit(scoreLogT('Review and Publish'))
-    ->setName('reviewPublish')
-    ->setValue('Y');
-$actions->addSubmit(scoreLogT('Save and Import Scores'))
-    ->setName('importColumnID')
-    ->setValue($columnID)
-    ->setColor('gray');
-$actions->addSubmit(scoreLogT('Save and Export Current Scores (XLSX)'))
-    ->setName('exportColumnID')
-    ->setValue($columnID)
-    ->setColor('gray');
+    ->setName('reviewPublish');
 
 echo '<a id="scoreLogStudents"></a>';
 echo $form->getOutput();
+echo '<datalist id="scoreLogGradeOptions">';
+foreach ($descriptorValues as $gradeValue => $gradeDescriptor) {
+    echo '<option value="'.htmlPrep((string) $gradeValue).'">'.htmlPrep((string) $gradeDescriptor).'</option>';
+}
+echo '</datalist>';
 
 if ($scoreLogDraftID !== '') {
     $discardForm = Form::create(
@@ -679,23 +672,14 @@ echo '<script>window.scoreLogCommentLibrary='.json_encode(array_values($commentL
         null,
         'gibbonInternalAssessmentColumnID'
     ), $jsonFlags).';'
+    .'window.scoreLogScaleData='.json_encode([
+        'grades' => $descriptorValues,
+        'numeric' => (string) ($scale['numeric'] ?? 'N'),
+        'max' => scoreLogMaxScoreFromUsage($scale['usage'] ?? ''),
+    ], $jsonFlags).';'
     .'window.scoreLogImportLabels='.json_encode([
         'unsavedChanges'=> scoreLogT('You have unsaved changes. Save the draft before leaving this page.'),
-        'selected'           => scoreLogT('Selected'),
-        'fillBlanks'         => scoreLogT('Fill blanks'),
-        'overwriteWillChange'=> scoreLogT('Overwrite will change'),
-        'clearWillChange'    => scoreLogT('Clear will change'),
-        'selectStudentsFirst'=> scoreLogT('Select students to fill or clear.'),
-        'bulkValueInvalid'   => scoreLogT('Choose a score before filling.'),
-        'noBulkChanges'      => scoreLogT('The checked students already have these values.'),
-        'bulkChanged'        => scoreLogT('Score values changed:'),
-        'undoBulk'           => scoreLogT('Undo Bulk Change'),
-        'undoUnavailable'    => scoreLogT('Draft revision changed; undo is no longer available.'),
-        'undoComplete'       => scoreLogT('Bulk change undone.'),
-        'undoInvalidated'    => scoreLogT('A score changed after the bulk action; undo was cleared.'),
-        'noMissing'          => scoreLogT('No more missing scores.'),
-        'confirmBulkClear'   => scoreLogT('Clear %s existing scores?'),
-        'confirmBulkOverwrite'=> scoreLogT('Overwrite %s existing scores?'),
+        'rowSummary'         => scoreLogT('%s entered · %s missing · %s invalid'),
         'structureRequired'  => scoreLogT('Choose an assessment structure to reuse.'),
         'structureAdded'     => scoreLogT('Assessment details copied without scores or comments.'),
         'autosaveUnsaved'    => scoreLogT('Unsaved changes'),

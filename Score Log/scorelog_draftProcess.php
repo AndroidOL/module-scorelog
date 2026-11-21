@@ -29,11 +29,11 @@ require_once __DIR__.'/moduleFunctions.php';
 $gibbonPersonID = (string) $session->get('gibbonPersonID');
 $gibbonSchoolYearID = (string) $session->get('gibbonSchoolYearID');
 $scoreLogDraftID = is_scalar($_POST['scoreLogDraftID'] ?? null) ? trim((string) $_POST['scoreLogDraftID']) : '';
-$importColumnID = is_scalar($_POST['importColumnID'] ?? null) ? trim((string) $_POST['importColumnID']) : '';
-$exportColumnID = is_scalar($_POST['exportColumnID'] ?? null) ? trim((string) $_POST['exportColumnID']) : '';
 $action = array_key_exists('reviewPublish', $_POST)
     ? 'review'
-    : ($importColumnID !== '' ? 'import' : ($exportColumnID !== '' ? 'export' : 'draft'));
+    : (array_key_exists('importScores', $_POST)
+        ? 'import'
+        : (array_key_exists('exportScores', $_POST) ? 'export' : 'draft'));
 $viewURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php';
 
 $redirect = function (string $return, string $draftID = '') use ($viewURL) {
@@ -173,7 +173,9 @@ try {
         $scoreLogDraftID = (string) $connection2->lastInsertId();
     }
 
-    $targetColumnID = $action === 'import' ? $importColumnID : ($action === 'export' ? $exportColumnID : '');
+    $targetColumnID = in_array($action, ['import', 'export'], true)
+        ? scoreLogInputString($input, 'targetColumnID')
+        : '';
     if ($targetColumnID !== ''
         && (empty($payload['columns'][$targetColumnID]) || !in_array($targetColumnID, $payload['columnOrder'], true))
     ) {
