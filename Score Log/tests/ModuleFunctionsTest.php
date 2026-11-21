@@ -40,5 +40,12 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertNull(\scoreLogNormalizeNumericValue('INF'));
         $this->assertNull(\scoreLogNormalizeNumericValue('12345678901'));
     }
+
+    public function testAssessmentDatesAreStrictlyValidated()
+    {
+        $this->assertTrue(\scoreLogIsValidDate('2026-02-28'));
+        $this->assertFalse(\scoreLogIsValidDate('2026-02-30'));
+        $this->assertFalse(\scoreLogIsValidDate('28/02/2026'));
+    }
     }
 }

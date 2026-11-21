@@ -13,16 +13,16 @@ msgid "All Classes"
 msgstr "所有课程"
 
 msgid "Assessment Complete?"
-msgstr "评价是否完成？"
+msgstr "评估是否完成？"
 
 msgid "Assessment created."
-msgstr "小测已创建。"
+msgstr "评估已创建。"
 
 msgid "Assessment Date"
-msgstr "布置作业小测日期"
+msgstr "评估日期"
 
 msgid "Assessment Scale"
-msgstr "小测评分"
+msgstr "评估评分标准"
 
 msgid "Choose Class"
 msgstr "选择课程"
@@ -43,16 +43,16 @@ msgid "Confirm Class"
 msgstr "确认课程"
 
 msgid "Create Assessment"
-msgstr "创建小测"
+msgstr "创建评估"
 
 msgid "Created by Score Log"
 msgstr "由快速成绩录入创建"
 
 msgid "Create Internal Assessment"
-msgstr "创建内部评价"
+msgstr "创建内部评估"
 
 msgid "Create New Internal Assessment"
-msgstr "创建新的内部评价"
+msgstr "创建新的内部评估"
 
 msgid "Date"
 msgstr "日期"
@@ -61,7 +61,7 @@ msgid "Draft"
 msgstr "草稿"
 
 msgid "Enter Scores"
-msgstr "填写成绩单"
+msgstr "录入成绩"
 
 msgid "Grading scale:"
 msgstr "评分标准："
@@ -82,7 +82,7 @@ msgid "No submitted data was received."
 msgstr "没有收到提交的数据。"
 
 msgid "Recent Assessments"
-msgstr "最近评价"
+msgstr "最近评估"
 
 msgid "Score"
 msgstr "分值"
@@ -97,10 +97,10 @@ msgid "Students"
 msgstr "学生"
 
 msgid "The 10 most recent internal assessments, ordered by completion date."
-msgstr "最近创建的 10 条内部评价，按完成日期倒序排列。"
+msgstr "最近创建的 10 条内部评估，按完成日期倒序排列。"
 
 msgid "The assessment is hidden from students, parents and reports until this date."
-msgstr "在这个日期之前，学生、家长和报表看不到该评价。"
+msgstr "在这个日期之前，学生、家长和报表看不到该评估。"
 
 msgid "There are no records to display."
 msgstr "没有可显示的记录。"
@@ -115,7 +115,7 @@ msgid "Type"
 msgstr "类型"
 
 msgid "Unable to save. Another assessment may be in progress; try again shortly."
-msgstr "保存失败，可能另一个小测正在创建，请稍后重试。"
+msgstr "保存失败，可能另一个评估正在创建，请稍后重试。"
 
 msgid "View / Enter Marks"
 msgstr "查看/录入成绩"
@@ -137,4 +137,3 @@ msgstr "您没有权限执行该操作。"
 
 msgid "Your session expired. Refresh the page and try again."
 msgstr "会话已过期，请刷新页面后重试。"
-

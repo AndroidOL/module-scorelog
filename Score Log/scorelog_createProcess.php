@@ -97,9 +97,7 @@ if (
     || !in_array($viewableStudents, ['Y', 'N'], true)
     || !in_array($viewableParents, ['Y', 'N'], true)
     || $count < 1
-    || !preg_match('/^\d{4}-\d{2}-\d{2}$/D', $completeDate)
-    || !DateTimeImmutable::createFromFormat('!Y-m-d', $completeDate)
-    || DateTimeImmutable::createFromFormat('!Y-m-d', $completeDate)->format('Y-m-d') !== $completeDate
+    || !scoreLogIsValidDate($completeDate)
 ) {
     $redirect('error1');
 }

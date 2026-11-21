@@ -121,6 +121,18 @@ function scoreLogNormalizeNumericValue($value): ?string
     return strlen($normalized) <= 10 ? $normalized : null;
 }
 
+function scoreLogIsValidDate($date): bool
+{
+    $date = is_scalar($date) ? trim((string) $date) : '';
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/D', $date)) {
+        return false;
+    }
+
+    $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+
+    return $parsed !== false && $parsed->format('Y-m-d') === $date;
+}
+
 /**
  * Default comment shown for each student row.
  */

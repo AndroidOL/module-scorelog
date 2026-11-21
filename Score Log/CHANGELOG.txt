@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+v1.0.1
+------
+- Add strict assessment-date validation.
+- Apply reviewed Simplified Chinese terminology for assessment workflows.
+
 v1.0.0
 ------
 - Added strict POST, CSRF, permission, assessment type and completion-date validation.
