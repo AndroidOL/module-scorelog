@@ -355,7 +355,7 @@ if (!empty($allowedTypes)) {
 
 $form->addRow()->addHeading('Students', scoreLogT('Students'));
 $table = $form->addRow()->addTable()
-    ->setClass('scoreLogEntryTable w-full')
+    ->setClass('smallIntBorder w-full colorOddEven noMargin noPadding noBorder scoreLogEntryTable')
     ->setAttribute('aria-label', scoreLogT('Students').' — '.scoreLogT('Score').' / '.scoreLogT('Comment'));
 $header = $table->addHeaderRow();
 $header->addTableCell(scoreLogT('Student'))->rowSpan(2)->setClass('scoreLogStudentColumn');
@@ -372,7 +372,7 @@ foreach ($roster as $index => $student) {
     $savedValue = (string) ($saved['attainmentValue'] ?? '');
     $savedComment = array_key_exists('comment', $saved) ? (string) $saved['comment'] : $defaultComment;
 
-    $row = $table->addRow();
+    $row = $table->addRow()->setClass('scoreLogEntryRow');
     $name = Format::name('', $student['preferredName'], $student['surname'], 'Student', true);
     if (isset($diff['added'][$studentID])) {
         $name .= ' ('.scoreLogT('New').')';
@@ -396,8 +396,8 @@ foreach ($roster as $index => $student) {
             $input->minimum(0)->maximum($maxScore);
         }
     }
-    $input->addClass('scoreLogScoreCell')->wrap(
-        '<div class="scoreLogEntryField"><span class="scoreLogEntryFieldLabel">'.scoreLogT('Score').'</span>',
+    $input->addClass('scoreLogScoreCell textCenter')->wrap(
+        '<div class="scoreLogEntryField"><span class="scoreLogEntryFieldLabel mb-1 text-xs font-bold text-gray-600">'.scoreLogT('Score').'</span>',
         '</div>'
     );
 
@@ -408,7 +408,7 @@ foreach ($roster as $index => $student) {
         ->setClass('scoreLogCommentCell')
         ->setAttribute('aria-label', scoreLogT('Comment'))
         ->wrap(
-            '<div class="scoreLogEntryField"><span class="scoreLogEntryFieldLabel">'.scoreLogT('Comment').'</span>',
+            '<div class="scoreLogEntryField"><span class="scoreLogEntryFieldLabel mb-1 text-xs font-bold text-gray-600">'.scoreLogT('Comment').'</span>',
             '</div>'
         );
 }
