@@ -263,14 +263,16 @@ if ($scoreLogDraftID !== '') {
                 ->setURL('/modules/Score Log/scorelog_view.php')
                 ->addParam('draftID', $olderDraftID)
                 ->setIcon('back')
-                ->displayLabel();
+                ->setAttribute('aria-label', scoreLogT('Previous'))
+                ->displayLabel(false);
         }
         if ($newerDraftID !== '') {
             $page->navigator->addHeaderAction('nextDraft', scoreLogT('Next'))
                 ->setURL('/modules/Score Log/scorelog_view.php')
                 ->addParam('draftID', $newerDraftID)
                 ->setIcon('forward')
-                ->displayLabel();
+                ->setAttribute('aria-label', scoreLogT('Next'))
+                ->displayLabel(false);
         }
     }
 } else {
