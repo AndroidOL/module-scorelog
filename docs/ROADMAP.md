@@ -9,6 +9,7 @@
 - Private drafts, roster revalidation, review and safe publication.
 - CSV, XLSX and spreadsheet-paste score import with mapping preview.
 - Dedicated Saved Drafts page with resume and revision-bound discard.
+- Multi-assessment draft grids with atomic all-or-none publication.
 
 ## Next candidates
 

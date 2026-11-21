@@ -22,12 +22,14 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Gibbon\Forms\Form;
 
 require_once __DIR__.'/moduleFunctions.php';
 
 $gibbonPersonID = (string) $session->get('gibbonPersonID');
 $gibbonSchoolYearID = (string) $session->get('gibbonSchoolYearID');
 $scoreLogDraftID = is_scalar($_GET['draftID'] ?? null) ? trim((string) $_GET['draftID']) : '';
+$columnID = is_scalar($_GET['columnID'] ?? null) ? trim((string) $_GET['columnID']) : '';
 
 if (
     !isActionAccessible($guid, $connection2, '/modules/Score Log/scorelog_view.php')
@@ -44,6 +46,31 @@ if (
     || !scoreLogCanEditClass($pdo, $gibbonPersonID, $draft['gibbonCourseClassID'], $gibbonSchoolYearID)
 ) {
     $page->addError(scoreLogT('The specified record does not exist.'));
+    return;
+}
+if ($columnID === '' || empty($draft['payloadData']['columns'][$columnID])) {
+    if ($columnID !== '') {
+        $page->addError(scoreLogT('Select the assessment column to import.'));
+    }
+    $scaleNames = $pdo->select("SELECT gibbonScaleID AS value, name FROM gibbonScale")->fetchKeyPair();
+    $columnOptions = [];
+    foreach ($draft['payloadData']['columnOrder'] as $candidateID) {
+        $column = $draft['payloadData']['columns'][$candidateID] ?? [];
+        $name = trim((string) ($column['name'] ?? '')) ?: scoreLogT('Untitled draft');
+        $scaleName = $scaleNames[(string) ($column['scaleID'] ?? '')] ?? '';
+        $columnOptions[(string) $candidateID] = $name.($scaleName !== '' ? ' — '.$scaleName : '');
+    }
+    $form = Form::create('scoreLogExportTarget', $session->get('absoluteURL').'/index.php', 'get');
+    $form->setTitle(scoreLogT('Choose Assessment Column for Export'));
+    $form->addHiddenValue('q', '/modules/Score Log/scorelog_importTemplate.php');
+    $form->addHiddenValue('draftID', $scoreLogDraftID);
+    $row = $form->addRow();
+    $row->addLabel('columnID', scoreLogT('Assessment'));
+    $row->addSelect('columnID')->fromArray($columnOptions)->required()->placeholder(scoreLogT('Please select...'));
+    $row = $form->addRow();
+    $row->addFooter();
+    $row->addSubmit(scoreLogT('Export Current Scores (XLSX)'));
+    $page->write($form->getOutput());
     return;
 }
 
@@ -64,7 +91,9 @@ $sheet->fromArray($headers, null, 'A1');
 $rowNumber = 2;
 foreach ($roster as $student) {
     $studentID = (string) ($student['gibbonPersonID'] ?? '');
-    $saved = is_array($savedStudents[$studentID] ?? null) ? $savedStudents[$studentID] : [];
+    $saved = is_array($savedStudents[$studentID]['scores'][$columnID] ?? null)
+        ? $savedStudents[$studentID]['scores'][$columnID]
+        : [];
     $templateStudentID = trim((string) ($student['studentID'] ?? ''));
     if ($templateStudentID === '') {
         $templateStudentID = $studentID;

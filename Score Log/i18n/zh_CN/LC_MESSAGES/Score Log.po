@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Score Log 1.2.1\n"
+"Project-Id-Version: Score Log 1.3.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 13:52+0800\n"
-"PO-Revision-Date: 2026-11-21 13:53+0800\n"
+"POT-Creation-Date: 2026-11-21 14:25+0800\n"
+"PO-Revision-Date: 2026-11-21 14:07+0800\n"
 "Last-Translator: AndroidOL\n"
 "Language-Team: Gibbon zh_CN\n"
 "Language: zh_CN\n"
@@ -11,517 +11,157 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#, php-format
-msgid "%s data rows detected. Extra columns: %s."
-msgstr "检测到 %s 行数据。额外列：%s。"
+#: ⁨Score Log/scorelog_draftDelete.php⁩:27 ⁨Score Log/scorelog_view.php⁩:69
+#: ⁨Score Log/scorelog_drafts.php⁩:29 ⁨Score Log/scorelog_drafts.php⁩:94
+msgid "Saved Drafts"
+msgstr "已保存草稿"
 
-#, php-format
-msgid "%s of %s entered"
-msgstr "已录入 %s / %s"
+#: ⁨Score Log/scorelog_draftDelete.php⁩:28 ⁨Score Log/scorelog_draftDelete.php⁩:67
+#: ⁨Score Log/scorelog_draftDelete.php⁩:78 ⁨Score Log/scorelog_view.php⁩:471
+#: ⁨Score Log/scorelog_view.php⁩:476 ⁨Score Log/scorelog_drafts.php⁩:118
+msgid "Discard Draft"
+msgstr "丢弃草稿"
 
-#, php-format
-msgid "%s: %s/%s rows matched as %s."
-msgstr "%s：%s/%s 行匹配为 %s。"
+#: ⁨Score Log/scorelog_draftDelete.php⁩:39 ⁨Score Log/scorelog_import.php⁩:55
+#: ⁨Score Log/scorelog_review.php⁩:52 ⁨Score Log/scorelog_view.php⁩:54
+#: ⁨Score Log/scorelog_view.php⁩:218 ⁨Score Log/scorelog_importTemplate.php⁩:38
+#: ⁨Score Log/scorelog_drafts.php⁩:44
+msgid "You do not have access to this page."
+msgstr "您没有权限访问该页面。"
 
-msgid "A recognised header row was detected and skipped."
-msgstr "已识别并跳过标题行。"
+#: ⁨Score Log/scorelog_draftDelete.php⁩:49 ⁨Score Log/scorelog_import.php⁩:65
+#: ⁨Score Log/scorelog_review.php⁩:62 ⁨Score Log/scorelog_view.php⁩:200
+#: ⁨Score Log/scorelog_view.php⁩:235 ⁨Score Log/scorelog_importTemplate.php⁩:48
+msgid "The specified record does not exist."
+msgstr "指定的记录不存在。"
 
-msgid "All Classes"
-msgstr "所有课程"
+#: ⁨Score Log/scorelog_draftDelete.php⁩:54 ⁨Score Log/scorelog_import.php⁩:77
+#: ⁨Score Log/scorelog_view.php⁩:96 ⁨Score Log/scorelog_importTemplate.php⁩:59
+#: ⁨Score Log/scorelog_drafts.php⁩:75
+msgid "Untitled draft"
+msgstr "未命名草稿"
 
-msgid "Ambiguous student"
-msgstr "学生匹配不唯一"
-
-#, php-format
-msgid "Apply %s changed student rows to the private draft?"
-msgstr "将 %s 名学生的变更应用到私有草稿吗？"
-
-msgid "Apply to Draft"
-msgstr "应用到草稿"
-
-msgid "Assessment Date"
-msgstr "评估日期"
-
-msgid "Assessment Scale"
-msgstr "评估评分标准"
-
-msgid "Assessment published."
-msgstr "评估已发布。"
-
-msgid "Back to Draft"
-msgstr "返回草稿"
-
-msgid "CSV or XLSX File"
-msgstr "CSV 或 XLSX 文件"
-
-msgid "Choose a CSV/XLSX file or paste a table."
-msgstr "请选择 CSV/XLSX 文件或粘贴表格。"
-
-msgid "Choose a grade from the selected scale."
-msgstr "请从所选评分量表中选择一个等级。"
-
-msgid "Choose a valid assessment date."
-msgstr "请选择有效的评估日期。"
-
-msgid "Choose a valid assessment type."
-msgstr "请选择有效的评估类型。"
-
-msgid "Choose a valid parent visibility setting."
-msgstr "请选择有效的家长可见设置。"
-
-msgid "Choose a valid student visibility setting."
-msgstr "请选择有效的学生可见设置。"
-
-msgid "Choose how the identifier and score columns should be mapped."
-msgstr "请选择学生标识列、标识类型和成绩列的映射方式。"
-
-msgid ""
-"Choose the identifier column/type and score column, then refresh the preview."
-msgstr "请选择学生标识列/类型和成绩列，然后刷新预览。"
-
-msgid "Class"
-msgstr "课程班"
-
-msgid "Class Name"
-msgstr "课程名称"
-
-#, php-format
-msgid "Clears: %s"
-msgstr "清除：%s"
-
-#, php-format
-msgid "Column %s"
-msgstr "第 %s 列"
-
-msgid "Comment"
-msgstr "评语"
-
-msgid "Comment Column"
-msgstr "评语列"
-
-msgid "Confirm Import Mapping"
-msgstr "确认导入字段映射"
-
-msgid "Confirm Publication"
-msgstr "确认发布"
-
-msgid "Confirm that unmatched or invalid import rows will be skipped."
-msgstr "请确认未匹配或无效的导入行将被跳过。"
-
-msgid "Confirm the students who will be published without a score."
-msgstr "请确认将无成绩发布的学生。"
-
-msgid "Continue"
-msgstr "继续"
-
-msgid ""
-"Correct the detected columns before applying imported values. The preview "
-"updates only after Refresh Preview."
-msgstr "应用导入值前请修正识别出的列；只有点击“刷新预览”后预览才会更新。"
-
-msgid "Correct these assessment details before publishing:"
-msgstr "发布前请修正以下评估信息："
-
-msgid "Create Internal Assessment"
-msgstr "创建内部评估"
-
-msgid "Create New Assessment"
-msgstr "创建新评估"
-
-msgid "Date"
-msgstr "日期"
-
-msgid "Description"
-msgstr "说明"
-
-msgid "Detected mapping"
-msgstr "自动识别结果"
-
+#: ⁨Score Log/scorelog_draftDelete.php⁩:73
 #, php-format
 msgid ""
 "Discard %s? This permanently removes the private draft and cannot be undone."
 msgstr "确定丢弃“%s”吗？此操作将永久删除该私有草稿，且无法撤销。"
 
-msgid "Discard Draft"
-msgstr "丢弃草稿"
-
+#: ⁨Score Log/scorelog_draftDelete.php⁩:80 ⁨Score Log/scorelog_view.php⁩:478
 msgid "Discard this draft? This cannot be undone."
 msgstr "确定丢弃此草稿吗？此操作无法撤销。"
 
-msgid "Discard this private draft and return to the draft list."
-msgstr "丢弃此私有草稿并返回草稿列表。"
+#: ⁨Score Log/scorelog_import.php⁩:27 ⁨Score Log/scorelog_review.php⁩:29
+#: ⁨Score Log/scorelog_view.php⁩:31 ⁨Score Log/scorelog_view.php⁩:349
+#: ⁨Score Log/scorelog_drafts.php⁩:28
+msgid "Create Internal Assessment"
+msgstr "创建内部评估"
 
-msgid "Download XLSX Template"
-msgstr "下载 XLSX 模板"
-
-msgid "Draft discarded."
-msgstr "草稿已丢弃。"
-
-msgid "Draft saved."
-msgstr "草稿已保存。"
-
-msgid "Draft saved. Review the current roster and scores before publishing."
-msgstr "草稿已保存。发布前请复核当前名册和成绩。"
-
-msgid ""
-"Drafts are private to their creator and are hidden from students, parents "
-"and reports."
-msgstr "草稿仅创建人可见，不会出现在学生、家长和报表中。"
-
-msgid "Duplicate student"
-msgstr "学生重复"
-
-msgid "Edit Draft"
-msgstr "编辑草稿"
-
-#, php-format
-msgid "Enter a score from 0 to %s."
-msgstr "请输入 0 到 %s 之间的成绩。"
-
-msgid "Enter a score of 0 or greater."
-msgstr "请输入大于或等于 0 的成绩。"
-
-msgid "Enter a valid finite number."
-msgstr "请输入有效的有限数值。"
-
-msgid "Enter an assessment name."
-msgstr "请输入评估名称。"
-
-msgid "Entered"
-msgstr "已录入"
-
-msgid "Existing"
-msgstr "现有值"
-
-#, php-format
-msgid "Extra unmapped columns ignored: %s."
-msgstr "已忽略的未映射额外列：%s。"
-
-msgid "Formula cells cannot be imported."
-msgstr "无法导入公式单元格。"
-
-msgid "Grading scale:"
-msgstr "评分标准："
-
-#, php-format
-msgid "I confirm that %s students will be published without a score."
-msgstr "我确认有 %s 名学生将在无成绩的情况下发布。"
-
-msgid ""
-"I reviewed the current roster and understand that only current students will "
-"be published."
-msgstr "我已复核当前名册，并了解仅当前学生会发布。"
-
-#, php-format
-msgid "I understand that %s invalid or unmatched rows will not be applied."
-msgstr "我了解 %s 行无效或未匹配的数据不会被应用。"
-
-msgid "Identifier"
-msgstr "标识"
-
-msgid "Identifier Column"
-msgstr "学生标识列"
-
-msgid "Identifier Type"
-msgstr "标识类型"
-
+#: ⁨Score Log/scorelog_import.php⁩:28 ⁨Score Log/scorelog_view.php⁩:365
+#: ⁨Score Log/scorelog_view.php⁩:406 ⁨Score Log/scorelog_drafts.php⁩:111
 msgid "Import Scores"
 msgstr "导入成绩"
 
-msgid "Import Scores into Draft"
-msgstr "将成绩导入草稿"
-
+#: ⁨Score Log/scorelog_import.php⁩:31
 msgid ""
 "Import parsed. Review the detected columns before applying it to the draft."
 msgstr "导入内容已解析。应用前请复核识别出的列。"
 
-msgid "Imported"
-msgstr "导入值"
+#: ⁨Score Log/scorelog_import.php⁩:32
+msgid ""
+"Draft saved. Choose an import file or paste a table for this assessment "
+"column."
+msgstr "草稿已保存。请为此评估列选择导入文件或粘贴表格。"
 
-msgid "Imported score values applied to the draft."
-msgstr "导入的成绩值已应用到草稿。"
+#: ⁨Score Log/scorelog_import.php⁩:33 ⁨Score Log/scorelog_review.php⁩:35
+#: ⁨Score Log/scorelog_view.php⁩:38 ⁨Score Log/scorelog_drafts.php⁩:33
+msgid "You do not have permission to perform this action."
+msgstr "您没有权限执行该操作。"
 
-msgid "Invalid"
-msgstr "无效"
+#: ⁨Score Log/scorelog_import.php⁩:34
+msgid "The import data is invalid or empty."
+msgstr "导入数据无效或为空。"
 
-msgid "Invalid row"
-msgstr "无效行"
+#: ⁨Score Log/scorelog_import.php⁩:35
+msgid "The spreadsheet could not be read."
+msgstr "无法读取电子表格。"
 
-msgid "Last Saved"
-msgstr "最后保存"
+#: ⁨Score Log/scorelog_import.php⁩:36
+msgid "Choose a CSV/XLSX file or paste a table."
+msgstr "请选择 CSV/XLSX 文件或粘贴表格。"
 
-#, php-format
-msgid "Last saved %s · revision %s"
-msgstr "最后保存于 %s · 修订版本 %s"
+#: ⁨Score Log/scorelog_import.php⁩:37
+msgid "The import exceeds the file, row or paste-size limit."
+msgstr "导入内容超过文件、行数或粘贴大小限制。"
 
-msgid "Manual value preserved"
-msgstr "已保留手工值"
-
-msgid "Matched"
-msgstr "已匹配"
-
-msgid "Maximum 1000 characters."
-msgstr "最多 1000 个字符。"
-
-msgid "Maximum 30 characters."
-msgstr "最多 30 个字符。"
-
-msgid "Missing"
-msgstr "未填"
-
-msgid "My Classes"
-msgstr "我的课程"
-
-msgid "My Score Log Drafts"
-msgstr "我的成绩录入草稿"
-
-msgid "Name"
-msgstr "名称"
-
-msgid "New"
-msgstr "新增"
-
-#, php-format
-msgid "New students: %s"
-msgstr "新增学生：%s"
-
-msgid "No"
-msgstr "否"
-
-msgid "No change"
-msgstr "无变更"
-
-msgid "No header row was required; columns were detected from the data."
-msgstr "无需标题行；已根据数据识别列。"
-
-msgid "No submitted data was received."
-msgstr "没有收到提交的数据。"
-
+#: ⁨Score Log/scorelog_import.php⁩:38
 msgid "Only CSV and XLSX files are supported."
 msgstr "仅支持 CSV 和 XLSX 文件。"
 
-msgid "Only current students appear in the publish review."
-msgstr "发布复核仅显示当前学生。"
-
-msgid ""
-"Only the current roster will be published. Review all missing scores before "
-"continuing."
-msgstr "仅当前名册会发布。继续前请复核所有未填成绩。"
-
-msgid "Optional. Extra columns are ignored."
-msgstr "可选，额外列将被忽略。"
-
-msgid "Overwrite or Clear Existing Values"
-msgstr "覆盖或清除现有值"
-
-#, php-format
-msgid "Overwrites: %s"
-msgstr "覆盖：%s"
-
-msgid "Parse Import"
-msgstr "解析导入"
-
-msgid "Paste from Spreadsheet"
-msgstr "从电子表格粘贴"
-
-msgid "Paste tab-separated rows. Leave the file field empty."
-msgstr "粘贴制表符分隔的行；文件字段请留空。"
-
-msgid "Pasted table"
-msgstr "粘贴的表格"
-
-msgid "Please select..."
-msgstr "请选择……"
-
-msgid "Preserved Manual Values"
-msgstr "保留手工值"
-
-msgid ""
-"Private drafts created by you for the current school year. Only you can "
-"resume or discard them."
-msgstr "本学年由您创建的私有草稿。只有您可以继续编辑或丢弃。"
-
-msgid "Progress"
-msgstr "进度"
-
-msgid "Publish Assessment"
-msgstr "发布评估"
-
-msgid "Publish Preview"
-msgstr "发布预览"
-
-msgid "Publish Settings"
-msgstr "发布设置"
-
-#, php-format
-msgid "Publish this assessment to the current roster of %s students?"
-msgstr "确定向当前名册中的 %s 名学生发布此评估吗？"
-
-msgid "Recent Assessments"
-msgstr "最近评估"
-
-msgid "Refresh Preview"
-msgstr "刷新预览"
-
-#, php-format
-msgid "Removed students: %s"
-msgstr "移除学生：%s"
-
-msgid "Resume Draft"
-msgstr "继续编辑草稿"
-
-msgid "Review and Publish"
-msgstr "复核并发布"
-
-msgid "Revision"
-msgstr "修订版本"
-
-msgid "Row"
-msgstr "行"
-
-msgid "Rows"
-msgstr "数据行"
-
-msgid "Save Draft"
-msgstr "保存草稿"
-
-msgid "Saved Drafts"
-msgstr "已保存草稿"
-
-msgid "Score"
-msgstr "分值"
-
-msgid "Score Column"
-msgstr "成绩列"
-
-msgid "Scores"
-msgstr "成绩"
-
-msgid "Skipped / Invalid"
-msgstr "跳过 / 无效"
-
-msgid "Start New Assessment"
-msgstr "开始新评估"
-
-msgid "Status"
-msgstr "状态"
-
-msgid "Student"
-msgstr "学生"
-
-msgid "Student ID"
-msgstr "学生编号"
-
-msgid "Student Name"
-msgstr "学生姓名"
-
-msgid "Students"
-msgstr "学生"
-
-msgid "The 10 most recent published internal assessments for this class."
-msgstr "最近创建的 10 条内部评估，按完成日期倒序排列。"
-
-msgid ""
-"The assessment is hidden from students, parents and reports until this date."
-msgstr "在这个日期之前，学生、家长和报表看不到该评估。"
-
-msgid "The assessment name must be 30 characters or fewer."
-msgstr "评估名称不得超过 30 个字符。"
-
-msgid "The class roster changed after review. Review the current roster again."
-msgstr "复核后课程班名册发生变化，请重新复核当前名册。"
-
-msgid "The class roster changed since this draft was saved."
-msgstr "保存草稿后课程班名册发生变化。"
-
-msgid "The comment must be 1000 characters or fewer."
-msgstr "评语不得超过 1000 个字符。"
-
-msgid "The description must be 1000 characters or fewer."
-msgstr "说明不得超过 1000 个字符。"
-
+#: ⁨Score Log/scorelog_import.php⁩:39 ⁨Score Log/scorelog_import.php⁩:348
+#: ⁨Score Log/scorelog_view.php⁩:43
 msgid ""
 "The draft changed after the import preview. Reopen the draft and import "
 "again."
 msgstr "导入预览后草稿已发生变化，请重新打开草稿并再次导入。"
 
-msgid "The draft is no longer available or its data is invalid."
-msgstr "草稿已不可用或数据无效。"
-
-msgid "The identifier and score must use different columns."
-msgstr "学生标识列和成绩列不能是同一列。"
-
-msgid "The import data is invalid or empty."
-msgstr "导入数据无效或为空。"
-
-msgid "The import exceeds the file, row or paste-size limit."
-msgstr "导入内容超过文件、行数或粘贴大小限制。"
-
+#: ⁨Score Log/scorelog_import.php⁩:40 ⁨Score Log/scorelog_view.php⁩:44
 msgid ""
 "The import mapping changed after preview. Refresh the preview before "
 "applying."
 msgstr "预览后导入映射已变化，请刷新预览后再应用。"
 
-msgid "The specified record does not exist."
-msgstr "指定的记录不存在。"
+#: ⁨Score Log/scorelog_import.php⁩:41 ⁨Score Log/scorelog_view.php⁩:45
+msgid "Confirm that unmatched or invalid import rows will be skipped."
+msgstr "请确认未匹配或无效的导入行将被跳过。"
 
-msgid "The spreadsheet could not be read."
-msgstr "无法读取电子表格。"
+#: ⁨Score Log/scorelog_import.php⁩:42 ⁨Score Log/scorelog_review.php⁩:41
+#: ⁨Score Log/scorelog_view.php⁩:46
+msgid "Your session expired. Refresh the page and try again."
+msgstr "会话已过期，请刷新页面后重试。"
 
-msgid "The student identifier is ambiguous."
-msgstr "学生标识匹配不唯一。"
+#: ⁨Score Log/scorelog_import.php⁩:70 ⁨Score Log/scorelog_importTemplate.php⁩:53
+msgid "Select the assessment column to import."
+msgstr "请选择要导入的评估列。"
 
-msgid "The student identifier is unknown."
-msgstr "未找到该学生标识。"
+#: ⁨Score Log/scorelog_import.php⁩:83
+msgid "Choose Assessment Column for Import"
+msgstr "选择要导入的评估列"
 
-msgid "The submitted data is invalid. Check the class, scale and scores."
-msgstr "提交的数据无效，请检查课程、评分标准和成绩。"
-
-msgid "There are no records to display."
-msgstr "没有可显示的记录。"
-
+#: ⁨Score Log/scorelog_import.php⁩:84
 msgid ""
-"This draft cannot be published until all invalid rows and assessment details "
-"are corrected."
-msgstr "修正所有无效行和评估信息后才能发布此草稿。"
+"Import and template operations always target one explicit assessment column."
+msgstr "导入和模板操作始终针对一个明确选择的评估列。"
 
-msgid "This draft changed in another tab. Reopen it before continuing."
-msgstr "草稿已在另一个标签页中更改，请重新打开后再继续。"
+#: ⁨Score Log/scorelog_import.php⁩:88 ⁨Score Log/scorelog_review.php⁩:119
+#: ⁨Score Log/scorelog_review.php⁩:155 ⁨Score Log/scorelog_view.php⁩:359
+#: ⁨Score Log/scorelog_view.php⁩:361 ⁨Score Log/scorelog_view.php⁩:418
+#: ⁨Score Log/scorelog_view.php⁩:531 ⁨Score Log/scorelog_importTemplate.php⁩:68
+msgid "Assessment"
+msgstr "评估"
 
-msgid "This draft changed in another tab. Reopen it before publishing."
-msgstr "草稿已在另一个标签页中更改，请重新打开后再发布。"
+#: ⁨Score Log/scorelog_import.php⁩:89 ⁨Score Log/scorelog_view.php⁩:177
+#: ⁨Score Log/scorelog_view.php⁩:184 ⁨Score Log/scorelog_importTemplate.php⁩:69
+msgid "Please select..."
+msgstr "请选择……"
 
-msgid ""
-"This import would not change the draft. Adjust the mapping or overwrite "
-"setting if necessary."
-msgstr "此次导入不会改变草稿。如有需要，请调整映射或覆盖设置。"
+#: ⁨Score Log/scorelog_import.php⁩:92 ⁨Score Log/scorelog_view.php⁩:187
+msgid "Continue"
+msgstr "继续"
 
-msgid "This legacy action is no longer available. Start or resume a draft."
-msgstr "此旧版操作已不可用。请新建或继续编辑草稿。"
+#: ⁨Score Log/scorelog_import.php⁩:98 ⁨Score Log/scorelog_review.php⁩:96
+msgid "Back to Draft"
+msgstr "返回草稿"
 
-msgid "Type"
-msgstr "类型"
+#: ⁨Score Log/scorelog_import.php⁩:102
+msgid "Download XLSX Template"
+msgstr "下载 XLSX 模板"
 
-msgid ""
-"Unable to save. Another assessment may be in progress; try again shortly."
-msgstr "保存失败，可能另一个评估正在创建，请稍后重试。"
+#: ⁨Score Log/scorelog_import.php⁩:124
+msgid "Import Scores into Draft"
+msgstr "将成绩导入草稿"
 
-msgid ""
-"Unchecked preserves existing values. Checked overwrites changed values and "
-"clears an existing mapped Score or Comment when the imported cell is blank."
-msgstr ""
-"未勾选时保留现有值；勾选后，将覆盖发生变化的导入值，并在导入的成绩或评语单元"
-"格为空时清除对应的现有值。"
-
-msgid "Unknown student"
-msgstr "未知学生"
-
-msgid "Unmapped"
-msgstr "未映射"
-
-msgid "Untitled draft"
-msgstr "未命名草稿"
-
+#: ⁨Score Log/scorelog_import.php⁩:125
 msgid ""
 "Upload CSV/XLSX or paste from a spreadsheet. Two columns are enough: student "
 "name/ID/username and score. A third column may contain comments."
@@ -529,56 +169,736 @@ msgstr ""
 "上传 CSV/XLSX，或从电子表格粘贴。两列即可：学生姓名/编号/用户名和成绩；第三列"
 "可放评语。"
 
+#: ⁨Score Log/scorelog_import.php⁩:130
+msgid "CSV or XLSX File"
+msgstr "CSV 或 XLSX 文件"
+
+#: ⁨Score Log/scorelog_import.php⁩:133
+msgid "Paste from Spreadsheet"
+msgstr "从电子表格粘贴"
+
+#: ⁨Score Log/scorelog_import.php⁩:133
+msgid "Paste tab-separated rows. Leave the file field empty."
+msgstr "粘贴制表符分隔的行；文件字段请留空。"
+
+#: ⁨Score Log/scorelog_import.php⁩:137
+msgid "Parse Import"
+msgstr "解析导入"
+
+#: ⁨Score Log/scorelog_import.php⁩:152
+msgid "The selected assessment scale is not active."
+msgstr "所选评估评分量表未启用。"
+
+#: ⁨Score Log/scorelog_import.php⁩:235
+msgid "Target Assessment"
+msgstr "目标评估"
+
+#: ⁨Score Log/scorelog_import.php⁩:236
+#, php-format
+msgid "%s data rows detected. Extra columns: %s."
+msgstr "检测到 %s 行数据。额外列：%s。"
+
+#: ⁨Score Log/scorelog_import.php⁩:238
+msgid "A recognised header row was detected and skipped."
+msgstr "已识别并跳过标题行。"
+
+#: ⁨Score Log/scorelog_import.php⁩:239
+msgid "No header row was required; columns were detected from the data."
+msgstr "无需标题行；已根据数据识别列。"
+
+#: ⁨Score Log/scorelog_import.php⁩:240
+#, php-format
+msgid "Extra unmapped columns ignored: %s."
+msgstr "已忽略的未映射额外列：%s。"
+
+#: ⁨Score Log/scorelog_import.php⁩:244
+msgid "Detected mapping"
+msgstr "自动识别结果"
+
+#: ⁨Score Log/scorelog_import.php⁩:247
+#, php-format
+msgid "%s: %s/%s rows matched as %s."
+msgstr "%s：%s/%s 行匹配为 %s。"
+
+#: ⁨Score Log/scorelog_import.php⁩:258
+msgid "Confirm Import Mapping"
+msgstr "确认导入字段映射"
+
+#: ⁨Score Log/scorelog_import.php⁩:259
+msgid ""
+"Correct the detected columns before applying imported values. The preview "
+"updates only after Refresh Preview."
+msgstr "应用导入值前请修正识别出的列；只有点击“刷新预览”后预览才会更新。"
+
+#: ⁨Score Log/scorelog_import.php⁩:270
+msgid "Identifier Column"
+msgstr "学生标识列"
+
+#: ⁨Score Log/scorelog_import.php⁩:273
+msgid "Identifier Type"
+msgstr "标识类型"
+
+#: ⁨Score Log/scorelog_import.php⁩:275 ⁨Score Log/moduleFunctions.php⁩:1344
+#: ⁨Score Log/scorelog_importTemplate.php⁩:83
+msgid "Student ID"
+msgstr "学生编号"
+
+#: ⁨Score Log/scorelog_import.php⁩:276 ⁨Score Log/moduleFunctions.php⁩:1345
+#: ⁨Score Log/scorelog_importTemplate.php⁩:84
 msgid "Username"
 msgstr "用户名"
 
-msgid "View / Enter Marks"
-msgstr "查看/录入成绩"
+#: ⁨Score Log/scorelog_import.php⁩:277 ⁨Score Log/moduleFunctions.php⁩:1346
+#: ⁨Score Log/scorelog_importTemplate.php⁩:85
+msgid "Student Name"
+msgstr "学生姓名"
 
-msgid "View Marks"
-msgstr "查看成绩"
+#: ⁨Score Log/scorelog_import.php⁩:280
+msgid "Score Column"
+msgstr "成绩列"
 
-msgid "Viewable to Parents"
-msgstr "家长可见"
+#: ⁨Score Log/scorelog_import.php⁩:283
+msgid "Comment Column"
+msgstr "评语列"
 
-msgid "Viewable to Students"
-msgstr "学生可见"
+#: ⁨Score Log/scorelog_import.php⁩:283
+msgid "Optional. Extra columns are ignored."
+msgstr "可选，额外列将被忽略。"
 
-msgid "Visible to Parents"
-msgstr "家长可见"
+#: ⁨Score Log/scorelog_import.php⁩:286
+msgid "Overwrite or Clear Existing Values"
+msgstr "覆盖或清除现有值"
 
-msgid "Visible to Students"
-msgstr "学生可见"
+#: ⁨Score Log/scorelog_import.php⁩:287
+msgid ""
+"Unchecked preserves existing values. Checked overwrites changed values and "
+"clears an existing mapped Score or Comment when the imported cell is blank."
+msgstr ""
+"未勾选时保留现有值；勾选后，将覆盖发生变化的导入值，并在导入的成绩或评语单元"
+"格为空时清除对应的现有值。"
 
-msgid "Would Clear"
-msgstr "将清除"
+#: ⁨Score Log/scorelog_import.php⁩:291
+msgid "Refresh Preview"
+msgstr "刷新预览"
 
+#: ⁨Score Log/scorelog_import.php⁩:296
+msgid "Rows"
+msgstr "数据行"
+
+#: ⁨Score Log/scorelog_import.php⁩:297
+msgid "Matched"
+msgstr "已匹配"
+
+#: ⁨Score Log/scorelog_import.php⁩:298
 msgid "Would Fill"
 msgstr "将填入"
 
+#: ⁨Score Log/scorelog_import.php⁩:299
 msgid "Would Overwrite"
 msgstr "将覆盖"
 
-msgid "Would clear"
+#: ⁨Score Log/scorelog_import.php⁩:300
+msgid "Would Clear"
 msgstr "将清除"
 
+#: ⁨Score Log/scorelog_import.php⁩:301
+msgid "Preserved Manual Values"
+msgstr "保留手工值"
+
+#: ⁨Score Log/scorelog_import.php⁩:302
+msgid "Skipped / Invalid"
+msgstr "跳过 / 无效"
+
+#: ⁨Score Log/scorelog_import.php⁩:306
+msgid "Row"
+msgstr "行"
+
+#: ⁨Score Log/scorelog_import.php⁩:306
+msgid "Identifier"
+msgstr "标识"
+
+#: ⁨Score Log/scorelog_import.php⁩:306 ⁨Score Log/scorelog_review.php⁩:155
+#: ⁨Score Log/scorelog_view.php⁩:371 ⁨Score Log/scorelog_view.php⁩:412
+msgid "Student"
+msgstr "学生"
+
+#: ⁨Score Log/scorelog_import.php⁩:307
+msgid "Imported"
+msgstr "导入值"
+
+#: ⁨Score Log/scorelog_import.php⁩:307
+msgid "Existing"
+msgstr "现有值"
+
+#: ⁨Score Log/scorelog_import.php⁩:307
+msgid "Status"
+msgstr "状态"
+
+#: ⁨Score Log/scorelog_import.php⁩:311
 msgid "Would fill"
 msgstr "将填入"
 
+#: ⁨Score Log/scorelog_import.php⁩:312
 msgid "Would overwrite"
 msgstr "将覆盖"
 
+#: ⁨Score Log/scorelog_import.php⁩:313
+msgid "Would clear"
+msgstr "将清除"
+
+#: ⁨Score Log/scorelog_import.php⁩:314
+msgid "Manual value preserved"
+msgstr "已保留手工值"
+
+#: ⁨Score Log/scorelog_import.php⁩:315
+msgid "Unknown student"
+msgstr "未知学生"
+
+#: ⁨Score Log/scorelog_import.php⁩:316
+msgid "Ambiguous student"
+msgstr "学生匹配不唯一"
+
+#: ⁨Score Log/scorelog_import.php⁩:317
+msgid "Duplicate student"
+msgstr "学生重复"
+
+#: ⁨Score Log/scorelog_import.php⁩:318
+msgid "Invalid row"
+msgstr "无效行"
+
+#: ⁨Score Log/scorelog_import.php⁩:319
+msgid "No change"
+msgstr "无变更"
+
+#: ⁨Score Log/scorelog_import.php⁩:336
+#, php-format
+msgid "Overwrites: %s"
+msgstr "覆盖：%s"
+
+#: ⁨Score Log/scorelog_import.php⁩:337
+#, php-format
+msgid "Clears: %s"
+msgstr "清除：%s"
+
+#: ⁨Score Log/scorelog_import.php⁩:344
+msgid "The identifier and score must use different columns."
+msgstr "学生标识列和成绩列不能是同一列。"
+
+#: ⁨Score Log/scorelog_import.php⁩:350
+msgid ""
+"Choose the identifier column/type and score column, then refresh the preview."
+msgstr "请选择学生标识列/类型和成绩列，然后刷新预览。"
+
+#: ⁨Score Log/scorelog_import.php⁩:352
+msgid ""
+"This import would not change the draft. Adjust the mapping or overwrite "
+"setting if necessary."
+msgstr "此次导入不会改变草稿。如有需要，请调整映射或覆盖设置。"
+
+#: ⁨Score Log/scorelog_import.php⁩:359 ⁨Score Log/scorelog_import.php⁩:383
+msgid "Apply to Draft"
+msgstr "应用到草稿"
+
+#: ⁨Score Log/scorelog_import.php⁩:374
+#, php-format
+msgid "I understand that %s invalid or unmatched rows will not be applied."
+msgstr "我了解 %s 行无效或未匹配的数据不会被应用。"
+
+#: ⁨Score Log/scorelog_import.php⁩:378
+#, php-format
+msgid "Apply %s changed student rows to the private draft?"
+msgstr "将 %s 名学生的变更应用到私有草稿吗？"
+
+#: ⁨Score Log/moduleFunctions.php⁩:141
+msgid "Grading scale:"
+msgstr "评分标准："
+
+#: ⁨Score Log/moduleFunctions.php⁩:417 ⁨Score Log/moduleFunctions.php⁩:555
+msgid "Enter an assessment name."
+msgstr "请输入评估名称。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:419 ⁨Score Log/moduleFunctions.php⁩:557
+msgid "The assessment name must be 30 characters or fewer."
+msgstr "评估名称不得超过 30 个字符。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:422 ⁨Score Log/moduleFunctions.php⁩:565
+msgid "The description must be 1000 characters or fewer."
+msgstr "说明不得超过 1000 个字符。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:425 ⁨Score Log/moduleFunctions.php⁩:568
+msgid "Choose a valid assessment type."
+msgstr "请选择有效的评估类型。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:428 ⁨Score Log/moduleFunctions.php⁩:577
+msgid "Choose a valid student visibility setting."
+msgstr "请选择有效的学生可见设置。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:431 ⁨Score Log/moduleFunctions.php⁩:580
+msgid "Choose a valid parent visibility setting."
+msgstr "请选择有效的家长可见设置。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:434 ⁨Score Log/moduleFunctions.php⁩:574
+msgid "Choose a valid assessment date."
+msgstr "请选择有效的评估日期。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:458 ⁨Score Log/moduleFunctions.php⁩:598
+#: ⁨Score Log/moduleFunctions.php⁩:1159
+msgid "The comment must be 1000 characters or fewer."
+msgstr "评语不得超过 1000 个字符。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:466 ⁨Score Log/moduleFunctions.php⁩:917
+msgid "Enter a valid finite number."
+msgstr "请输入有效的有限数值。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:468 ⁨Score Log/moduleFunctions.php⁩:921
+msgid "Enter a score of 0 or greater."
+msgstr "请输入大于或等于 0 的成绩。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:470 ⁨Score Log/moduleFunctions.php⁩:928
+#, php-format
+msgid "Enter a score from 0 to %s."
+msgstr "请输入 0 到 %s 之间的成绩。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:478 ⁨Score Log/moduleFunctions.php⁩:945
+msgid "Choose a grade from the selected scale."
+msgstr "请从所选评分量表中选择一个等级。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:538
+msgid "A draft must contain between 1 and 10 assessment columns."
+msgstr "草稿必须包含 1 至 10 个评估列。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:559
+msgid "Assessment column names must be unique within the draft."
+msgstr "草稿中的评估列名称必须唯一。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:571
+msgid "Choose an active assessment scale."
+msgstr "请选择已启用的评估评分量表。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:630
+msgid "This assessment column has no entered scores."
+msgstr "此评估列尚未录入任何成绩。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:1125
+msgid "Choose how the identifier and score columns should be mapped."
+msgstr "请选择学生标识列、标识类型和成绩列的映射方式。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:1132
+msgid "The student identifier is unknown."
+msgstr "未找到该学生标识。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:1135
+msgid "The student identifier is ambiguous."
+msgstr "学生标识匹配不唯一。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:1147
+msgid "Formula cells cannot be imported."
+msgstr "无法导入公式单元格。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:1338
+#, php-format
+msgid "Column %s"
+msgstr "第 %s 列"
+
+#: ⁨Score Log/moduleFunctions.php⁩:1347 ⁨Score Log/scorelog_view.php⁩:527
+#: ⁨Score Log/scorelog_importTemplate.php⁩:86
+msgid "Score"
+msgstr "分值"
+
+#: ⁨Score Log/moduleFunctions.php⁩:1348 ⁨Score Log/scorelog_view.php⁩:445
+#: ⁨Score Log/scorelog_view.php⁩:446 ⁨Score Log/scorelog_view.php⁩:529
+#: ⁨Score Log/scorelog_importTemplate.php⁩:87
+msgid "Comment"
+msgstr "评语"
+
+#: ⁨Score Log/moduleFunctions.php⁩:1349
+msgid "Unmapped"
+msgstr "未映射"
+
+#: ⁨Score Log/scorelog_review.php⁩:30 ⁨Score Log/scorelog_view.php⁩:462
+msgid "Review and Publish"
+msgstr "复核并发布"
+
+#: ⁨Score Log/scorelog_review.php⁩:33
+msgid "Assessments published."
+msgstr "评估已发布。"
+
+#: ⁨Score Log/scorelog_review.php⁩:34
+msgid "Draft saved. Review the current roster and scores before publishing."
+msgstr "草稿已保存。发布前请复核当前名册和成绩。"
+
+#: ⁨Score Log/scorelog_review.php⁩:36
+msgid "The draft is no longer available or its data is invalid."
+msgstr "草稿已不可用或数据无效。"
+
+#: ⁨Score Log/scorelog_review.php⁩:37 ⁨Score Log/scorelog_view.php⁩:40
+msgid ""
+"Unable to save. Another assessment may be in progress; try again shortly."
+msgstr "保存失败，可能另一个评估正在创建，请稍后重试。"
+
+#: ⁨Score Log/scorelog_review.php⁩:38
+msgid "This draft changed in another tab. Reopen it before publishing."
+msgstr "草稿已在另一个标签页中更改，请重新打开后再发布。"
+
+#: ⁨Score Log/scorelog_review.php⁩:39
+msgid "The class roster changed after review. Review the current roster again."
+msgstr "复核后课程班名册发生变化，请重新复核当前名册。"
+
+#: ⁨Score Log/scorelog_review.php⁩:40
+msgid "Confirm the students who will be published without a score."
+msgstr "请确认将无成绩发布的学生。"
+
+#: ⁨Score Log/scorelog_review.php⁩:95
+#, php-format
+msgid "%s assessment columns"
+msgstr "%s 个评估列"
+
+#: ⁨Score Log/scorelog_review.php⁩:100 ⁨Score Log/scorelog_view.php⁩:288
+msgid "The class roster changed since this draft was saved."
+msgstr "保存草稿后课程班名册发生变化。"
+
+#: ⁨Score Log/scorelog_review.php⁩:102 ⁨Score Log/scorelog_view.php⁩:290
+#, php-format
+msgid "New students: %s"
+msgstr "新增学生：%s"
+
+#: ⁨Score Log/scorelog_review.php⁩:105 ⁨Score Log/scorelog_view.php⁩:293
+#, php-format
+msgid "Removed students: %s"
+msgstr "移除学生：%s"
+
+#: ⁨Score Log/scorelog_review.php⁩:107
+msgid ""
+"Only the current roster will be published. Review every assessment column "
+"before continuing."
+msgstr "仅当前名册会发布。继续前请复核每个评估列。"
+
+#: ⁨Score Log/scorelog_review.php⁩:119 ⁨Score Log/scorelog_view.php⁩:379
+#: ⁨Score Log/scorelog_view.php⁩:498
+msgid "Type"
+msgstr "类型"
+
+#: ⁨Score Log/scorelog_review.php⁩:119 ⁨Score Log/scorelog_view.php⁩:115
+#: ⁨Score Log/scorelog_view.php⁩:384 ⁨Score Log/scorelog_drafts.php⁩:99
+msgid "Assessment Scale"
+msgstr "评估评分标准"
+
+#: ⁨Score Log/scorelog_review.php⁩:120 ⁨Score Log/scorelog_view.php⁩:389
+msgid "Assessment Date"
+msgstr "评估日期"
+
+#: ⁨Score Log/scorelog_review.php⁩:120
+msgid "Visibility"
+msgstr "可见范围"
+
+#: ⁨Score Log/scorelog_review.php⁩:121 ⁨Score Log/scorelog_view.php⁩:116
+#: ⁨Score Log/scorelog_view.php⁩:399 ⁨Score Log/scorelog_view.php⁩:524
+msgid "Entered"
+msgstr "已录入"
+
+#: ⁨Score Log/scorelog_review.php⁩:121 ⁨Score Log/scorelog_view.php⁩:400
+#: ⁨Score Log/scorelog_view.php⁩:525
+msgid "Missing"
+msgstr "未填"
+
+#: ⁨Score Log/scorelog_review.php⁩:121 ⁨Score Log/scorelog_view.php⁩:401
+#: ⁨Score Log/scorelog_view.php⁩:526
+msgid "Invalid"
+msgstr "无效"
+
+#: ⁨Score Log/scorelog_review.php⁩:126
+#, php-format
+msgid "Students: %s; Parents: %s"
+msgstr "学生：%s；家长：%s"
+
+#: ⁨Score Log/scorelog_review.php⁩:127 ⁨Score Log/scorelog_review.php⁩:128
 msgid "Yes"
 msgstr "是"
 
-msgid "You do not have access to this page."
-msgstr "您没有权限访问该页面。"
+#: ⁨Score Log/scorelog_review.php⁩:127 ⁨Score Log/scorelog_review.php⁩:128
+msgid "No"
+msgstr "否"
 
+#: ⁨Score Log/scorelog_review.php⁩:154
+msgid "Rows Requiring Correction"
+msgstr "需要修正的行"
+
+#: ⁨Score Log/scorelog_review.php⁩:155
+msgid "Errors"
+msgstr "错误"
+
+#: ⁨Score Log/scorelog_review.php⁩:164
+msgid ""
+"This draft cannot be published until all invalid rows and incomplete "
+"assessment columns are corrected."
+msgstr "修正所有无效行和未完成的评估列后才能发布此草稿。"
+
+#: ⁨Score Log/scorelog_review.php⁩:172
+msgid "Confirm Publication"
+msgstr "确认发布"
+
+#: ⁨Score Log/scorelog_review.php⁩:180
+msgid ""
+"I reviewed the current roster and understand that only current students will "
+"be published."
+msgstr "我已复核当前名册，并了解仅当前学生会发布。"
+
+#: ⁨Score Log/scorelog_review.php⁩:186
+#, php-format
+msgid ""
+"I confirm that %s student-assessment scores will be published without a "
+"score."
+msgstr "我确认有 %s 个学生-评估成绩将在无成绩的情况下发布。"
+
+#: ⁨Score Log/scorelog_review.php⁩:193
+#, php-format
+msgid "Publish all %s assessment columns to the current roster of %s students?"
+msgstr "向当前名册中的 %s 名学生发布全部 %s 个评估列吗？"
+
+#: ⁨Score Log/scorelog_review.php⁩:199
+msgid "Publish Assessments"
+msgstr "发布评估"
+
+#: ⁨Score Log/scorelog_view.php⁩:34
+msgid "Assessment published."
+msgstr "评估已发布。"
+
+#: ⁨Score Log/scorelog_view.php⁩:35
+msgid "Draft saved."
+msgstr "草稿已保存。"
+
+#: ⁨Score Log/scorelog_view.php⁩:36 ⁨Score Log/scorelog_drafts.php⁩:32
+msgid "Draft discarded."
+msgstr "草稿已丢弃。"
+
+#: ⁨Score Log/scorelog_view.php⁩:37
+msgid "Imported score values applied to the draft."
+msgstr "导入的成绩值已应用到草稿。"
+
+#: ⁨Score Log/scorelog_view.php⁩:39
+msgid "The submitted data is invalid. Check the class, scale and scores."
+msgstr "提交的数据无效，请检查课程、评分标准和成绩。"
+
+#: ⁨Score Log/scorelog_view.php⁩:41
+msgid "No submitted data was received."
+msgstr "没有收到提交的数据。"
+
+#: ⁨Score Log/scorelog_view.php⁩:42 ⁨Score Log/scorelog_drafts.php⁩:34
+msgid "This draft changed in another tab. Reopen it before continuing."
+msgstr "草稿已在另一个标签页中更改，请重新打开后再继续。"
+
+#: ⁨Score Log/scorelog_view.php⁩:47
+msgid "This legacy action is no longer available. Start or resume a draft."
+msgstr "此旧版操作已不可用。请新建或继续编辑草稿。"
+
+#: ⁨Score Log/scorelog_view.php⁩:105 ⁨Score Log/scorelog_drafts.php⁩:83
+msgid "Unassigned"
+msgstr "未分配"
+
+#: ⁨Score Log/scorelog_view.php⁩:111
+msgid "My Score Log Drafts"
+msgstr "我的成绩录入草稿"
+
+#: ⁨Score Log/scorelog_view.php⁩:112
+msgid ""
+"Drafts are private to their creator and are hidden from students, parents "
+"and reports."
+msgstr "草稿仅创建人可见，不会出现在学生、家长和报表中。"
+
+#: ⁨Score Log/scorelog_view.php⁩:113 ⁨Score Log/scorelog_view.php⁩:497
+#: ⁨Score Log/scorelog_drafts.php⁩:97
+msgid "Name"
+msgstr "名称"
+
+#: ⁨Score Log/scorelog_view.php⁩:114 ⁨Score Log/scorelog_drafts.php⁩:98
+msgid "Class"
+msgstr "课程班"
+
+#: ⁨Score Log/scorelog_view.php⁩:117 ⁨Score Log/scorelog_drafts.php⁩:102
+msgid "Last Saved"
+msgstr "最后保存"
+
+#: ⁨Score Log/scorelog_view.php⁩:123 ⁨Score Log/scorelog_drafts.php⁩:108
+msgid "Resume Draft"
+msgstr "继续编辑草稿"
+
+#: ⁨Score Log/scorelog_view.php⁩:133
+msgid "Start New Assessment"
+msgstr "开始新评估"
+
+#: ⁨Score Log/scorelog_view.php⁩:150
+msgid "My Classes"
+msgstr "我的课程"
+
+#: ⁨Score Log/scorelog_view.php⁩:164
+msgid "All Classes"
+msgstr "所有课程"
+
+#: ⁨Score Log/scorelog_view.php⁩:173 ⁨Score Log/scorelog_view.php⁩:261
+msgid "There are no records to display."
+msgstr "没有可显示的记录。"
+
+#: ⁨Score Log/scorelog_view.php⁩:176 ⁨Score Log/scorelog_view.php⁩:350
+msgid "Class Name"
+msgstr "课程名称"
+
+#: ⁨Score Log/scorelog_view.php⁩:179
+msgid "Initial Assessment Scale"
+msgstr "初始评估评分量表"
+
+#: ⁨Score Log/scorelog_view.php⁩:210
+msgid "View Marks"
+msgstr "查看成绩"
+
+#: ⁨Score Log/scorelog_view.php⁩:276
+msgid "Inactive"
+msgstr "已停用"
+
+#: ⁨Score Log/scorelog_view.php⁩:295
+msgid "Only current students appear in the publish review."
+msgstr "发布复核仅显示当前学生。"
+
+#: ⁨Score Log/scorelog_view.php⁩:349
+msgid "Edit Draft"
+msgstr "编辑草稿"
+
+#: ⁨Score Log/scorelog_view.php⁩:353
+#, php-format
+msgid "Last saved %s · revision %s"
+msgstr "最后保存于 %s · 修订版本 %s"
+
+#: ⁨Score Log/scorelog_view.php⁩:366 ⁨Score Log/scorelog_view.php⁩:407
+#: ⁨Score Log/scorelog_importTemplate.php⁩:72 ⁨Score Log/scorelog_drafts.php⁩:114
+msgid "Export Current Scores (XLSX)"
+msgstr "导出当前成绩（XLSX）"
+
+#: ⁨Score Log/scorelog_view.php⁩:367
+msgid "Add Assessment Column"
+msgstr "添加评估列"
+
+#: ⁨Score Log/scorelog_view.php⁩:377
+msgid "Assessment Name"
+msgstr "评估名称"
+
+#: ⁨Score Log/scorelog_view.php⁩:378
+msgid "Description"
+msgstr "说明"
+
+#: ⁨Score Log/scorelog_view.php⁩:390
+msgid "Viewable to Students"
+msgstr "学生可见"
+
+#: ⁨Score Log/scorelog_view.php⁩:391
+msgid "Students Visible"
+msgstr "学生可见"
+
+#: ⁨Score Log/scorelog_view.php⁩:392
+msgid "Students Hidden"
+msgstr "学生不可见"
+
+#: ⁨Score Log/scorelog_view.php⁩:394
+msgid "Viewable to Parents"
+msgstr "家长可见"
+
+#: ⁨Score Log/scorelog_view.php⁩:395
+msgid "Parents Visible"
+msgstr "家长可见"
+
+#: ⁨Score Log/scorelog_view.php⁩:396
+msgid "Parents Hidden"
+msgstr "家长不可见"
+
+#: ⁨Score Log/scorelog_view.php⁩:404
+msgid "Move Left"
+msgstr "左移"
+
+#: ⁨Score Log/scorelog_view.php⁩:405
+msgid "Move Right"
+msgstr "右移"
+
+#: ⁨Score Log/scorelog_view.php⁩:408
+msgid "Remove Column"
+msgstr "删除列"
+
+#: ⁨Score Log/scorelog_view.php⁩:428
+msgid "New"
+msgstr "新增"
+
+#: ⁨Score Log/scorelog_view.php⁩:445 ⁨Score Log/scorelog_view.php⁩:530
+msgid "Add Comment"
+msgstr "添加评语"
+
+#: ⁨Score Log/scorelog_view.php⁩:461
+msgid "Save Draft"
+msgstr "保存草稿"
+
+#: ⁨Score Log/scorelog_view.php⁩:472
+msgid "Discard this private draft and return to the draft list."
+msgstr "丢弃此私有草稿并返回草稿列表。"
+
+#: ⁨Score Log/scorelog_view.php⁩:495
+msgid "Recent Assessments"
+msgstr "最近评估"
+
+#: ⁨Score Log/scorelog_view.php⁩:496
+msgid "The 10 most recent published internal assessments for this class."
+msgstr "最近创建的 10 条内部评估，按完成日期倒序排列。"
+
+#: ⁨Score Log/scorelog_view.php⁩:499
+msgid "Date"
+msgstr "日期"
+
+#: ⁨Score Log/scorelog_view.php⁩:507
+msgid "View / Enter Marks"
+msgstr "查看/录入成绩"
+
+#: ⁨Score Log/scorelog_view.php⁩:528
+msgid "Grade"
+msgstr "等级"
+
+#: ⁨Score Log/scorelog_view.php⁩:532
+msgid "Remove this assessment column and its current scores/comments?"
+msgstr "删除此评估列及其当前成绩和评语吗？"
+
+#: ⁨Score Log/scorelog_view.php⁩:533
+msgid "You have unsaved changes. Save the draft before leaving this page."
+msgstr "您有未保存的更改。离开此页面前请先保存草稿。"
+
+#: ⁨Score Log/scorelog_importTemplate.php⁩:64
+msgid "Choose Assessment Column for Export"
+msgstr "选择要导出的评估列"
+
+#: ⁨Score Log/scorelog_importTemplate.php⁩:81
+msgid "Scores"
+msgstr "成绩"
+
+#: ⁨Score Log/scorelog_drafts.php⁩:84
+#, php-format
+msgid "%s of %s entered"
+msgstr "已录入 %s / %s"
+
+#: ⁨Score Log/scorelog_drafts.php⁩:88
+msgid "Create New Assessment"
+msgstr "创建新评估"
+
+#: ⁨Score Log/scorelog_drafts.php⁩:95
+msgid ""
+"Private drafts created by you for the current school year. Only you can "
+"resume or discard them."
+msgstr "本学年由您创建的私有草稿。只有您可以继续编辑或丢弃。"
+
+#: ⁨Score Log/scorelog_drafts.php⁩:96
 msgid "You do not have any saved drafts."
 msgstr "您没有已保存的草稿。"
 
-msgid "You do not have permission to perform this action."
-msgstr "您没有权限执行该操作。"
+#: ⁨Score Log/scorelog_drafts.php⁩:100
+msgid "Progress"
+msgstr "进度"
 
-msgid "Your session expired. Refresh the page and try again."
-msgstr "会话已过期，请刷新页面后重试。"
+#: ⁨Score Log/scorelog_drafts.php⁩:101
+msgid "Revision"
+msgstr "修订版本"
+
+#: ⁨Score Log/scorelog_importProcess.php⁩:93
+msgid "Pasted table"
+msgstr "粘贴的表格"

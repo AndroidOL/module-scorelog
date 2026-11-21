@@ -200,15 +200,14 @@ function scoreLogLoadDraft($pdo, $scoreLogDraftID, $gibbonPersonID): ?array
 {
     $draft = $pdo->selectOne(
         "SELECT d.*, CONCAT(course.nameShort, '.', cc.nameShort) AS className,
-                scale.name AS scaleName, scale.`usage` AS scaleUsage, scale.numeric AS scaleNumeric,
+                scale.name AS scaleName, scale.`usage` AS scaleUsage, scale.`numeric` AS scaleNumeric,
                 course.gibbonSchoolYearID
          FROM score_log_draft d
          JOIN gibbonCourseClass cc ON cc.gibbonCourseClassID=d.gibbonCourseClassID
          JOIN gibbonCourse course ON course.gibbonCourseID=cc.gibbonCourseID
-         JOIN gibbonScale scale ON scale.gibbonScaleID=d.gibbonScaleIDAttainment
+         LEFT JOIN gibbonScale scale ON scale.gibbonScaleID=d.gibbonScaleIDAttainment
          WHERE d.scoreLogDraftID=:scoreLogDraftID
            AND d.gibbonPersonIDCreator=:gibbonPersonID
-           AND scale.active='Y'
          LIMIT 1",
         [
             'scoreLogDraftID' => $scoreLogDraftID,
@@ -222,10 +221,12 @@ function scoreLogLoadDraft($pdo, $scoreLogDraftID, $gibbonPersonID): ?array
 
     $payload = json_decode((string) $draft['payload'], true);
     if (!is_array($payload) || ($payload['version'] ?? null) !== 1) {
-        return null;
+        if (!is_array($payload) || ($payload['version'] ?? null) !== 2) {
+            return null;
+        }
     }
 
-    $draft['payloadData'] = $payload;
+    $draft['payloadData'] = scoreLogUpgradeDraftPayload($payload, (string) $draft['gibbonScaleIDAttainment']);
 
     return $draft;
 }
@@ -243,6 +244,60 @@ function scoreLogSamePersonID($left, $right): bool
     }
 
     return (int) $left === (int) $right;
+}
+
+function scoreLogUpgradeDraftPayload(array $payload, $legacyScaleID): array
+{
+    if (($payload['version'] ?? 1) === 2 && !empty($payload['columns']) && !empty($payload['columnOrder'])) {
+        return $payload;
+    }
+
+    $columnID = 'legacy';
+    $meta = is_array($payload['meta'] ?? null) ? $payload['meta'] : [];
+    $students = [];
+    foreach ((array) ($payload['students'] ?? []) as $studentID => $student) {
+        $entries = is_array($student) ? $student : [];
+        $students[(string) $studentID] = [
+            'scores' => [
+                $columnID => [
+                    'attainmentValue' => (string) ($entries['attainmentValue'] ?? ''),
+                    'comment'         => (string) ($entries['comment'] ?? ''),
+                ],
+            ],
+        ];
+    }
+
+    return [
+        'version'     => 2,
+        'columns'     => [
+            $columnID => [
+                'name'             => (string) ($meta['name'] ?? ''),
+                'description'      => (string) ($meta['description'] ?? ''),
+                'type'             => (string) ($meta['type'] ?? ''),
+                'scaleID'          => (string) $legacyScaleID,
+                'completeDate'     => (string) ($meta['completeDate'] ?? ''),
+                'viewableStudents' => (string) ($meta['viewableStudents'] ?? ''),
+                'viewableParents'  => (string) ($meta['viewableParents'] ?? ''),
+            ],
+        ],
+        'columnOrder' => [$columnID],
+        'students'    => $students,
+        'studentNames'=> (array) ($payload['studentNames'] ?? []),
+        'rosterIDs'   => (array) ($payload['rosterIDs'] ?? []),
+    ];
+}
+
+function scoreLogDraftScaleLabels(array $payload, array $scaleNames): string
+{
+    $labels = [];
+    foreach ((array) ($payload['columnOrder'] ?? []) as $columnID) {
+        $scaleID = (string) ($payload['columns'][$columnID]['scaleID'] ?? '');
+        if ($scaleID !== '') {
+            $labels[$scaleID] = (string) ($scaleNames[$scaleID] ?? $scaleID);
+        }
+    }
+
+    return implode(', ', array_values($labels));
 }
 
 /**
@@ -282,6 +337,62 @@ function scoreLogBuildDraftPayload(array $input, array $roster): array
         'students'     => $students,
         'studentNames' => $studentNames,
         'rosterIDs'    => array_keys($students),
+    ];
+}
+
+function scoreLogBuildMultiAssessmentPayload(array $input, array $roster): array
+{
+    $columnOrder = is_scalar($input['columnOrder'] ?? null)
+        ? preg_split('/[,;]+/', (string) $input['columnOrder'], -1, PREG_SPLIT_NO_EMPTY)
+        : [];
+    $columnOrder = array_values(array_unique(array_filter(array_map('trim', $columnOrder), function ($columnID) {
+        return preg_match('/^[A-Za-z0-9_-]{1,32}$/D', $columnID) === 1;
+    })));
+    $columnOrder = array_slice($columnOrder, 0, 10);
+
+    $columns = [];
+    foreach ($columnOrder as $columnID) {
+        $column = is_array($input['columns'][$columnID] ?? null) ? $input['columns'][$columnID] : [];
+        $columns[$columnID] = [
+            'name'             => trim((string) ($column['name'] ?? '')),
+            'description'      => trim((string) ($column['description'] ?? '')),
+            'type'             => trim((string) ($column['type'] ?? '')),
+            'scaleID'          => trim((string) ($column['scaleID'] ?? '')),
+            'completeDate'     => trim((string) ($column['completeDate'] ?? '')),
+            'viewableStudents' => trim((string) ($column['viewableStudents'] ?? '')),
+            'viewableParents'  => trim((string) ($column['viewableParents'] ?? '')),
+        ];
+    }
+
+    $students = [];
+    $studentNames = [];
+    foreach ($roster as $student) {
+        $studentID = (string) ($student['gibbonPersonID'] ?? '');
+        if ($studentID === '') {
+            continue;
+        }
+        $studentNames[$studentID] = trim(
+            (string) ($student['preferredName'] ?? '').' '.(string) ($student['surname'] ?? '')
+        );
+        $students[$studentID] = ['scores' => []];
+        foreach ($columnOrder as $columnID) {
+            $value = is_array($input['scores'][$studentID][$columnID] ?? null)
+                ? $input['scores'][$studentID][$columnID]
+                : [];
+            $students[$studentID]['scores'][$columnID] = [
+                'attainmentValue' => trim((string) ($value['attainmentValue'] ?? '')),
+                'comment'         => scoreLogNormalizeImportComment($value['comment'] ?? ''),
+            ];
+        }
+    }
+
+    return [
+        'version'     => 2,
+        'columns'     => $columns,
+        'columnOrder' => $columnOrder,
+        'students'    => $students,
+        'studentNames'=> $studentNames,
+        'rosterIDs'   => array_keys($students),
     ];
 }
 
@@ -412,6 +523,148 @@ function scoreLogEvaluateDraftPayload(array $payload, array $roster, array $scal
     ];
 }
 
+function scoreLogEvaluateMultiAssessmentPayload(array $payload, array $roster, array $scales, array $gradesByScale, array $allowedTypes): array
+{
+    $columns = is_array($payload['columns'] ?? null) ? $payload['columns'] : [];
+    $columnOrder = array_values(array_intersect((array) ($payload['columnOrder'] ?? []), array_keys($columns)));
+    $savedStudents = is_array($payload['students'] ?? null) ? $payload['students'] : [];
+    $typeOptions = $allowedTypes ?: ['Assessment'];
+    $errors = [];
+    $nameSeen = [];
+    $columnResults = [];
+    $totals = ['entered' => 0, 'missing' => 0, 'invalid' => 0];
+
+    if (count($columnOrder) < 1 || count($columnOrder) > 10) {
+        $errors[] = scoreLogT('A draft must contain between 1 and 10 assessment columns.');
+    }
+
+    foreach ($columnOrder as $columnID) {
+        $column = is_array($columns[$columnID] ?? null) ? $columns[$columnID] : [];
+        $columnErrors = [];
+        $name = trim((string) ($column['name'] ?? ''));
+        $description = trim((string) ($column['description'] ?? ''));
+        $type = trim((string) ($column['type'] ?? ''));
+        $scaleID = trim((string) ($column['scaleID'] ?? ''));
+        $completeDate = trim((string) ($column['completeDate'] ?? ''));
+        $viewableStudents = (string) ($column['viewableStudents'] ?? '');
+        $viewableParents = (string) ($column['viewableParents'] ?? '');
+        $nameKey = scoreLogNormalizeImportKey($name);
+        $scale = is_array($scales[$scaleID] ?? null) ? $scales[$scaleID] : null;
+
+        if ($name === '') {
+            $columnErrors[] = scoreLogT('Enter an assessment name.');
+        } elseif (mb_strlen($name) > 30) {
+            $columnErrors[] = scoreLogT('The assessment name must be 30 characters or fewer.');
+        } elseif ($nameKey !== '' && isset($nameSeen[$nameKey])) {
+            $columnErrors[] = scoreLogT('Assessment column names must be unique within the draft.');
+        }
+        if ($nameKey !== '') {
+            $nameSeen[$nameKey] = true;
+        }
+        if (mb_strlen($description) > 1000) {
+            $columnErrors[] = scoreLogT('The description must be 1000 characters or fewer.');
+        }
+        if (!in_array($type, $typeOptions, true)) {
+            $columnErrors[] = scoreLogT('Choose a valid assessment type.');
+        }
+        if (empty($scale)) {
+            $columnErrors[] = scoreLogT('Choose an active assessment scale.');
+        }
+        if (!scoreLogIsValidDate($completeDate)) {
+            $columnErrors[] = scoreLogT('Choose a valid assessment date.');
+        }
+        if (!in_array($viewableStudents, ['Y', 'N'], true)) {
+            $columnErrors[] = scoreLogT('Choose a valid student visibility setting.');
+        }
+        if (!in_array($viewableParents, ['Y', 'N'], true)) {
+            $columnErrors[] = scoreLogT('Choose a valid parent visibility setting.');
+        }
+
+        $gradeDescriptors = is_array($gradesByScale[$scaleID] ?? null) ? $gradesByScale[$scaleID] : [];
+        $rows = [];
+        $entered = 0;
+        $missing = 0;
+        $invalid = 0;
+        foreach ($roster as $student) {
+            $studentID = (string) ($student['gibbonPersonID'] ?? '');
+            $entry = is_array($savedStudents[$studentID]['scores'][$columnID] ?? null)
+                ? $savedStudents[$studentID]['scores'][$columnID]
+                : [];
+            $value = trim((string) ($entry['attainmentValue'] ?? ''));
+            $comment = (string) ($entry['comment'] ?? '');
+            $rowErrors = [];
+            $descriptor = '';
+            if (mb_strlen($comment) > 1000) {
+                $rowErrors[] = scoreLogT('The comment must be 1000 characters or fewer.');
+            }
+            if ($value === '') {
+                $status = 'missing';
+                $missing++;
+            } else {
+                $score = scoreLogValidateImportScore($value, [
+                    'usage' => $scale['usage'] ?? '',
+                    'numeric' => $scale['numeric'] ?? 'N',
+                ], $gradeDescriptors);
+                if (!$score['valid']) {
+                    $rowErrors[] = $score['error'];
+                    $status = 'invalid';
+                    $invalid++;
+                } else {
+                    $value = $score['normalized'];
+                    $descriptor = $score['descriptor'];
+                    $status = 'entered';
+                    $entered++;
+                }
+            }
+            $rows[] = [
+                'gibbonPersonID' => $studentID,
+                'name' => trim((string) ($student['preferredName'] ?? '').' '.(string) ($student['surname'] ?? '')),
+                'attainmentValue' => $value,
+                'descriptor' => $descriptor,
+                'comment' => $comment,
+                'status' => $status,
+                'errors' => $rowErrors,
+            ];
+        }
+        if ($entered === 0) {
+            $columnErrors[] = scoreLogT('This assessment column has no entered scores.');
+        }
+
+        $columnResults[$columnID] = [
+            'id' => $columnID,
+            'config' => [
+                'name' => $name,
+                'description' => $description,
+                'type' => $type,
+                'scaleID' => $scaleID,
+                'scaleName' => $scale['name'] ?? '',
+                'usage' => $scale['usage'] ?? '',
+                'numeric' => $scale['numeric'] ?? 'N',
+                'completeDate' => $completeDate,
+                'viewableStudents' => $viewableStudents,
+                'viewableParents' => $viewableParents,
+            ],
+            'rows' => $rows,
+            'errors' => array_values(array_unique($columnErrors)),
+            'entered' => $entered,
+            'missing' => $missing,
+            'invalid' => $invalid,
+        ];
+        $totals['entered'] += $entered;
+        $totals['missing'] += $missing;
+        $totals['invalid'] += $invalid;
+    }
+
+    return [
+        'valid' => empty($errors) && $totals['invalid'] === 0 && !empty($columnResults)
+            && empty(array_filter($columnResults, function ($column) { return !empty($column['errors']); })),
+        'errors' => $errors,
+        'columns' => $columnResults,
+        'columnOrder' => $columnOrder,
+        'totals' => $totals,
+    ];
+}
+
 function scoreLogRosterIDs(array $roster): array
 {
     $ids = [];
@@ -434,6 +687,20 @@ function scoreLogRosterHash(array $roster): string
 function scoreLogDraftProgress(array $payload): array
 {
     $students = is_array($payload['students'] ?? null) ? $payload['students'] : [];
+    if (($payload['version'] ?? 1) === 2) {
+        $columns = array_values(array_intersect((array) ($payload['columnOrder'] ?? []), array_keys((array) ($payload['columns'] ?? []))));
+        $entered = 0;
+        foreach ($students as $student) {
+            foreach ($columns as $columnID) {
+                if (trim((string) ($student['scores'][$columnID]['attainmentValue'] ?? '')) !== '') {
+                    $entered++;
+                }
+            }
+        }
+
+        return ['entered' => $entered, 'total' => count($students) * count($columns)];
+    }
+
     $entered = 0;
     foreach ($students as $student) {
         if (is_array($student) && trim((string) ($student['attainmentValue'] ?? '')) !== '') {

@@ -66,7 +66,6 @@ if (!$lockAcquired) {
 
 try {
     $connection2->beginTransaction();
-
     $marker = $pdo->selectOne(
         "SELECT * FROM score_log_draft
          WHERE scoreLogDraftID=:scoreLogDraftID
@@ -95,22 +94,32 @@ try {
         throw new RuntimeException('Roster changed');
     }
 
-    $grades = $pdo->select(
-        "SELECT value, descriptor FROM gibbonScaleGrade WHERE gibbonScaleID=:gibbonScaleID",
-        ['gibbonScaleID' => $draft['gibbonScaleIDAttainment']]
+    $scaleRows = $pdo->select(
+        "SELECT gibbonScaleID, name, `usage`, `numeric`, active
+         FROM gibbonScale ORDER BY name"
     )->fetchAll();
-    $gradeDescriptors = [];
+    $scales = [];
+    foreach ($scaleRows as $scale) {
+        if ($scale['active'] === 'Y') {
+            $scales[(string) $scale['gibbonScaleID']] = $scale;
+        }
+    }
+    $grades = $pdo->select(
+        "SELECT gibbonScaleID, value, descriptor
+         FROM gibbonScaleGrade ORDER BY gibbonScaleID, sequenceNumber"
+    )->fetchAll();
+    $gradesByScale = [];
     foreach ($grades as $grade) {
-        $gradeDescriptors[(string) $grade['value']] = $grade['descriptor'];
+        $gradesByScale[(string) $grade['gibbonScaleID']][(string) $grade['value']] = $grade['descriptor'];
     }
 
     $settingGateway = $container->get(SettingGateway::class);
     $allowedTypes = scoreLogAllowedTypes($settingGateway->getSettingByScope('Formal Assessment', 'internalAssessmentTypes'));
-    $evaluation = scoreLogEvaluateDraftPayload(
+    $evaluation = scoreLogEvaluateMultiAssessmentPayload(
         $draft['payloadData'],
         $roster,
-        ['usage' => $draft['scaleUsage'], 'numeric' => $draft['scaleNumeric']],
-        $gradeDescriptors,
+        $scales,
+        $gradesByScale,
         $allowedTypes
     );
     if (!$evaluation['valid']) {
@@ -121,39 +130,13 @@ try {
     if ($diff['changed'] && scoreLogInputString($input, 'confirmRoster') !== 'Y') {
         throw new RuntimeException('Roster confirmation missing');
     }
-    if ($evaluation['missing'] > 0 && scoreLogInputString($input, 'confirmBlank') !== 'Y') {
+    if ($evaluation['totals']['missing'] > 0 && scoreLogInputString($input, 'confirmBlank') !== 'Y') {
         throw new RuntimeException('Blank confirmation missing');
     }
 
-    $groupingID = (int) $connection2
+    $nextGroupingID = (int) $connection2
         ->query("SELECT COALESCE(MAX(groupingID), 0) + 1 FROM gibbonInternalAssessmentColumn")
         ->fetchColumn();
-
-    $columnStatement = $connection2->prepare(
-        "INSERT INTO gibbonInternalAssessmentColumn
-         SET groupingID=:groupingID, gibbonCourseClassID=:gibbonCourseClassID, name=:name,
-             description=:description, type=:type, attainment='Y',
-             gibbonScaleIDAttainment=:gibbonScaleIDAttainment, effort='N',
-             gibbonScaleIDEffort=NULL, comment='Y', uploadedResponse='N',
-             complete='Y', completeDate=:completeDate,
-             viewableStudents=:viewableStudents, viewableParents=:viewableParents,
-             attachment='', gibbonPersonIDCreator=:gibbonPersonID,
-             gibbonPersonIDLastEdit=:gibbonPersonID"
-    );
-    $columnStatement->execute([
-        'groupingID'                      => $groupingID,
-        'gibbonCourseClassID'             => $draft['gibbonCourseClassID'],
-        'name'                            => $evaluation['meta']['name'],
-        'description'                     => $evaluation['meta']['description'],
-        'type'                            => $evaluation['meta']['type'],
-        'gibbonScaleIDAttainment'         => $draft['gibbonScaleIDAttainment'],
-        'completeDate'                    => $evaluation['meta']['completeDate'],
-        'viewableStudents'                => $evaluation['meta']['viewableStudents'],
-        'viewableParents'                 => $evaluation['meta']['viewableParents'],
-        'gibbonPersonID'                  => $gibbonPersonID,
-    ]);
-    $gibbonInternalAssessmentColumnID = (int) $connection2->lastInsertId();
-
     $entryStatement = $connection2->prepare(
         "INSERT INTO gibbonInternalAssessmentEntry
          SET gibbonInternalAssessmentColumnID=:gibbonInternalAssessmentColumnID,
@@ -164,15 +147,44 @@ try {
              comment=:comment, response=NULL,
              gibbonPersonIDLastEdit=:gibbonPersonID"
     );
-    foreach ($evaluation['rows'] as $entry) {
-        $entryStatement->execute([
-            'gibbonInternalAssessmentColumnID' => $gibbonInternalAssessmentColumnID,
-            'gibbonPersonIDStudent'            => $entry['gibbonPersonID'],
-            'attainmentValue'                  => $entry['normalizedValue'],
-            'attainmentDescriptor'             => $entry['descriptor'],
-            'comment'                          => $entry['comment'],
-            'gibbonPersonID'                   => $gibbonPersonID,
+
+    foreach ($evaluation['columns'] as $column) {
+        $config = $column['config'];
+        $columnStatement = $connection2->prepare(
+            "INSERT INTO gibbonInternalAssessmentColumn
+             SET groupingID=:groupingID, gibbonCourseClassID=:gibbonCourseClassID, name=:name,
+                 description=:description, type=:type, attainment='Y',
+                 gibbonScaleIDAttainment=:gibbonScaleIDAttainment, effort='N',
+                 gibbonScaleIDEffort=NULL, comment='Y', uploadedResponse='N',
+                 complete='Y', completeDate=:completeDate,
+                 viewableStudents=:viewableStudents, viewableParents=:viewableParents,
+                 attachment='', gibbonPersonIDCreator=:gibbonPersonID,
+                 gibbonPersonIDLastEdit=:gibbonPersonID"
+        );
+        $columnStatement->execute([
+            'groupingID'                      => $nextGroupingID++,
+            'gibbonCourseClassID'             => $draft['gibbonCourseClassID'],
+            'name'                            => $config['name'],
+            'description'                     => $config['description'],
+            'type'                            => $config['type'],
+            'gibbonScaleIDAttainment'         => $config['scaleID'],
+            'completeDate'                    => $config['completeDate'],
+            'viewableStudents'                => $config['viewableStudents'],
+            'viewableParents'                 => $config['viewableParents'],
+            'gibbonPersonID'                  => $gibbonPersonID,
         ]);
+        $columnID = (int) $connection2->lastInsertId();
+
+        foreach ($column['rows'] as $entry) {
+            $entryStatement->execute([
+                'gibbonInternalAssessmentColumnID' => $columnID,
+                'gibbonPersonIDStudent'            => $entry['gibbonPersonID'],
+                'attainmentValue'                  => $entry['attainmentValue'],
+                'attainmentDescriptor'             => $entry['descriptor'],
+                'comment'                          => $entry['comment'],
+                'gibbonPersonID'                   => $gibbonPersonID,
+            ]);
+        }
     }
 
     $deleted = $pdo->delete(
@@ -195,7 +207,7 @@ try {
         $releaseStatement = $connection2->prepare('SELECT RELEASE_LOCK(?)');
         $releaseStatement->execute([$lockName]);
     } catch (\Throwable $releaseError) {
-        // The assessment is already committed; connection cleanup will release the lock.
+        // The assessment is committed; connection cleanup will release the lock.
     }
     $lockAcquired = false;
 } catch (\Throwable $e) {
@@ -219,8 +231,6 @@ try {
         $return = 'error5';
     } elseif ($e->getMessage() === 'Blank confirmation missing') {
         $return = 'error6';
-    } elseif ($e->getMessage() === 'Lock unavailable') {
-        $return = 'error2';
     }
     $redirect($return, $return === 'error6' ? 'scoreLogPublish' : '');
 }
@@ -228,7 +238,7 @@ try {
 header(
     'Location: '.$session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php'
     .'&gibbonCourseClassID='.urlencode((string) $draft['gibbonCourseClassID'])
-    .'&gibbonScaleIDAttainment='.urlencode((string) $draft['gibbonScaleIDAttainment'])
+    .'&gibbonScaleIDAttainment='.urlencode((string) ($evaluation['columns'][array_key_first($evaluation['columns'])]['config']['scaleID'] ?? ''))
     .'&return=success0'
 );
 exit;

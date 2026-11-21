@@ -51,7 +51,14 @@ if (
 }
 
 $payload = $draft['payloadData'];
-$title = trim((string) ($payload['meta']['name'] ?? '')) ?: scoreLogT('Untitled draft');
+$title = scoreLogT('Untitled draft');
+foreach ($payload['columnOrder'] as $columnID) {
+    $columnName = trim((string) ($payload['columns'][$columnID]['name'] ?? ''));
+    if ($columnName !== '') {
+        $title = $columnName;
+        break;
+    }
+}
 $form = Form::create(
     'scoreLogDiscardDraft',
     $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_discardProcess.php',

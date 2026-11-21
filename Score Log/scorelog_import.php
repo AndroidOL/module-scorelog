@@ -29,6 +29,7 @@ $page->breadcrumbs
 
 $page->return->addReturns([
     'success0' => scoreLogT('Import parsed. Review the detected columns before applying it to the draft.'),
+    'success1' => scoreLogT('Draft saved. Choose an import file or paste a table for this assessment column.'),
     'error0'   => scoreLogT('You do not have permission to perform this action.'),
     'error1'   => scoreLogT('The import data is invalid or empty.'),
     'error2'   => scoreLogT('The spreadsheet could not be read.'),
@@ -44,6 +45,7 @@ $page->return->addReturns([
 $gibbonPersonID = (string) $session->get('gibbonPersonID');
 $gibbonSchoolYearID = (string) $session->get('gibbonSchoolYearID');
 $scoreLogDraftID = is_scalar($_GET['draftID'] ?? null) ? trim((string) $_GET['draftID']) : '';
+$columnID = is_scalar($_GET['columnID'] ?? null) ? trim((string) $_GET['columnID']) : '';
 $previewToken = is_scalar($_GET['previewToken'] ?? null) ? trim((string) $_GET['previewToken']) : '';
 
 if (
@@ -63,6 +65,34 @@ if (
     $page->addError(scoreLogT('The specified record does not exist.'));
     return;
 }
+if ($columnID === '' || empty($draft['payloadData']['columns'][$columnID])) {
+    if ($columnID !== '') {
+        $page->addError(scoreLogT('Select the assessment column to import.'));
+    }
+
+    $scaleNames = $pdo->select("SELECT gibbonScaleID AS value, name FROM gibbonScale")->fetchKeyPair();
+    $columnOptions = [];
+    foreach ($draft['payloadData']['columnOrder'] as $candidateID) {
+        $column = $draft['payloadData']['columns'][$candidateID] ?? [];
+        $name = trim((string) ($column['name'] ?? '')) ?: scoreLogT('Untitled draft');
+        $scaleName = $scaleNames[(string) ($column['scaleID'] ?? '')] ?? '';
+        $columnOptions[(string) $candidateID] = $name.($scaleName !== '' ? ' — '.$scaleName : '');
+    }
+
+    $targetForm = Form::create('scoreLogImportTarget', $session->get('absoluteURL').'/index.php', 'get');
+    $targetForm->setTitle(scoreLogT('Choose Assessment Column for Import'));
+    $targetForm->setDescription(scoreLogT('Import and template operations always target one explicit assessment column.'));
+    $targetForm->addHiddenValue('q', '/modules/Score Log/scorelog_import.php');
+    $targetForm->addHiddenValue('draftID', $scoreLogDraftID);
+    $row = $targetForm->addRow();
+    $row->addLabel('columnID', scoreLogT('Assessment'));
+    $row->addSelect('columnID')->fromArray($columnOptions)->required()->placeholder(scoreLogT('Please select...'));
+    $row = $targetForm->addRow();
+    $row->addFooter();
+    $row->addSubmit(scoreLogT('Continue'));
+    $page->write($targetForm->getOutput());
+    return;
+}
 
 $actionForm = Form::createBlank('scoreLogImportActions');
 $actionForm->addHeaderAction('back', scoreLogT('Back to Draft'))
@@ -72,6 +102,7 @@ $actionForm->addHeaderAction('back', scoreLogT('Back to Draft'))
 $actionForm->addHeaderAction('template', scoreLogT('Download XLSX Template'))
     ->setURL('/modules/Score Log/scorelog_importTemplate.php')
     ->addParam('draftID', $scoreLogDraftID)
+    ->addParam('columnID', $columnID)
     ->setIcon('download')
     ->directLink()
     ->displayLabel();
@@ -81,6 +112,7 @@ $previews = $session->get('scoreLogImportPreviews', []);
 $previewMeta = $previewToken !== '' ? ($previews[$previewToken] ?? null) : null;
 if (empty($previewMeta)
     || (string) ($previewMeta['draftID'] ?? '') !== $scoreLogDraftID
+    || (string) ($previewMeta['columnID'] ?? '') !== $columnID
     || !scoreLogSamePersonID($previewMeta['gibbonPersonID'] ?? '', $gibbonPersonID)
     || (int) ($previewMeta['createdAt'] ?? 0) < time() - 1800
 ) {
@@ -92,6 +124,7 @@ if (empty($previewMeta)
     $form->setTitle(scoreLogT('Import Scores into Draft'));
     $form->setDescription(scoreLogT('Upload CSV/XLSX or paste from a spreadsheet. Two columns are enough: student name/ID/username and score. A third column may contain comments.'));
     $form->addHiddenValue('scoreLogDraftID', $scoreLogDraftID);
+    $form->addHiddenValue('columnID', $columnID);
 
     $row = $form->addRow();
     $row->addLabel('file', scoreLogT('CSV or XLSX File'));
@@ -108,9 +141,26 @@ if (empty($previewMeta)
 }
 
 $roster = scoreLogCurrentRoster($pdo, $draft['gibbonCourseClassID']);
+$columnConfig = $draft['payloadData']['columns'][$columnID];
+$scaleID = (string) ($columnConfig['scaleID'] ?? '');
+$scale = $pdo->selectOne(
+    "SELECT gibbonScaleID, name, `usage`, `numeric`
+     FROM gibbonScale WHERE gibbonScaleID=:gibbonScaleID AND active='Y'",
+    ['gibbonScaleID' => $scaleID]
+);
+if (empty($scale)) {
+    $page->addError(scoreLogT('The selected assessment scale is not active.'));
+    return;
+}
+$savedScores = [];
+foreach ($roster as $student) {
+    $studentID = (string) $student['gibbonPersonID'];
+    $savedScores[$studentID] = $draft['payloadData']['students'][$studentID]['scores'][$columnID]
+        ?? ['attainmentValue' => '', 'comment' => ''];
+}
 $grades = $pdo->select(
     "SELECT value, descriptor FROM gibbonScaleGrade WHERE gibbonScaleID=:gibbonScaleID",
-    ['gibbonScaleID' => $draft['gibbonScaleIDAttainment']]
+    ['gibbonScaleID' => $scaleID]
 )->fetchAll();
 $gradeDescriptors = [];
 foreach ($grades as $grade) {
@@ -160,9 +210,9 @@ $mapping = [
 $preview = scoreLogBuildImportPreview(
     $previewMeta['matrix'],
     $mapping,
-    $draft['payloadData'],
+    ['students' => $savedScores],
     $roster,
-    ['usage' => $draft['scaleUsage'], 'numeric' => $draft['scaleNumeric']],
+    ['usage' => $scale['usage'], 'numeric' => $scale['numeric']],
     $gradeDescriptors,
     $previewMeta['formulaCells'] ?? [],
     $overwrite
@@ -182,6 +232,7 @@ $unusedColumns = max(0, $columnCount - count(array_unique($mappedColumns)));
 
 $output = '<div class="schoolCommunityImportSummary">'
     . '<h2>'.htmlPrep((string) $previewMeta['sourceLabel']).'</h2>'
+    . '<p><strong>'.scoreLogT('Target Assessment').':</strong> '.htmlPrep((string) ($columnConfig['name'] ?? '')).' — '.htmlPrep((string) $scale['name']).'</p>'
     . '<p>'.sprintf(scoreLogT('%s data rows detected. Extra columns: %s.'), count($preview['rows']), (int) $previewMeta['ignoredColumns']).'</p>'
     . ($mapping['headerDetected']
         ? '<p>'.scoreLogT('A recognised header row was detected and skipped.').'</p>'
@@ -208,6 +259,7 @@ $mapForm->setTitle(scoreLogT('Confirm Import Mapping'));
 $mapForm->setDescription(scoreLogT('Correct the detected columns before applying imported values. The preview updates only after Refresh Preview.'));
 $mapForm->addHiddenValue('q', '/modules/Score Log/scorelog_import.php');
 $mapForm->addHiddenValue('draftID', $scoreLogDraftID);
+$mapForm->addHiddenValue('columnID', $columnID);
 $mapForm->addHiddenValue('previewToken', $previewToken);
 
 $columnOptions = [];
@@ -306,6 +358,7 @@ if ($previewStale) {
     );
     $applyForm->setTitle(scoreLogT('Apply to Draft'));
     $applyForm->addHiddenValue('draftID', $scoreLogDraftID);
+    $applyForm->addHiddenValue('columnID', $columnID);
     $applyForm->addHiddenValue('previewToken', $previewToken);
     $applyForm->addHiddenValue('previewHash', $previewHash);
     $applyForm->addHiddenValue('identifierColumn', (string) $identifierColumn);

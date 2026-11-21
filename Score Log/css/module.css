@@ -95,6 +95,141 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     background: #fee2e2;
 }
 
+.scoreLogEditorHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.scoreLogEditorHeader h2 {
+    margin-top: 0;
+    margin-bottom: 0.35rem;
+}
+
+.scoreLogEditorTools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.scoreLogEditorTools select {
+    min-width: 12rem;
+    max-width: 18rem;
+}
+
+.scoreLogGridScroll {
+    overflow-x: auto;
+    margin: 1rem 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+}
+
+.scoreLogGrid {
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.scoreLogGrid th,
+.scoreLogGrid td {
+    padding: 0.45rem;
+    border-right: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+    vertical-align: top;
+}
+
+.scoreLogGrid thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #f8fafc;
+}
+
+.scoreLogGrid .scoreLogConfigRow th {
+    position: static;
+}
+
+.scoreLogGrid .scoreLogStudentColumn {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    min-width: 13rem;
+    max-width: 13rem;
+    background: #f8fafc;
+}
+
+.scoreLogGrid thead .scoreLogStudentColumn {
+    z-index: 4;
+}
+
+.scoreLogAssessmentColumn {
+    min-width: 15rem;
+    max-width: 15rem;
+}
+
+.scoreLogColumnConfig {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.scoreLogColumnConfig input,
+.scoreLogColumnConfig select {
+    width: 100%;
+    min-width: 0;
+}
+
+.scoreLogColumnProgress {
+    color: #475569;
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+.scoreLogColumnButtons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+}
+
+.scoreLogColumnButtons button,
+.scoreLogColumnButtons a {
+    font-size: 0.72rem;
+}
+
+.scoreLogScoreInput {
+    width: 100%;
+    margin-bottom: 0.35rem;
+}
+
+.scoreLogCommentEditor summary {
+    color: #1d4ed8;
+    cursor: pointer;
+    font-size: 0.76rem;
+}
+
+.scoreLogCommentEditor.hasComment summary::after {
+    content: " •";
+    color: #b45309;
+    font-weight: 700;
+}
+
+.scoreLogCommentEditor textarea {
+    width: 100%;
+    margin-top: 0.35rem;
+}
+
+.scoreLogFormFooter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 1rem 0;
+}
+
 .schoolCommunityImportSummary,
 .schoolCommunityImportConfidence {
     margin-bottom: 1rem;

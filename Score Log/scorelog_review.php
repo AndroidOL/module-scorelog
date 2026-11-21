@@ -30,7 +30,7 @@ $page->breadcrumbs
     ->add(scoreLogT('Review and Publish'));
 
 $page->return->addReturns([
-    'success0' => scoreLogT('Assessment published.'),
+    'success0' => scoreLogT('Assessments published.'),
     'success1' => scoreLogT('Draft saved. Review the current roster and scores before publishing.'),
     'error0'   => scoreLogT('You do not have permission to perform this action.'),
     'error1'   => scoreLogT('The draft is no longer available or its data is invalid.'),
@@ -63,38 +63,36 @@ if (
     return;
 }
 
-$roster = scoreLogCurrentRoster($pdo, $draft['gibbonCourseClassID']);
 $payload = $draft['payloadData'];
+$roster = scoreLogCurrentRoster($pdo, $draft['gibbonCourseClassID']);
 $diff = scoreLogRosterDiff($payload, $roster);
-$settingGateway = $container->get(SettingGateway::class);
-$allowedTypes = scoreLogAllowedTypes($settingGateway->getSettingByScope('Formal Assessment', 'internalAssessmentTypes'));
-$grades = $pdo->select(
-    "SELECT value, descriptor FROM gibbonScaleGrade WHERE gibbonScaleID=:gibbonScaleID",
-    ['gibbonScaleID' => $draft['gibbonScaleIDAttainment']]
+$scaleRows = $pdo->select(
+    "SELECT gibbonScaleID, name, `usage`, `numeric`, active
+     FROM gibbonScale ORDER BY name"
 )->fetchAll();
-$gradeDescriptors = [];
+$scales = [];
+foreach ($scaleRows as $scale) {
+    if ($scale['active'] === 'Y') {
+        $scales[(string) $scale['gibbonScaleID']] = $scale;
+    }
+}
+$grades = $pdo->select(
+    "SELECT gibbonScaleID, value, descriptor
+     FROM gibbonScaleGrade ORDER BY gibbonScaleID, sequenceNumber"
+)->fetchAll();
+$gradesByScale = [];
 foreach ($grades as $grade) {
-    $gradeDescriptors[(string) $grade['value']] = $grade['descriptor'];
+    $gradesByScale[(string) $grade['gibbonScaleID']][(string) $grade['value']] = $grade['descriptor'];
 }
 
-$evaluation = scoreLogEvaluateDraftPayload($payload, $roster, [
-    'usage'   => $draft['scaleUsage'],
-    'numeric' => $draft['scaleNumeric'],
-], $gradeDescriptors, $allowedTypes);
-$meta = $evaluation['meta'];
+$settingGateway = $container->get(SettingGateway::class);
+$allowedTypes = scoreLogAllowedTypes($settingGateway->getSettingByScope('Formal Assessment', 'internalAssessmentTypes'));
+$evaluation = scoreLogEvaluateMultiAssessmentPayload($payload, $roster, $scales, $gradesByScale, $allowedTypes);
 $editURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php&draftID='.urlencode($scoreLogDraftID);
-$assessmentDate = scoreLogIsValidDate((string) $meta['completeDate'])
-    ? Format::date((string) $meta['completeDate'])
-    : '-';
 
 $output = '<div class="scoreLogReviewSummary">'
-    . '<h2>'.htmlPrep((string) $meta['name']).'</h2>'
-    . '<p><strong>'.scoreLogT('Class').':</strong> '.htmlPrep((string) $draft['className']).'</p>'
-    . '<p><strong>'.scoreLogT('Assessment Scale').':</strong> '.htmlPrep((string) $draft['scaleName']).'</p>'
-    . '<p><strong>'.scoreLogT('Type').':</strong> '.htmlPrep((string) $meta['type']).'</p>'
-    . '<p><strong>'.scoreLogT('Assessment Date').':</strong> '.htmlPrep($assessmentDate).'</p>'
-    . '<p><strong>'.scoreLogT('Visible to Students').':</strong> '.(($meta['viewableStudents'] ?? '') === 'Y' ? scoreLogT('Yes') : scoreLogT('No')).'</p>'
-    . '<p><strong>'.scoreLogT('Visible to Parents').':</strong> '.(($meta['viewableParents'] ?? '') === 'Y' ? scoreLogT('Yes') : scoreLogT('No')).'</p>'
+    . '<h2>'.htmlPrep((string) $draft['className']).'</h2>'
+    . '<p>'.sprintf(scoreLogT('%s assessment columns'), count($evaluation['columns'])).'</p>'
     . '<p><a class="button" href="'.htmlPrep($editURL).'#scoreLogStudents">'.scoreLogT('Back to Draft').'</a></p>'
     . '</div>';
 
@@ -106,46 +104,64 @@ if ($diff['changed']) {
     if (!empty($diff['removed'])) {
         $output .= '<p>'.sprintf(scoreLogT('Removed students: %s'), htmlPrep(implode(', ', $diff['removed']))).'</p>';
     }
-    $output .= '<p>'.scoreLogT('Only the current roster will be published. Review all missing scores before continuing.').'</p></div>';
+    $output .= '<p>'.scoreLogT('Only the current roster will be published. Review every assessment column before continuing.').'</p></div>';
 }
 
-if (!empty($evaluation['metaErrors'])) {
-    $output .= '<div class="error"><p><strong>'.scoreLogT('Correct these assessment details before publishing:').'</strong></p><ul>';
-    foreach ($evaluation['metaErrors'] as $message) {
-        $output .= '<li>'.htmlPrep($message).'</li>';
+if (!empty($evaluation['errors'])) {
+    $output .= '<div class="error"><ul>';
+    foreach ($evaluation['errors'] as $error) {
+        $output .= '<li>'.htmlPrep($error).'</li>';
     }
     $output .= '</ul></div>';
 }
 
-$output .= '<div class="scoreLogReviewCounts">'
-    . '<div><span>'.scoreLogT('Students').'</span><strong>'.count($evaluation['rows']).'</strong></div>'
-    . '<div><span>'.scoreLogT('Entered').'</span><strong>'.$evaluation['entered'].'</strong></div>'
-    . '<div><span>'.scoreLogT('Missing').'</span><strong>'.$evaluation['missing'].'</strong></div>'
-    . '<div><span>'.scoreLogT('Invalid').'</span><strong>'.$evaluation['invalid'].'</strong></div>'
-    . '</div>';
-
-$output .= '<h3>'.scoreLogT('Publish Preview').'</h3><table class="scoreLogReviewTable"><thead><tr>'
-    . '<th>'.scoreLogT('Student').'</th><th>'.scoreLogT('Score').'</th><th>'.scoreLogT('Comment').'</th><th>'.scoreLogT('Status').'</th>'
+$output .= '<table class="scoreLogReviewTable"><thead><tr>'
+    . '<th>'.scoreLogT('Assessment').'</th><th>'.scoreLogT('Type').'</th><th>'.scoreLogT('Assessment Scale').'</th>'
+    . '<th>'.scoreLogT('Assessment Date').'</th><th>'.scoreLogT('Visibility').'</th>'
+    . '<th>'.scoreLogT('Entered').'</th><th>'.scoreLogT('Missing').'</th><th>'.scoreLogT('Invalid').'</th>'
     . '</tr></thead><tbody>';
-foreach ($evaluation['rows'] as $row) {
-    $statusLabel = [
-        'entered' => scoreLogT('Entered'),
-        'missing' => scoreLogT('Missing'),
-        'invalid' => scoreLogT('Invalid'),
-    ][$row['status']] ?? $row['status'];
-    $rowError = !empty($row['errors']) ? ' '.implode(' ', $row['errors']) : '';
+foreach ($evaluation['columns'] as $column) {
+    $config = $column['config'];
+    $visibility = sprintf(
+        scoreLogT('Students: %s; Parents: %s'),
+        $config['viewableStudents'] === 'Y' ? scoreLogT('Yes') : scoreLogT('No'),
+        $config['viewableParents'] === 'Y' ? scoreLogT('Yes') : scoreLogT('No')
+    );
     $output .= '<tr>'
-        . '<td>'.htmlPrep($row['name']).'</td>'
-        . '<td>'.htmlPrep((string) $row['attainmentValue']).'</td>'
-        . '<td>'.htmlPrep((string) $row['comment']).'</td>'
-        . '<td><span class="scoreLogStatus scoreLogStatus-'.$row['status'].'">'.htmlPrep($statusLabel).'</span>'
-        . ($rowError !== '' ? '<br/><small class="text-red-700">'.htmlPrep($rowError).'</small>' : '')
-        . '</td></tr>';
+        . '<td>'.htmlPrep($config['name']).(!empty($column['errors']) ? '<br><small class="text-red-700">'.htmlPrep(implode(' ', $column['errors'])).'</small>' : '').'</td>'
+        . '<td>'.htmlPrep($config['type']).'</td>'
+        . '<td>'.htmlPrep($config['scaleName']).'</td>'
+        . '<td>'.htmlPrep(scoreLogIsValidDate($config['completeDate']) ? Format::date($config['completeDate']) : '-').'</td>'
+        . '<td>'.htmlPrep($visibility).'</td>'
+        . '<td>'.$column['entered'].'</td><td>'.$column['missing'].'</td><td>'.$column['invalid'].'</td>'
+        . '</tr>';
 }
 $output .= '</tbody></table>';
 
+$invalidRows = [];
+foreach ($evaluation['columns'] as $column) {
+    foreach ($column['rows'] as $row) {
+        if (!empty($row['errors'])) {
+            $invalidRows[] = [
+                'column' => $column['config']['name'],
+                'student' => $row['name'],
+                'errors' => implode(' ', $row['errors']),
+            ];
+        }
+    }
+}
+if (!empty($invalidRows)) {
+    $output .= '<h3>'.scoreLogT('Rows Requiring Correction').'</h3><table class="scoreLogReviewTable"><thead><tr>'
+        . '<th>'.scoreLogT('Assessment').'</th><th>'.scoreLogT('Student').'</th><th>'.scoreLogT('Errors').'</th>'
+        . '</tr></thead><tbody>';
+    foreach ($invalidRows as $row) {
+        $output .= '<tr><td>'.htmlPrep($row['column']).'</td><td>'.htmlPrep($row['student']).'</td><td>'.htmlPrep($row['errors']).'</td></tr>';
+    }
+    $output .= '</tbody></table>';
+}
+
 if (!$evaluation['valid']) {
-    $output .= '<div class="error">'.scoreLogT('This draft cannot be published until all invalid rows and assessment details are corrected.').'</div>';
+    $output .= '<div class="error">'.scoreLogT('This draft cannot be published until all invalid rows and incomplete assessment columns are corrected.').'</div>';
 } else {
     $output .= '<a id="scoreLogPublish"></a>';
     $form = Form::create(
@@ -163,20 +179,24 @@ if (!$evaluation['valid']) {
         $row->addCheckbox('confirmRoster')->setValue('Y')->required()->alignLeft()
             ->description(scoreLogT('I reviewed the current roster and understand that only current students will be published.'));
     }
-    if ($evaluation['missing'] > 0) {
+    if ($evaluation['totals']['missing'] > 0) {
         $row = $form->addRow();
         $row->addCheckbox('confirmBlank')->setValue('Y')->required()->alignLeft()
-            ->description(sprintf(scoreLogT('I confirm that %s students will be published without a score.'), $evaluation['missing']));
+            ->description(sprintf(
+                scoreLogT('I confirm that %s student-assessment scores will be published without a score.'),
+                $evaluation['totals']['missing']
+            ));
     }
 
     $row = $form->addRow();
     $row->addContent(sprintf(
-        scoreLogT('Publish this assessment to the current roster of %s students?'),
+        scoreLogT('Publish all %s assessment columns to the current roster of %s students?'),
+        count($evaluation['columns']),
         count($roster)
     ));
     $row = $form->addRow();
     $row->addFooter();
-    $row->addSubmit(scoreLogT('Publish Assessment'));
+    $row->addSubmit(scoreLogT('Publish Assessments'));
     $output .= $form->getOutput();
 }
 

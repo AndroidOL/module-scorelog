@@ -19,7 +19,6 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-use Gibbon\Forms\Form;
 use Gibbon\Services\Format;
 use Gibbon\Tables\DataTable;
 
@@ -47,18 +46,16 @@ if (
 }
 
 $drafts = $pdo->select(
-    "SELECT d.*, CONCAT(course.nameShort, '.', cc.nameShort) AS className,
-            scale.name AS scaleName
+    "SELECT d.*, CONCAT(course.nameShort, '.', cc.nameShort) AS className
      FROM score_log_draft d
      JOIN gibbonCourseClass cc ON cc.gibbonCourseClassID=d.gibbonCourseClassID
      JOIN gibbonCourse course ON course.gibbonCourseID=cc.gibbonCourseID
-     JOIN gibbonScale scale ON scale.gibbonScaleID=d.gibbonScaleIDAttainment
      WHERE d.gibbonPersonIDCreator=:gibbonPersonID
        AND course.gibbonSchoolYearID=:gibbonSchoolYearID
-       AND scale.active='Y'
      ORDER BY d.updateTimestamp DESC",
     ['gibbonPersonID' => $gibbonPersonID, 'gibbonSchoolYearID' => $gibbonSchoolYearID]
 )->fetchAll();
+$scaleNames = $pdo->select("SELECT gibbonScaleID AS value, name FROM gibbonScale")->fetchKeyPair();
 
 $rows = [];
 foreach ($drafts as $draft) {
@@ -68,21 +65,30 @@ foreach ($drafts as $draft) {
 
     $payload = json_decode((string) $draft['payload'], true);
     if (!is_array($payload) || ($payload['version'] ?? null) !== 1) {
-        continue;
+        if (!is_array($payload) || ($payload['version'] ?? null) !== 2) {
+            continue;
+        }
     }
+    $payload = scoreLogUpgradeDraftPayload($payload, (string) $draft['gibbonScaleIDAttainment']);
 
     $progress = scoreLogDraftProgress($payload);
-    $draft['title'] = trim((string) ($payload['meta']['name'] ?? '')) ?: scoreLogT('Untitled draft');
+    $draft['title'] = scoreLogT('Untitled draft');
+    foreach ($payload['columnOrder'] as $columnID) {
+        $name = trim((string) ($payload['columns'][$columnID]['name'] ?? ''));
+        if ($name !== '') {
+            $draft['title'] = $name;
+            break;
+        }
+    }
+    $draft['scaleName'] = scoreLogDraftScaleLabels($payload, $scaleNames) ?: scoreLogT('Unassigned');
     $draft['progress'] = sprintf(scoreLogT('%s of %s entered'), $progress['entered'], $progress['total']);
     $rows[] = $draft;
 }
 
-$actions = Form::createBlank('scoreLogSavedDraftActions');
-$actions->addHeaderAction('create', scoreLogT('Create New Assessment'))
+$page->navigator->addHeaderAction('create', scoreLogT('Create New Assessment'))
     ->setURL('/modules/Score Log/scorelog_view.php')
     ->setIcon('plus')
     ->displayLabel();
-$page->write($actions->getOutput());
 
 $table = DataTable::create('scoreLogSavedDrafts');
 $table->setTitle(scoreLogT('Saved Drafts'));
@@ -102,6 +108,13 @@ $table->addActionColumn()
         $actions->addAction('resume', scoreLogT('Resume Draft'))
             ->setIcon('markbook')
             ->setURL('/modules/Score Log/scorelog_view.php');
+        $actions->addAction('import', scoreLogT('Import Scores'))
+            ->setIcon('upload')
+            ->setURL('/modules/Score Log/scorelog_import.php');
+        $actions->addAction('export', scoreLogT('Export Current Scores (XLSX)'))
+            ->setIcon('download')
+            ->setURL('/modules/Score Log/scorelog_importTemplate.php')
+            ->directLink();
         $actions->addAction('discard', scoreLogT('Discard Draft'))
             ->setIcon('delete')
             ->setURL('/modules/Score Log/scorelog_draftDelete.php')

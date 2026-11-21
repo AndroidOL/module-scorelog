@@ -1,12 +1,25 @@
 CHANGELOG
 =========
 
+v1.3.0
+------
+- Add a multi-assessment entry grid with 1–10 independently configured
+  assessment columns sharing one class and roster.
+- Keep one draft revision and a versioned payload; existing single-assessment
+  drafts are adapted automatically.
+- Publish every assessment column and entry set in one all-or-none transaction.
+- Let import and template downloads target one explicitly selected column.
+- Add horizontal grid scrolling, sticky student names, comment drawers and live
+  entered/missing/invalid counts.
+
 v1.2.1
 ------
 - Add a dedicated Saved Drafts page with progress, revision and last-saved
   details.
 - Add Resume and revision-bound Discard actions to saved drafts.
 - Add a Saved Drafts header action to the assessment workflow.
+- Carry forward the 1.1.1 hotfix that quotes the reserved `numeric` scale
+  column in draft and publish queries.
 
 v1.2.0
 ------

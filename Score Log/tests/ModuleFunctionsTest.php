@@ -186,7 +186,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
 
         $this->assertIsString($source);
         $this->assertStringContainsString(
-            'SELECT d.scoreLogDraftID, d.gibbonCourseClassID, d.revision, d.payload, d.updateTimestamp',
+            'SELECT d.scoreLogDraftID, d.gibbonCourseClassID',
             $source
         );
     }
@@ -558,6 +558,195 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringContainsString('scorelog_draftDelete.php', $manifest);
         $this->assertStringContainsString("'returnPage'", $discard);
         $this->assertStringContainsString('draftsURL', $discard);
+    }
+
+    public function testVersionOneDraftIsAdaptedToAStableLegacyColumn()
+    {
+        $payload = \scoreLogUpgradeDraftPayload([
+            'version' => 1,
+            'meta' => [
+                'name' => 'Legacy assessment',
+                'description' => 'Old draft',
+                'type' => 'Quiz',
+                'viewableStudents' => 'Y',
+                'viewableParents' => 'N',
+                'completeDate' => '2026-11-21',
+            ],
+            'students' => [
+                '0000000001' => ['attainmentValue' => '88', 'comment' => 'Good'],
+            ],
+            'rosterIDs' => ['0000000001'],
+        ], '00026');
+
+        $this->assertSame(2, $payload['version']);
+        $this->assertSame(['legacy'], $payload['columnOrder']);
+        $this->assertSame('00026', $payload['columns']['legacy']['scaleID']);
+        $this->assertSame('88', $payload['students']['0000000001']['scores']['legacy']['attainmentValue']);
+    }
+
+    public function testMultiAssessmentBuilderPreservesColumnOrderAndIsolatesScores()
+    {
+        $payload = \scoreLogBuildMultiAssessmentPayload([
+            'columnOrder' => 'c2,c1',
+            'columns' => [
+                'c1' => [
+                    'name' => 'Quiz', 'description' => '', 'type' => 'Quiz',
+                    'scaleID' => '26', 'completeDate' => '2026-11-21',
+                    'viewableStudents' => 'Y', 'viewableParents' => 'N',
+                ],
+                'c2' => [
+                    'name' => 'Exam', 'description' => '', 'type' => 'Exam',
+                    'scaleID' => '27', 'completeDate' => '2026-11-22',
+                    'viewableStudents' => 'N', 'viewableParents' => 'Y',
+                ],
+            ],
+            'scores' => [
+                '0000000001' => [
+                    'c1' => ['attainmentValue' => '88', 'comment' => 'Quiz note'],
+                    'c2' => ['attainmentValue' => 'A', 'comment' => 'Exam note'],
+                ],
+            ],
+        ], [[
+            'gibbonPersonID' => '0000000001',
+            'preferredName' => 'Ada',
+            'surname' => 'Lovelace',
+        ]]);
+
+        $this->assertSame(['c2', 'c1'], $payload['columnOrder']);
+        $this->assertSame('A', $payload['students']['0000000001']['scores']['c2']['attainmentValue']);
+        $this->assertSame('88', $payload['students']['0000000001']['scores']['c1']['attainmentValue']);
+
+        $removed = \scoreLogBuildMultiAssessmentPayload([
+            'columnOrder' => 'c1',
+            'columns' => [
+                'c1' => [
+                    'name' => 'Quiz', 'description' => '', 'type' => 'Quiz',
+                    'scaleID' => '26', 'completeDate' => '2026-11-21',
+                    'viewableStudents' => 'Y', 'viewableParents' => 'N',
+                ],
+                'c2' => [
+                    'name' => 'Exam', 'description' => '', 'type' => 'Exam',
+                    'scaleID' => '27', 'completeDate' => '2026-11-22',
+                    'viewableStudents' => 'N', 'viewableParents' => 'Y',
+                ],
+            ],
+            'scores' => [
+                '0000000001' => [
+                    'c1' => ['attainmentValue' => '88', 'comment' => ''],
+                    'c2' => ['attainmentValue' => 'A', 'comment' => ''],
+                ],
+            ],
+        ], [[
+            'gibbonPersonID' => '0000000001',
+            'preferredName' => 'Ada',
+            'surname' => 'Lovelace',
+        ]]);
+
+        $this->assertSame(['c1'], $removed['columnOrder']);
+        $this->assertArrayNotHasKey('c2', $removed['columns']);
+        $this->assertArrayNotHasKey('c2', $removed['students']['0000000001']['scores']);
+    }
+
+    public function testMultiAssessmentEvaluationUsesPerColumnScalesAndRejectsDuplicatesAndEmptyColumns()
+    {
+        $roster = [[
+            'gibbonPersonID' => '0000000001',
+            'preferredName' => 'Ada',
+            'surname' => 'Lovelace',
+        ]];
+        $payload = [
+            'version' => 2,
+            'columnOrder' => ['c1', 'c2', 'c3'],
+            'columns' => [
+                'c1' => [
+                    'name' => 'Quiz', 'description' => '', 'type' => 'Quiz',
+                    'scaleID' => '26', 'completeDate' => '2026-11-21',
+                    'viewableStudents' => 'Y', 'viewableParents' => 'Y',
+                ],
+                'c2' => [
+                    'name' => 'Quiz', 'description' => '', 'type' => 'Exam',
+                    'scaleID' => '27', 'completeDate' => '2026-11-22',
+                    'viewableStudents' => 'Y', 'viewableParents' => 'Y',
+                ],
+                'c3' => [
+                    'name' => 'Empty', 'description' => '', 'type' => 'Exam',
+                    'scaleID' => '26', 'completeDate' => '2026-11-23',
+                    'viewableStudents' => 'Y', 'viewableParents' => 'Y',
+                ],
+            ],
+            'students' => [
+                '0000000001' => ['scores' => [
+                    'c1' => ['attainmentValue' => '88', 'comment' => ''],
+                    'c2' => ['attainmentValue' => 'A', 'comment' => ''],
+                    'c3' => ['attainmentValue' => '', 'comment' => ''],
+                ]],
+            ],
+        ];
+        $result = \scoreLogEvaluateMultiAssessmentPayload(
+            $payload,
+            $roster,
+            [
+                '26' => ['name' => 'Numeric', 'usage' => 'Out of 100', 'numeric' => 'Y', 'active' => 'Y'],
+                '27' => ['name' => 'Grades', 'usage' => '', 'numeric' => 'N', 'active' => 'Y'],
+            ],
+            ['26' => ['88' => '88'], '27' => ['A' => 'Excellent']],
+            ['Quiz', 'Exam']
+        );
+
+        $this->assertFalse($result['valid']);
+        $this->assertSame(1, $result['columns']['c1']['entered']);
+        $this->assertSame(1, $result['columns']['c2']['entered']);
+        $this->assertContains('Assessment column names must be unique within the draft.', $result['columns']['c2']['errors']);
+        $this->assertContains('This assessment column has no entered scores.', $result['columns']['c3']['errors']);
+    }
+
+    public function testMultiAssessmentProgressCountsAllColumnSlots()
+    {
+        $progress = \scoreLogDraftProgress([
+            'version' => 2,
+            'columnOrder' => ['c1', 'c2'],
+            'columns' => ['c1' => [], 'c2' => []],
+            'students' => [
+                '1' => ['scores' => [
+                    'c1' => ['attainmentValue' => '88'],
+                    'c2' => ['attainmentValue' => ''],
+                ]],
+                '2' => ['scores' => [
+                    'c1' => ['attainmentValue' => ''],
+                    'c2' => ['attainmentValue' => 'A'],
+                ]],
+            ],
+        ]);
+
+        $this->assertSame(2, $progress['entered']);
+        $this->assertSame(4, $progress['total']);
+    }
+
+    public function testMultiAssessmentPublishUsesUniqueGroupingIDsAndOneTransaction()
+    {
+        $source = file_get_contents(dirname(__DIR__).'/scorelog_publishProcess.php');
+
+        $this->assertIsString($source);
+        $this->assertStringContainsString("SELECT COALESCE(MAX(groupingID), 0) + 1", $source);
+        $this->assertStringContainsString("'groupingID'                      => \$nextGroupingID++", $source);
+        $this->assertSame(1, substr_count($source, '->beginTransaction()'));
+        $this->assertStringContainsString('->rollBack()', $source);
+        $this->assertStringContainsString('DELETE FROM score_log_draft', $source);
+        $this->assertStringContainsString('->commit()', $source);
+    }
+
+    public function testImportAndTemplateAreBoundToOneExplicitAssessmentColumn()
+    {
+        $import = file_get_contents(dirname(__DIR__).'/scorelog_importProcess.php');
+        $apply = file_get_contents(dirname(__DIR__).'/scorelog_importApplyProcess.php');
+        $template = file_get_contents(dirname(__DIR__).'/scorelog_importTemplate.php');
+
+        foreach ([$import, $apply, $template] as $source) {
+            $this->assertIsString($source);
+            $this->assertStringContainsString("'columnID'", $source);
+            $this->assertStringContainsString("['columns'][\$columnID]", $source);
+        }
+        $this->assertStringContainsString("['scores'][\$columnID]", $apply);
     }
 
     private function importRoster(): array

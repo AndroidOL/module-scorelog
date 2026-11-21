@@ -29,7 +29,11 @@ require_once __DIR__.'/moduleFunctions.php';
 $gibbonPersonID = (string) $session->get('gibbonPersonID');
 $gibbonSchoolYearID = (string) $session->get('gibbonSchoolYearID');
 $scoreLogDraftID = is_scalar($_POST['scoreLogDraftID'] ?? null) ? trim((string) $_POST['scoreLogDraftID']) : '';
-$action = array_key_exists('reviewPublish', $_POST) ? 'review' : 'draft';
+$importColumnID = is_scalar($_POST['importColumnID'] ?? null) ? trim((string) $_POST['importColumnID']) : '';
+$exportColumnID = is_scalar($_POST['exportColumnID'] ?? null) ? trim((string) $_POST['exportColumnID']) : '';
+$action = array_key_exists('reviewPublish', $_POST)
+    ? 'review'
+    : ($importColumnID !== '' ? 'import' : ($exportColumnID !== '' ? 'export' : 'draft'));
 $viewURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php';
 
 $redirect = function (string $return, string $draftID = '') use ($viewURL) {
@@ -60,11 +64,24 @@ if (empty($input)) {
     $redirect('error3', $scoreLogDraftID);
 }
 
-$completeDateInput = scoreLogInputString($input, 'completeDate');
-if ($completeDateInput !== '' && !scoreLogIsValidDate($completeDateInput)) {
-    $convertedDate = Format::dateConvert($completeDateInput);
-    if (scoreLogIsValidDate($convertedDate)) {
-        $input['completeDate'] = $convertedDate;
+$columnOrder = is_scalar($input['columnOrder'] ?? null)
+    ? preg_split('/[,;]+/', (string) $input['columnOrder'], -1, PREG_SPLIT_NO_EMPTY)
+    : [];
+$columnOrder = array_values(array_unique(array_filter(array_map('trim', $columnOrder), function ($columnID) {
+    return preg_match('/^[A-Za-z0-9_-]{1,32}$/D', $columnID) === 1;
+})));
+if (count($columnOrder) < 1 || count($columnOrder) > 10) {
+    $redirect('error1', $scoreLogDraftID);
+}
+foreach ($columnOrder as $columnID) {
+    $columnDate = is_array($input['columns'][$columnID] ?? null)
+        ? trim((string) ($input['columns'][$columnID]['completeDate'] ?? ''))
+        : '';
+    if ($columnDate !== '' && !scoreLogIsValidDate($columnDate)) {
+        $convertedDate = Format::dateConvert($columnDate);
+        if (scoreLogIsValidDate($convertedDate)) {
+            $input['columns'][$columnID]['completeDate'] = $convertedDate;
+        }
     }
 }
 
@@ -83,7 +100,7 @@ try {
         }
 
         $roster = scoreLogCurrentRoster($pdo, $gibbonCourseClassID);
-        $payload = scoreLogBuildDraftPayload($input, $roster);
+        $payload = scoreLogBuildMultiAssessmentPayload($input, $roster);
         $payload = scoreLogPreserveRosterBaseline($payload, $draft['payloadData']);
         $payloadJson = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($payloadJson === false || strlen($payloadJson) > 1048576) {
@@ -133,7 +150,7 @@ try {
             throw new RuntimeException('Empty roster');
         }
 
-        $payload = scoreLogBuildDraftPayload($input, $roster);
+        $payload = scoreLogBuildMultiAssessmentPayload($input, $roster);
         $payloadJson = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($payloadJson === false || strlen($payloadJson) > 1048576) {
             throw new RuntimeException('Unable to encode draft');
@@ -155,10 +172,25 @@ try {
         $scoreLogDraftID = (string) $connection2->lastInsertId();
     }
 
+    $targetColumnID = $action === 'import' ? $importColumnID : ($action === 'export' ? $exportColumnID : '');
+    if ($targetColumnID !== ''
+        && (empty($payload['columns'][$targetColumnID]) || !in_array($targetColumnID, $payload['columnOrder'], true))
+    ) {
+        throw new RuntimeException('Invalid target column');
+    }
+
     $connection2->commit();
-    $newURL = $action === 'review'
-        ? $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_review.php&draftID='.urlencode($scoreLogDraftID).'&return=success1'
-        : $viewURL.'&draftID='.urlencode($scoreLogDraftID).'&return=success1';
+    if ($action === 'import') {
+        $newURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_import.php'
+            .'&draftID='.urlencode($scoreLogDraftID).'&columnID='.urlencode($targetColumnID).'&return=success1';
+    } elseif ($action === 'export') {
+        $newURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_importTemplate.php'
+            .'&draftID='.urlencode($scoreLogDraftID).'&columnID='.urlencode($targetColumnID);
+    } elseif ($action === 'review') {
+        $newURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_review.php&draftID='.urlencode($scoreLogDraftID).'&return=success1';
+    } else {
+        $newURL = $viewURL.'&draftID='.urlencode($scoreLogDraftID).'&return=success1';
+    }
     header('Location: '.$newURL);
     exit;
 } catch (\Throwable $e) {

@@ -22,6 +22,7 @@ Users also need the Formal Assessment permission to create internal assessments.
 
 - Choose a class the user teaches and an active attainment scale.
 - Enter scores or scale grades and comments for every student in one form.
+- Add up to ten assessment columns with independent type, scale, date and visibility.
 - Save a private draft and resume it later without losing whole-class input.
 - Open the dedicated Saved Drafts page to resume or discard private work.
 - Import scores from CSV, XLSX or a spreadsheet paste with mapping preview.
@@ -38,11 +39,16 @@ Assessment column exists until publication, so drafts cannot appear in Formal
 Assessment lists or be edited by other users. Draft records are accessible only
 to their creator and never appear to students, parents or reports.
 
-The class and scale are fixed after a draft is created. Each save carries a
-revision number so a stale tab cannot overwrite newer work. Reopening and
+The class is fixed after a draft is created; assessment columns keep their own
+scales and settings. Each save carries a revision number so a stale tab cannot overwrite newer work. Reopening and
 publishing re-resolve the current reportable roster; added and removed students
 are shown explicitly. Publishing always goes through a review page. A creator
 can permanently discard their own draft with a CSRF-protected POST.
+
+Multi-assessment drafts share one class and roster but keep separate assessment
+names, types, scales, dates and visibility settings. Publish creates every
+selected Formal Assessment column and entry set in one transaction or leaves no
+published column behind.
 
 ## Assessment dates
 
@@ -64,6 +70,9 @@ unknown, ambiguous, duplicate, invalid, fill and overwrite rows first. Clicking
 Apply to Draft updates only the private draft. Existing manual values are
 preserved unless overwrite is explicitly selected. Formula cells are rejected
 without evaluation, and rows are limited to 500 with a 2 MiB file limit.
+
+In a multi-assessment draft, every import and template download targets one
+explicitly selected assessment column.
 
 The XLSX template is prefilled with the current draft scores and comments. When
 overwrite is enabled, deliberately blank score or comment cells clear those

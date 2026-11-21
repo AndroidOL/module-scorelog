@@ -28,9 +28,10 @@ require_once __DIR__.'/moduleFunctions.php';
 $gibbonPersonID = (string) $session->get('gibbonPersonID');
 $gibbonSchoolYearID = (string) $session->get('gibbonSchoolYearID');
 $scoreLogDraftID = is_scalar($_POST['draftID'] ?? null) ? trim((string) $_POST['draftID']) : '';
+$columnID = is_scalar($_POST['columnID'] ?? null) ? trim((string) $_POST['columnID']) : '';
 $previewToken = is_scalar($_POST['previewToken'] ?? null) ? trim((string) $_POST['previewToken']) : '';
 $viewURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php';
-$importURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_import.php&draftID='.urlencode($scoreLogDraftID);
+$importURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_import.php&draftID='.urlencode($scoreLogDraftID).'&columnID='.urlencode($columnID);
 $redirect = function (string $return, bool $toDraft = false) use ($viewURL, $importURL, $scoreLogDraftID) {
     if ($toDraft) {
         $url = $viewURL.'&draftID='.urlencode($scoreLogDraftID);
@@ -55,10 +56,11 @@ if (!$container->get(TokenHandler::class)->validateCsrfToken()) {
 }
 
 $input = $container->get(Validator::class)->sanitize($_POST);
-$previewRedirect = function (string $return) use ($session, $scoreLogDraftID, $input) {
+$previewRedirect = function (string $return) use ($session, $scoreLogDraftID, $columnID, $input) {
     $query = [
         'q'               => '/modules/Score Log/scorelog_import.php',
         'draftID'         => $scoreLogDraftID,
+        'columnID'        => $columnID,
         'previewToken'    => scoreLogInputString($input, 'previewToken'),
         'identifierColumn'=> scoreLogInputString($input, 'identifierColumn'),
         'identifierType'  => scoreLogInputString($input, 'identifierType'),
@@ -79,12 +81,16 @@ if (
 ) {
     $redirect('error0');
 }
+if ($columnID === '' || empty($draft['payloadData']['columns'][$columnID])) {
+    $redirect('error1');
+}
 
 $previews = $session->get('scoreLogImportPreviews', []);
 $previewMeta = $previewToken !== '' ? ($previews[$previewToken] ?? null) : null;
 if (
     empty($previewMeta)
     || (string) ($previewMeta['draftID'] ?? '') !== $scoreLogDraftID
+    || (string) ($previewMeta['columnID'] ?? '') !== $columnID
     || !scoreLogSamePersonID($previewMeta['gibbonPersonID'] ?? '', $gibbonPersonID)
     || (int) ($previewMeta['createdAt'] ?? 0) < time() - 1800
 ) {
@@ -131,9 +137,25 @@ $mapping = [
 ];
 
 $roster = scoreLogCurrentRoster($pdo, $draft['gibbonCourseClassID']);
+$columnConfig = $draft['payloadData']['columns'][$columnID];
+$scaleID = (string) ($columnConfig['scaleID'] ?? '');
+$scale = $pdo->selectOne(
+    "SELECT gibbonScaleID, name, `usage`, `numeric`
+     FROM gibbonScale WHERE gibbonScaleID=:gibbonScaleID AND active='Y'",
+    ['gibbonScaleID' => $scaleID]
+);
+if (empty($scale)) {
+    $redirect('error1');
+}
+$savedScores = [];
+foreach ($roster as $student) {
+    $studentID = (string) $student['gibbonPersonID'];
+    $savedScores[$studentID] = $draft['payloadData']['students'][$studentID]['scores'][$columnID]
+        ?? ['attainmentValue' => '', 'comment' => ''];
+}
 $grades = $pdo->select(
     "SELECT value, descriptor FROM gibbonScaleGrade WHERE gibbonScaleID=:gibbonScaleID",
-    ['gibbonScaleID' => $draft['gibbonScaleIDAttainment']]
+    ['gibbonScaleID' => $scaleID]
 )->fetchAll();
 $gradeDescriptors = [];
 foreach ($grades as $grade) {
@@ -142,9 +164,9 @@ foreach ($grades as $grade) {
 $preview = scoreLogBuildImportPreview(
     $previewMeta['matrix'],
     $mapping,
-    $draft['payloadData'],
+    ['students' => $savedScores],
     $roster,
-    ['usage' => $draft['scaleUsage'], 'numeric' => $draft['scaleNumeric']],
+    ['usage' => $scale['usage'], 'numeric' => $scale['numeric']],
     $gradeDescriptors,
     $previewMeta['formulaCells'] ?? [],
     $overwrite
@@ -166,11 +188,22 @@ if (empty($preview['updates'])) {
 $payload = $draft['payloadData'];
 foreach ($preview['updates'] as $studentID => $changes) {
     if (!isset($payload['students'][$studentID]) || !is_array($payload['students'][$studentID])) {
-        $payload['students'][$studentID] = ['attainmentValue' => '', 'comment' => ''];
+        $payload['students'][$studentID] = ['scores' => []];
+    }
+    if (!isset($payload['students'][$studentID]['scores'])
+        || !is_array($payload['students'][$studentID]['scores'])) {
+        $payload['students'][$studentID]['scores'] = [];
+    }
+    if (!isset($payload['students'][$studentID]['scores'][$columnID])
+        || !is_array($payload['students'][$studentID]['scores'][$columnID])) {
+        $payload['students'][$studentID]['scores'][$columnID] = [
+            'attainmentValue' => '',
+            'comment' => '',
+        ];
     }
     foreach (['attainmentValue', 'comment'] as $field) {
         if (array_key_exists($field, $changes)) {
-            $payload['students'][$studentID][$field] = (string) $changes[$field];
+            $payload['students'][$studentID]['scores'][$columnID][$field] = (string) $changes[$field];
         }
     }
 }

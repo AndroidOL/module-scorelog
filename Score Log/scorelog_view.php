@@ -23,6 +23,7 @@ use Gibbon\Domain\System\SettingGateway;
 use Gibbon\Forms\DatabaseFormFactory;
 use Gibbon\Forms\Form;
 use Gibbon\Services\Format;
+use Gibbon\Session\TokenHandler;
 use Gibbon\Tables\DataTable;
 
 require_once __DIR__.'/moduleFunctions.php';
@@ -63,45 +64,45 @@ $settingGateway = $container->get(SettingGateway::class);
 $allowedTypes = scoreLogAllowedTypes($settingGateway->getSettingByScope('Formal Assessment', 'internalAssessmentTypes'));
 $defaultType = $allowedTypes[0] ?? 'Assessment';
 
-$draftActions = Form::createBlank('scoreLogDraftNavigation');
-$draftActions->addHeaderAction('savedDrafts', scoreLogT('Saved Drafts'))
-    ->setURL('/modules/Score Log/scorelog_drafts.php')
-    ->setIcon('markbook')
-    ->displayLabel();
-$page->write($draftActions->getOutput());
-
-// Select an existing private draft or start a new one.
+// Module landing: choose a class or start from an existing draft.
 if ($scoreLogDraftID === '' && ($gibbonCourseClassID === '' || $gibbonScaleIDAttainment === '')) {
+    $page->navigator->addHeaderAction('savedDrafts', scoreLogT('Saved Drafts'))
+        ->setURL('/modules/Score Log/scorelog_drafts.php')
+        ->setIcon('markbook')
+        ->displayLabel();
     $draftRows = [];
     $drafts = $pdo->select(
-        "SELECT d.scoreLogDraftID, d.gibbonCourseClassID, d.revision, d.payload, d.updateTimestamp,
-                CONCAT(course.nameShort, '.', cc.nameShort) AS className,
-                scale.name AS scaleName
+        "SELECT d.scoreLogDraftID, d.gibbonCourseClassID, d.gibbonScaleIDAttainment, d.revision, d.payload, d.updateTimestamp,
+                CONCAT(course.nameShort, '.', cc.nameShort) AS className
          FROM score_log_draft d
          JOIN gibbonCourseClass cc ON cc.gibbonCourseClassID=d.gibbonCourseClassID
          JOIN gibbonCourse course ON course.gibbonCourseID=cc.gibbonCourseID
-         JOIN gibbonScale scale ON scale.gibbonScaleID=d.gibbonScaleIDAttainment
          WHERE d.gibbonPersonIDCreator=:gibbonPersonID
            AND course.gibbonSchoolYearID=:gibbonSchoolYearID
-           AND scale.active='Y'
          ORDER BY d.updateTimestamp DESC",
         ['gibbonPersonID' => $gibbonPersonID, 'gibbonSchoolYearID' => $gibbonSchoolYearID]
     )->fetchAll();
+    $scaleNames = $pdo->select("SELECT gibbonScaleID AS value, name FROM gibbonScale")->fetchKeyPair();
 
     foreach ($drafts as $draft) {
-        if (!scoreLogCanEditClass($pdo, $gibbonPersonID, $draft['gibbonCourseClassID'] ?? 0, $gibbonSchoolYearID)) {
+        if (!scoreLogCanEditClass($pdo, $gibbonPersonID, $draft['gibbonCourseClassID'], $gibbonSchoolYearID)) {
             continue;
         }
-        $payload = json_decode((string) $draft['payload'], true);
-        $students = is_array($payload['students'] ?? null) ? $payload['students'] : [];
-        $entered = 0;
-        foreach ($students as $student) {
-            if (is_array($student) && trim((string) ($student['attainmentValue'] ?? '')) !== '') {
-                $entered++;
+        $payload = scoreLogUpgradeDraftPayload(
+            json_decode((string) $draft['payload'], true) ?: [],
+            (string) $draft['gibbonScaleIDAttainment']
+        );
+        $progress = scoreLogDraftProgress($payload);
+        $draft['title'] = trim((string) ($payload['columns']['c1']['name'] ?? '')) ?: scoreLogT('Untitled draft');
+        foreach ($payload['columnOrder'] as $columnID) {
+            $name = trim((string) ($payload['columns'][$columnID]['name'] ?? ''));
+            if ($name !== '') {
+                $draft['title'] = $name;
+                break;
             }
         }
-        $draft['title'] = trim((string) ($payload['meta']['name'] ?? '')) ?: scoreLogT('Untitled draft');
-        $draft['entered'] = $entered.' / '.count($students);
+        $draft['entered'] = $progress['entered'].' / '.$progress['total'];
+        $draft['scaleName'] = scoreLogDraftScaleLabels($payload, $scaleNames) ?: scoreLogT('Unassigned');
         $draftRows[] = $draft;
     }
 
@@ -173,9 +174,9 @@ if ($scoreLogDraftID === '' && ($gibbonCourseClassID === '' || $gibbonScaleIDAtt
     } else {
         $row = $form->addRow();
         $row->addLabel('gibbonCourseClassID', scoreLogT('Class Name'));
-        $row->addSelect('gibbonCourseClassID')->fromArray($classes)->required()->placeholder(scoreLogT('Please select...'));
+        $row->addSearchSelect('gibbonCourseClassID')->fromArray($classes)->required()->placeholder(scoreLogT('Please select...'));
         $row = $form->addRow();
-        $row->addLabel('gibbonScaleIDAttainment', scoreLogT('Assessment Scale'));
+        $row->addLabel('gibbonScaleIDAttainment', scoreLogT('Initial Assessment Scale'));
         $row->addSelect('gibbonScaleIDAttainment')
             ->fromArray($scales)
             ->selected(scoreLogDefaultScaleID($session))
@@ -200,16 +201,18 @@ if ($scoreLogDraftID !== '') {
         return;
     }
     $gibbonCourseClassID = (string) $draft['gibbonCourseClassID'];
-    $gibbonScaleIDAttainment = (string) $draft['gibbonScaleIDAttainment'];
     $payload = $draft['payloadData'];
     $class = ['gibbonCourseClassID' => $gibbonCourseClassID, 'name' => $draft['className']];
-    $scale = [
-        'gibbonScaleID' => $gibbonScaleIDAttainment,
-        'name'          => $draft['scaleName'],
-        'usage'         => $draft['scaleUsage'],
-        'numeric'       => $draft['scaleNumeric'],
-    ];
+    $firstColumnID = (string) ($payload['columnOrder'][0] ?? '');
+    $gibbonScaleIDAttainment = (string) ($payload['columns'][$firstColumnID]['scaleID'] ?? $draft['gibbonScaleIDAttainment']);
     $revision = (int) $draft['revision'];
+    if (isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write.php')) {
+        $page->navigator->addHeaderAction('viewMarks', scoreLogT('View Marks'))
+            ->setURL('/modules/Formal Assessment/internalAssessment_write.php')
+            ->addParam('gibbonCourseClassID', $gibbonCourseClassID)
+            ->setIcon('markbook')
+            ->displayLabel();
+    }
 } else {
     if (!scoreLogCanEditClass($pdo, $gibbonPersonID, $gibbonCourseClassID, $gibbonSchoolYearID)) {
         $page->addError(scoreLogT('You do not have access to this page.'));
@@ -233,14 +236,19 @@ if ($scoreLogDraftID !== '') {
         return;
     }
     $payload = [
-        'meta' => [
-            'name'             => '',
-            'description'      => '',
-            'type'             => $defaultType,
-            'viewableStudents' => 'Y',
-            'viewableParents'  => 'Y',
-            'completeDate'     => date('Y-m-d'),
+        'version' => 2,
+        'columns' => [
+            'c1' => [
+                'name'             => '',
+                'description'      => '',
+                'type'             => $defaultType,
+                'scaleID'          => $gibbonScaleIDAttainment,
+                'completeDate'     => date('Y-m-d'),
+                'viewableStudents' => 'Y',
+                'viewableParents'  => 'Y',
+            ],
         ],
+        'columnOrder'  => ['c1'],
         'students'     => [],
         'studentNames' => [],
         'rosterIDs'    => [],
@@ -256,21 +264,24 @@ if (empty($roster)) {
 $diff = $scoreLogDraftID !== ''
     ? scoreLogRosterDiff($payload, $roster)
     : ['added' => [], 'removed' => [], 'changed' => false];
-$meta = is_array($payload['meta'] ?? null) ? $payload['meta'] : [];
-$savedStudents = is_array($payload['students'] ?? null) ? $payload['students'] : [];
-$grades = $pdo->select(
-    "SELECT value, descriptor, isDefault
-     FROM gibbonScaleGrade
-     WHERE gibbonScaleID=:gibbonScaleID
-     ORDER BY sequenceNumber",
-    ['gibbonScaleID' => $gibbonScaleIDAttainment]
+
+$scaleRows = $pdo->select(
+    "SELECT gibbonScaleID, name, `usage`, `numeric`, active
+     FROM gibbonScale ORDER BY active DESC, name"
 )->fetchAll();
-$defaultGrade = '';
-foreach ($grades as $grade) {
-    if ($grade['isDefault'] === 'Y') {
-        $defaultGrade = (string) $grade['value'];
-        break;
-    }
+$scalesById = [];
+$scaleOptions = [];
+foreach ($scaleRows as $scaleRow) {
+    $scalesById[(string) $scaleRow['gibbonScaleID']] = $scaleRow;
+    $scaleOptions[(string) $scaleRow['gibbonScaleID']] = $scaleRow['name'].($scaleRow['active'] === 'Y' ? '' : ' (' . scoreLogT('Inactive') . ')');
+}
+$gradeRows = $pdo->select(
+    "SELECT gibbonScaleID, value, descriptor, isDefault
+     FROM gibbonScaleGrade ORDER BY gibbonScaleID, sequenceNumber"
+)->fetchAll();
+$gradesByScale = [];
+foreach ($gradeRows as $gradeRow) {
+    $gradesByScale[(string) $gradeRow['gibbonScaleID']][(string) $gradeRow['value']] = $gradeRow['descriptor'];
 }
 
 if ($diff['changed']) {
@@ -284,133 +295,172 @@ if ($diff['changed']) {
     echo '<p>'.scoreLogT('Only current students appear in the publish review.').'</p></div>';
 }
 
-echo '<a id="scoreLogStudents"></a>';
-$form = Form::create(
-    'scoreLogAssessment',
-    $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_draftProcess.php',
-    'post'
-);
-$form->setFactory(DatabaseFormFactory::create($pdo));
-$form->setTitle($scoreLogDraftID !== '' ? scoreLogT('Edit Draft') : scoreLogT('Create Internal Assessment'));
-$form->addHiddenValue('scoreLogDraftID', $scoreLogDraftID);
-$form->addHiddenValue('revision', (string) $revision);
-$form->addHiddenValue('gibbonCourseClassID', $gibbonCourseClassID);
-$form->addHiddenValue('gibbonScaleIDAttainment', $gibbonScaleIDAttainment);
+$savedColumns = array_keys((array) $payload['columns']);
+$columnOrder = array_slice(array_values(array_intersect((array) $payload['columnOrder'], $savedColumns)), 0, 10);
+$placeholderNumber = 1;
+while (count($columnOrder) < 10) {
+    do {
+        $columnID = 'slot'.$placeholderNumber++;
+    } while (in_array($columnID, $savedColumns, true));
+    $payload['columns'][$columnID] = [
+        'name'             => '',
+        'description'      => '',
+        'type'             => $defaultType,
+        'scaleID'          => $gibbonScaleIDAttainment,
+        'completeDate'     => date('Y-m-d'),
+        'viewableStudents' => 'Y',
+        'viewableParents'  => 'Y',
+    ];
+    $columnOrder[] = $columnID;
+}
+$initialColumnCount = max(1, count(array_intersect((array) $payload['columnOrder'], $savedColumns)));
+$persistedColumns = $scoreLogDraftID !== '' ? array_fill_keys($savedColumns, true) : [];
+$savedStudents = (array) ($payload['students'] ?? []);
+$csrfToken = $container->get(TokenHandler::class)->getCSRF();
+$columnCounts = [];
+foreach ($columnOrder as $columnID) {
+    $column = $payload['columns'][$columnID];
+    $scale = $scalesById[(string) ($column['scaleID'] ?? '')] ?? ['usage' => '', 'numeric' => 'N'];
+    $descriptorValues = $gradesByScale[(string) ($column['scaleID'] ?? '')] ?? [];
+    $counts = ['entered' => 0, 'missing' => 0, 'invalid' => 0];
+    foreach ($roster as $student) {
+        $studentID = (string) $student['gibbonPersonID'];
+        $value = trim((string) ($savedStudents[$studentID]['scores'][$columnID]['attainmentValue'] ?? ''));
+        if ($value === '') {
+            $counts['missing']++;
+            continue;
+        }
+        $validated = scoreLogValidateImportScore($value, $scale, $descriptorValues);
+        $counts[$validated['valid'] ? 'entered' : 'invalid']++;
+    }
+    $columnCounts[$columnID] = $counts;
+}
 
+echo '<a id="scoreLogStudents"></a>';
+echo '<form id="scoreLogAssessment" class="scoreLogAssessmentForm" method="post" action="'.htmlPrep($session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_draftProcess.php').'">';
+echo '<input type="hidden" name="csrftoken" value="'.htmlPrep($csrfToken).'">';
+echo '<input type="hidden" name="scoreLogDraftID" value="'.htmlPrep($scoreLogDraftID).'">';
+echo '<input type="hidden" name="revision" value="'.htmlPrep((string) $revision).'">';
+echo '<input type="hidden" name="gibbonCourseClassID" value="'.htmlPrep($gibbonCourseClassID).'">';
+echo '<input type="hidden" name="gibbonScaleIDAttainment" value="'.htmlPrep($gibbonScaleIDAttainment).'">';
+echo '<input type="hidden" id="scoreLogColumnOrder" name="columnOrder" value="'.htmlPrep(implode(',', array_slice($columnOrder, 0, $initialColumnCount))).'">';
+
+echo '<div class="scoreLogEditorHeader"><div>'
+    .'<h2>'.($scoreLogDraftID !== '' ? scoreLogT('Edit Draft') : scoreLogT('Create Internal Assessment')).'</h2>'
+    .'<p><strong>'.scoreLogT('Class Name').':</strong> '.htmlPrep($class['name']).'</p>';
 if ($scoreLogDraftID !== '') {
-    $form->addRow()->addContent(sprintf(
+    echo '<p class="text-sm text-gray-600">'.sprintf(
         scoreLogT('Last saved %s · revision %s'),
         Format::dateTime($draft['updateTimestamp']),
         $draft['revision']
-    ))->wrap('<div class="text-sm text-gray-600">', '</div>');
+    ).'</p>';
 }
-
-if (isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write.php')) {
-    $form->addHeaderAction('viewMarks', scoreLogT('View Marks'))
-        ->setURL('/modules/Formal Assessment/internalAssessment_write.php')
-        ->addParam('gibbonCourseClassID', $gibbonCourseClassID)
-        ->setIcon('markbook')
-        ->displayLabel()
-        ->prepend(' | ');
+echo '</div><div class="scoreLogEditorTools">'
+    .'<select id="scoreLogToolColumn" aria-label="'.htmlPrep(scoreLogT('Assessment')).'">';
+foreach (array_slice($columnOrder, 0, $initialColumnCount) as $columnID) {
+    $name = trim((string) ($payload['columns'][$columnID]['name'] ?? '')) ?: scoreLogT('Assessment');
+    echo '<option value="'.htmlPrep($columnID).'">'.htmlPrep($name).'</option>';
 }
-if ($scoreLogDraftID !== '') {
-    $form->addHeaderAction('importScores', scoreLogT('Import Scores'))
-        ->setURL('/modules/Score Log/scorelog_import.php')
-        ->addParam('draftID', $scoreLogDraftID)
-        ->setIcon('upload')
-        ->displayLabel()
-        ->prepend(' | ');
+echo '</select>'
+    .'<button type="button" id="scoreLogTopImport" class="button button-secondary">'.scoreLogT('Import Scores').'</button>'
+    .'<button type="button" id="scoreLogTopExport" class="button button-secondary">'.scoreLogT('Export Current Scores (XLSX)').'</button>'
+    .'<button type="button" id="scoreLogAddColumn" class="button">'.scoreLogT('Add Assessment Column').'</button>'
+    .'</div></div>';
+
+echo '<div class="scoreLogGridScroll"><table class="scoreLogGrid" id="scoreLogGrid"><thead>';
+echo '<tr class="scoreLogConfigRow"><th class="scoreLogStudentColumn">'.scoreLogT('Student').'</th>';
+foreach ($columnOrder as $index => $columnID) {
+    $column = $payload['columns'][$columnID];
+    $hidden = $index >= $initialColumnCount;
+    echo '<th class="scoreLogAssessmentColumn" data-column-id="'.htmlPrep($columnID).'"'.($hidden ? ' hidden' : '').'>';
+    echo '<div class="scoreLogColumnConfig">';
+    echo '<input type="text" aria-label="'.htmlPrep(scoreLogT('Assessment Name')).'" class="scoreLogNameInput" name="columns['.htmlPrep($columnID).'][name]" value="'.htmlPrep((string) $column['name']).'" maxlength="30" placeholder="'.htmlPrep(scoreLogT('Assessment Name')).'"'.($hidden ? ' disabled' : '').'>';
+    echo '<input type="text" aria-label="'.htmlPrep(scoreLogT('Description')).'" name="columns['.htmlPrep($columnID).'][description]" value="'.htmlPrep((string) $column['description']).'" maxlength="1000" placeholder="'.htmlPrep(scoreLogT('Description')).'"'.($hidden ? ' disabled' : '').'>';
+    echo '<select aria-label="'.htmlPrep(scoreLogT('Type')).'" name="columns['.htmlPrep($columnID).'][type]"'.($hidden ? ' disabled' : '').'>';
+    foreach (($allowedTypes ?: [$defaultType]) as $typeOption) {
+        echo '<option value="'.htmlPrep($typeOption).'"'.($typeOption === ($column['type'] ?? '') ? ' selected' : '').'>'.htmlPrep($typeOption).'</option>';
+    }
+    echo '</select>';
+    echo '<select aria-label="'.htmlPrep(scoreLogT('Assessment Scale')).'" class="scoreLogScaleSelect" name="columns['.htmlPrep($columnID).'][scaleID]"'.($hidden ? ' disabled' : '').'>';
+    foreach ($scaleOptions as $scaleID => $scaleName) {
+        echo '<option value="'.htmlPrep($scaleID).'"'.((string) $scaleID === (string) ($column['scaleID'] ?? '') ? ' selected' : '').'>'.htmlPrep($scaleName).'</option>';
+    }
+    echo '</select>';
+    echo '<input type="date" aria-label="'.htmlPrep(scoreLogT('Assessment Date')).'" name="columns['.htmlPrep($columnID).'][completeDate]" value="'.htmlPrep((string) ($column['completeDate'] ?? '')).'"'.($hidden ? ' disabled' : '').'>';
+    echo '<select aria-label="'.htmlPrep(scoreLogT('Viewable to Students')).'" name="columns['.htmlPrep($columnID).'][viewableStudents]"'.($hidden ? ' disabled' : '').'>';
+    echo '<option value="Y"'.(($column['viewableStudents'] ?? 'Y') === 'Y' ? ' selected' : '').'>'.scoreLogT('Students Visible').'</option>';
+    echo '<option value="N"'.(($column['viewableStudents'] ?? 'Y') === 'N' ? ' selected' : '').'>'.scoreLogT('Students Hidden').'</option>';
+    echo '</select>';
+    echo '<select aria-label="'.htmlPrep(scoreLogT('Viewable to Parents')).'" name="columns['.htmlPrep($columnID).'][viewableParents]"'.($hidden ? ' disabled' : '').'>';
+    echo '<option value="Y"'.(($column['viewableParents'] ?? 'Y') === 'Y' ? ' selected' : '').'>'.scoreLogT('Parents Visible').'</option>';
+    echo '<option value="N"'.(($column['viewableParents'] ?? 'Y') === 'N' ? ' selected' : '').'>'.scoreLogT('Parents Hidden').'</option>';
+    echo '</select>';
+    echo '<div class="scoreLogColumnProgress" data-column-progress>'
+        .scoreLogT('Entered').' '.$columnCounts[$columnID]['entered'].' / '
+        .scoreLogT('Missing').' '.$columnCounts[$columnID]['missing'].' / '
+        .scoreLogT('Invalid').' '.$columnCounts[$columnID]['invalid']
+        .'</div>';
+    echo '<div class="scoreLogColumnButtons">';
+    echo '<button type="button" class="scoreLogMoveColumn" data-direction="-1"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Move Left').'</button>';
+    echo '<button type="button" class="scoreLogMoveColumn" data-direction="1"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Move Right').'</button>';
+    echo '<button type="button" class="scoreLogColumnTool" data-action-name="importColumnID" value="'.htmlPrep($columnID).'"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Import Scores').'</button>';
+    echo '<button type="button" class="scoreLogColumnTool" data-action-name="exportColumnID" value="'.htmlPrep($columnID).'"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Export Current Scores (XLSX)').'</button>';
+    echo '<button type="button" class="scoreLogRemoveColumn"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Remove Column').'</button>';
+    echo '</div></div></th>';
 }
-
-$row = $form->addRow();
-$row->addLabel('gibbonCourseClassIDName', scoreLogT('Class Name'));
-$row->addTextField('gibbonCourseClassIDName')->setValue($class['name'])->readonly();
-$row = $form->addRow();
-$row->addLabel('gibbonScaleIDAttainmentName', scoreLogT('Assessment Scale'));
-$row->addTextField('gibbonScaleIDAttainmentName')->setValue($scale['name'])->readonly();
-$row = $form->addRow();
-$row->addLabel('name', scoreLogT('Name'))->description(scoreLogT('Maximum 30 characters.'));
-$row->addTextField('name')->required()->maxLength(30)->setValue((string) ($meta['name'] ?? ''));
-$row = $form->addRow();
-$row->addLabel('description', scoreLogT('Description'))->description(scoreLogT('Maximum 1000 characters.'));
-$row->addTextField('description')->maxLength(1000)->setValue((string) ($meta['description'] ?? ''));
-
-$type = (string) ($meta['type'] ?? $defaultType);
-if (!empty($allowedTypes)) {
-    $row = $form->addRow();
-    $row->addLabel('type', scoreLogT('Type'));
-    $row->addSelect('type')->fromString(implode(',', $allowedTypes))->required()->selected($type)->placeholder(scoreLogT('Please select...'));
-} else {
-    $form->addHiddenValue('type', $defaultType);
+echo '</tr>';
+echo '<tr class="scoreLogScoreHeader"><th class="scoreLogStudentColumn">'.scoreLogT('Student').'</th>';
+foreach ($columnOrder as $index => $columnID) {
+    $hidden = $index >= $initialColumnCount;
+    $column = $payload['columns'][$columnID];
+    $scaleName = $scalesById[(string) ($column['scaleID'] ?? '')]['name'] ?? '';
+    echo '<th data-column-id="'.htmlPrep($columnID).'"'.($hidden ? ' hidden' : '').'>'
+        .'<span data-column-sticky-name>'.htmlPrep((string) ($column['name'] ?? '') ?: scoreLogT('Assessment')).'</span>'
+        .'<br><small data-column-sticky-scale>'.htmlPrep((string) $scaleName).'</small></th>';
 }
+echo '</tr></thead><tbody>';
 
-$form->addRow()->addHeading('Students', scoreLogT('Students'));
-$table = $form->addRow()->addTable()->setClass('smallIntBorder w-full colorOddEven noMargin noPadding noBorder');
-$header = $table->addHeaderRow();
-$header->addTableCell(scoreLogT('Student'))->rowSpan(2);
-$header->addTableCell($scale['name'])->setTitle($scale['usage'])->setClass('textCenter')->colSpan(2);
-$header = $table->addHeaderRow();
-$header->addContent(scoreLogT('Score'))->setClass('textCenter');
-$header->addContent(scoreLogT('Comment'))->setClass('textCenter');
-
-$defaultComment = scoreLogDefaultComment($scale['name']);
-$maxScore = scoreLogMaxScoreFromUsage($scale['usage']);
-foreach ($roster as $index => $student) {
+foreach ($roster as $student) {
     $studentID = (string) $student['gibbonPersonID'];
-    $saved = is_array($savedStudents[$studentID] ?? null) ? $savedStudents[$studentID] : [];
-    $savedValue = (string) ($saved['attainmentValue'] ?? '');
-    $savedComment = array_key_exists('comment', $saved) ? (string) $saved['comment'] : $defaultComment;
-
-    $row = $table->addRow();
-    $name = Format::name('', $student['preferredName'], $student['surname'], 'Student', true);
+    echo '<tr><th class="scoreLogStudentColumn">';
+    $studentName = Format::name('', $student['preferredName'], $student['surname'], 'Student', true);
     if (isset($diff['added'][$studentID])) {
-        $name .= ' ('.scoreLogT('New').')';
+        $studentName .= ' ('.scoreLogT('New').')';
     }
-    $row->addContent(htmlPrep($name))->wrap('<strong>', '</strong>');
+    echo '<strong>'.htmlPrep($studentName).'</strong></th>';
 
-    if ($scale['numeric'] === 'N') {
-        $selectedGrade = $savedValue !== '' ? $savedValue : $defaultGrade;
-        $row->addSelectGradeScaleGrade('score-'.$studentID, $gibbonScaleIDAttainment)
-            ->selected($selectedGrade)
-            ->setClass('textCenter gradeSelect');
-    } else {
-        $input = $row->addNumber('score-'.$studentID)
-            ->onlyInteger(false)
-            ->decimalPlaces(1)
-            ->step(0.5)
-            ->setValue($savedValue);
-        if ($maxScore !== null) {
-            $input->minimum(0)->maximum($maxScore);
-        }
+    foreach ($columnOrder as $index => $columnID) {
+        $hidden = $index >= $initialColumnCount;
+        $column = $payload['columns'][$columnID];
+        $entry = is_array($savedStudents[$studentID]['scores'][$columnID] ?? null)
+            ? $savedStudents[$studentID]['scores'][$columnID]
+            : [];
+        $scale = $scalesById[(string) ($column['scaleID'] ?? '')] ?? [];
+        $defaultComment = !empty($scale['name']) ? scoreLogDefaultComment((string) $scale['name']) : '';
+        $comment = array_key_exists('comment', $entry) ? (string) $entry['comment'] : $defaultComment;
+        $hasCustomComment = trim($comment) !== '' && trim($comment) !== trim($defaultComment);
+        echo '<td data-column-id="'.htmlPrep($columnID).'"'.($hidden ? ' hidden' : '').'>';
+        $scoreList = (($scale['numeric'] ?? 'N') === 'N') ? ' list="scoreLogGrades-'.htmlPrep((string) ($column['scaleID'] ?? '')).'"' : '';
+        echo '<input aria-label="'.htmlPrep((string) ($column['name'] ?? '')).' / '.htmlPrep($studentName).'" class="scoreLogScoreInput" type="text" inputmode="'.(($scale['numeric'] ?? 'N') === 'Y' ? 'decimal' : 'text').'" data-score="Y"'.$scoreList.' name="scores['.htmlPrep($studentID).']['.htmlPrep($columnID).'][attainmentValue]" value="'.htmlPrep((string) ($entry['attainmentValue'] ?? '')).'"'.($hidden ? ' disabled' : '').'>';
+        echo '<details class="scoreLogCommentEditor'.($hasCustomComment ? ' hasComment' : '').'"><summary>'.($hasCustomComment ? scoreLogT('Comment') : scoreLogT('Add Comment')).'</summary>';
+        echo '<textarea data-default-comment="'.htmlPrep($defaultComment).'" aria-label="'.htmlPrep(scoreLogT('Comment')).' / '.htmlPrep((string) ($column['name'] ?? '')).' / '.htmlPrep($studentName).'" name="scores['.htmlPrep($studentID).']['.htmlPrep($columnID).'][comment]" maxlength="1000" rows="4"'.($hidden ? ' disabled' : '').'>'.htmlPrep($comment).'</textarea></details>';
+        echo '</td>';
     }
+    echo '</tr>';
+}
+echo '</tbody></table></div>';
 
-    $row->addTextArea('comment-'.$studentID)
-        ->setRows(2)
-        ->maxLength(1000)
-        ->setValue($savedComment);
+foreach ($gradesByScale as $gradeScaleID => $gradeValues) {
+    echo '<datalist id="scoreLogGrades-'.htmlPrep((string) $gradeScaleID).'">';
+    foreach ($gradeValues as $gradeValue => $descriptor) {
+        echo '<option value="'.htmlPrep((string) $gradeValue).'">'.htmlPrep((string) $descriptor).'</option>';
+    }
+    echo '</datalist>';
 }
 
-$form->addRow()->addHeading('Publish Settings', scoreLogT('Publish Settings'));
-$row = $form->addRow();
-$row->addLabel('viewableStudents', scoreLogT('Viewable to Students'));
-$row->addYesNo('viewableStudents')->required()->selected((string) ($meta['viewableStudents'] ?? 'Y'));
-$row = $form->addRow();
-$row->addLabel('viewableParents', scoreLogT('Viewable to Parents'));
-$row->addYesNo('viewableParents')->required()->selected((string) ($meta['viewableParents'] ?? 'Y'));
-$row = $form->addRow();
-$row->addLabel('completeDate', scoreLogT('Assessment Date'))
-    ->description(scoreLogT('The assessment is hidden from students, parents and reports until this date.'));
-$storedDate = (string) ($meta['completeDate'] ?? '');
-$row->addDate('completeDate')->required()->setValue(
-    scoreLogIsValidDate($storedDate) ? Format::date($storedDate) : ''
-);
-$row = $form->addRow();
-$row->addFooter();
-$row->addSubmit(scoreLogT('Save Draft'))->setName('saveDraft')->setColor('gray')
-    ->setAttribute('formnovalidate', 'formnovalidate');
-$row->addSubmit(scoreLogT('Review and Publish'))->setName('reviewPublish')
-    ->setAttribute('formnovalidate', 'formnovalidate');
-echo $form->getOutput();
+echo '<div class="scoreLogFormFooter"><button type="submit" name="saveDraft" value="Y" formnovalidate class="button button-secondary">'.scoreLogT('Save Draft').'</button>';
+echo '<button type="submit" name="reviewPublish" value="Y" formnovalidate class="button">'.scoreLogT('Review and Publish').'</button></div>';
+echo '</form>';
 
 if ($scoreLogDraftID !== '') {
     $discardForm = Form::create(
@@ -422,8 +472,8 @@ if ($scoreLogDraftID !== '') {
     $discardForm->setDescription(scoreLogT('Discard this private draft and return to the draft list.'));
     $discardForm->addHiddenValue('scoreLogDraftID', $scoreLogDraftID);
     $discardForm->addHiddenValue('revision', (string) $revision);
-    $row = $discardForm->addRow();
-    $row->addSubmit(scoreLogT('Discard Draft'))
+    $formRow = $discardForm->addRow();
+    $formRow->addSubmit(scoreLogT('Discard Draft'))
         ->setColor('red')
         ->onClick("return confirm('".scoreLogT('Discard this draft? This cannot be undone.')."');");
     echo $discardForm->getOutput();
@@ -461,3 +511,24 @@ if (!empty($recentAssessments)) {
     }
     echo $table->render($recentAssessments);
 }
+
+$jsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+echo '<script>window.scoreLogImportScaleData='.json_encode($gradesByScale, $jsonFlags).';'
+    .'window.scoreLogScaleData='.json_encode(array_map(function ($scale) {
+        return [
+            'numeric' => $scale['numeric'],
+            'max'     => scoreLogMaxScoreFromUsage($scale['usage']),
+        ];
+    }, $scalesById), $jsonFlags).';'
+    .'window.scoreLogImportLabels='.json_encode([
+        'entered'       => scoreLogT('Entered'),
+        'missing'       => scoreLogT('Missing'),
+        'invalid'       => scoreLogT('Invalid'),
+        'score'         => scoreLogT('Score'),
+        'grade'         => scoreLogT('Grade'),
+        'comment'       => scoreLogT('Comment'),
+        'addComment'    => scoreLogT('Add Comment'),
+        'assessment'    => scoreLogT('Assessment'),
+        'confirmRemove' => scoreLogT('Remove this assessment column and its current scores/comments?'),
+        'unsavedChanges'=> scoreLogT('You have unsaved changes. Save the draft before leaving this page.'),
+    ], $jsonFlags).';</script>';
