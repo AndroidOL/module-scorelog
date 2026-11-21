@@ -259,14 +259,14 @@ if ($scoreLogDraftID !== '') {
         $olderDraftID = (string) ($draftNavigation[$draftPosition + 1] ?? '');
         $newerDraftID = (string) ($draftNavigation[$draftPosition - 1] ?? '');
         if ($olderDraftID !== '') {
-            $page->navigator->addHeaderAction('previousDraft', scoreLogT('Previous Assessment'))
+            $page->navigator->addHeaderAction('previousDraft', scoreLogT('Previous'))
                 ->setURL('/modules/Score Log/scorelog_view.php')
                 ->addParam('draftID', $olderDraftID)
                 ->setIcon('back')
                 ->displayLabel();
         }
         if ($newerDraftID !== '') {
-            $page->navigator->addHeaderAction('nextDraft', scoreLogT('Next Assessment'))
+            $page->navigator->addHeaderAction('nextDraft', scoreLogT('Next'))
                 ->setURL('/modules/Score Log/scorelog_view.php')
                 ->addParam('draftID', $newerDraftID)
                 ->setIcon('forward')
