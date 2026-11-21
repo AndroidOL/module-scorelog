@@ -559,6 +559,11 @@ foreach ($roster as $student) {
     $resolvedScore = scoreLogResolveScaleGrade($savedScore, $scale, $descriptorValues);
     $selectedScore = (string) ($resolvedScore['value'] ?? $savedScore);
     $scoreIsValid = $savedScore === '' || !empty($resolvedScore);
+    $defaultComment = scoreLogDefaultComment((string) ($scale['name'] ?? ''));
+    $autoComment = !empty($resolvedScore)
+        ? (string) $resolvedScore['descriptor']
+        : $defaultComment;
+    $comment = array_key_exists('comment', $entry) ? (string) $entry['comment'] : $defaultComment;
     $studentName = Format::name('', $student['preferredName'], $student['surname'], 'Student', true);
     if (isset($diff['added'][$studentID])) {
         $studentName .= ' ('.scoreLogT('New').')';
@@ -598,7 +603,8 @@ foreach ($roster as $student) {
         ->autosize()
         ->setClass('max-h-32 overflow-y-auto')
         ->maxLength(1000)
-        ->setValue((string) ($entry['comment'] ?? ''))
+        ->setValue($comment)
+        ->setAttribute('data-auto-comment', $autoComment)
         ->setAttribute('aria-label', sprintf(
             scoreLogT('%s comment for %s'),
             (string) ($column['name'] ?? ''),
@@ -609,12 +615,15 @@ foreach ($roster as $student) {
         foreach ($commentLibrary as $libraryComment) {
             $commentOptions[(string) $libraryComment['scoreLogCommentID']] = (string) $libraryComment['label'];
         }
-        $commentColumn->addSelect('commentLibrary['.$studentID.']')
+        $commentActions = $commentColumn->addColumn()->addClass('flex items-center gap-2');
+        $commentActions->addSelect('commentLibrary['.$studentID.']')
             ->fromArray($commentOptions)
-            ->placeholder(scoreLogT('Add from library...'))
-            ->setClass('scoreLogCommentLibrarySelect');
-        $commentColumn->addButton(scoreLogT('Append comment'), null)
-            ->setClass('scoreLogCommentLibraryInsert')
+            ->placeholder(scoreLogT('Library...'))
+            ->setClass('scoreLogCommentLibrarySelect flex-1 min-w-0');
+        $commentActions->addButton(scoreLogT('Append'), null)
+            ->setClass('scoreLogCommentLibraryInsert shrink-0')
+            ->setAttribute('aria-label', scoreLogT('Append comment'))
+            ->setTitle(scoreLogT('Append comment'))
             ->setSize('sm')
             ->setColor('gray');
     }

@@ -326,6 +326,36 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             return Object.prototype.hasOwnProperty.call(grades, value) ? 'entered' : 'invalid';
         };
 
+        const gradeForValue = (value) => {
+            value = String(value || '').trim();
+            if (value === '') return null;
+            const grades = scaleData.grades || {};
+            if (scaleData.numeric === 'Y') {
+                const number = numericValue(value);
+                if (number === null) return null;
+                const grade = Object.keys(grades).find((candidate) => numericValue(candidate) === number);
+                return grade === undefined ? null : {value: grade, descriptor: String(grades[grade] || '')};
+            }
+
+            return Object.prototype.hasOwnProperty.call(grades, value)
+                ? {value, descriptor: String(grades[value] || '')}
+                : null;
+        };
+
+        const syncAutoComment = (scoreInput) => {
+            const row = scoreInput ? scoreInput.closest('tr[data-student-id]') : null;
+            const textarea = row ? row.querySelector('textarea') : null;
+            if (!textarea) return;
+
+            const previousAuto = textarea.dataset.autoComment || '';
+            const grade = gradeForValue(scoreInput.value);
+            const nextAuto = grade ? grade.descriptor : '';
+            if (textarea.value.trim() === '' || textarea.value === previousAuto) {
+                textarea.value = nextAuto;
+            }
+            textarea.dataset.autoComment = nextAuto;
+        };
+
         const updateRowStatus = (row) => {
             const input = scoreInputFor(row);
             const status = scoreStatus(input);
@@ -447,6 +477,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             if (event.target.classList.contains('scoreLogScoreInput')) {
                 const row = event.target.closest('tr[data-student-id]');
                 if (row) updateRowStatus(row);
+                syncAutoComment(event.target);
                 updateRowSummary();
             }
         });
@@ -460,6 +491,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                 markDirty();
                 const row = event.target.closest('tr[data-student-id]');
                 if (row) updateRowStatus(row);
+                syncAutoComment(event.target);
                 updateRowSummary();
                 applyQuickFilter();
             }

@@ -1029,6 +1029,12 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringContainsString('setRows(1)', $view);
         $this->assertStringContainsString('autosize()', $view);
         $this->assertStringContainsString('max-h-32 overflow-y-auto', $view);
+        $this->assertStringContainsString('scoreLogDefaultComment((string) ($scale[\'name\']', $view);
+        $this->assertStringContainsString("array_key_exists('comment', \$entry)", $view);
+        $this->assertStringContainsString("setAttribute('data-auto-comment'", $view);
+        $this->assertStringContainsString("addClass('flex items-center gap-2')", $view);
+        $this->assertStringContainsString('syncAutoComment', $script);
+        $this->assertSame('Grading scale: Percentage', \scoreLogDefaultComment('Percentage'));
         $this->assertStringContainsString('allowManualSubmit = false;', $script);
         $this->assertStringContainsString('submissionPending = false;', $script);
         $this->assertStringContainsString('let autosaveFlushPromise = null;', $script);
