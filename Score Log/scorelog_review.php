@@ -48,6 +48,7 @@ $scoreLogDraftID = is_scalar($_GET['draftID'] ?? null) ? trim((string) $_GET['dr
 if (
     !isActionAccessible($guid, $connection2, '/modules/Score Log/scorelog_view.php')
     || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_manage_add.php')
+    || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write_data.php')
 ) {
     $page->addError(scoreLogT('You do not have access to this page.'));
     return;
@@ -87,6 +88,10 @@ foreach ($grades as $grade) {
 
 $settingGateway = $container->get(SettingGateway::class);
 $allowedTypes = scoreLogAllowedTypes($settingGateway->getSettingByScope('Formal Assessment', 'internalAssessmentTypes'));
+if (empty($allowedTypes)) {
+    $page->addError(scoreLogT('No Formal Assessment types are configured. Ask an administrator to update Formal Assessment settings.'));
+    return;
+}
 $evaluation = scoreLogEvaluateMultiAssessmentPayload($payload, $roster, $scales, $gradesByScale, $allowedTypes);
 $editURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php&draftID='.urlencode($scoreLogDraftID);
 

@@ -32,6 +32,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     let columnOrder = (orderInput.value || '').split(',').filter(Boolean);
     let dirty = false;
 
+    const numericValue = (value) => {
+        const normalized = String(value || '').trim().replace(/%$/, '');
+        if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)) return null;
+        const number = Number(normalized);
+        return Number.isFinite(number) ? number : null;
+    };
+
+    const matchesNumericGrade = (value, grades) => {
+        const number = numericValue(value);
+        if (number === null) return false;
+
+        return Object.keys(grades).some((gradeValue) => numericValue(gradeValue) === number);
+    };
+
     const allColumnIDs = Array.from(document.querySelectorAll('#scoreLogGrid [data-column-id]'))
         .map((element) => element.getAttribute('data-column-id'))
         .filter((value, index, values) => values.indexOf(value) === index);
@@ -111,7 +125,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 input.setAttribute('aria-label', name + ' / ' + studentName);
                 input.setAttribute('inputmode', config.numeric === 'Y' ? 'decimal' : 'text');
                 input.placeholder = config.numeric === 'Y' ? labels.score : labels.grade;
-                if (config.numeric === 'N' && scaleID !== '') {
+                if (scaleID !== '') {
                     input.setAttribute('list', 'scoreLogGrades-' + scaleID);
                 } else {
                     input.removeAttribute('list');
@@ -147,7 +161,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     const number = Number(value);
                     rowInvalid = !Number.isFinite(number)
                         || number < 0
-                        || (config.max !== null && config.max !== undefined && number > Number(config.max));
+                        || (config.max !== null && config.max !== undefined && number > Number(config.max))
+                        || !matchesNumericGrade(value, grades);
                 }
             } else {
                 rowInvalid = !Object.prototype.hasOwnProperty.call(grades, value);

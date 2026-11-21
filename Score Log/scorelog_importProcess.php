@@ -41,6 +41,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 if (
     !isActionAccessible($guid, $connection2, '/modules/Score Log/scorelog_view.php')
     || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_manage_add.php')
+    || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write_data.php')
 ) {
     $redirect('error0');
 }

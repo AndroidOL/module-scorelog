@@ -50,6 +50,7 @@ $page->return->addReturns([
 if (
     !isActionAccessible($guid, $connection2, '/modules/Score Log/scorelog_view.php')
     || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_manage_add.php')
+    || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write_data.php')
 ) {
     $page->addError(scoreLogT('You do not have access to this page.'));
     return;
@@ -62,7 +63,11 @@ $gibbonCourseClassID = is_scalar($_GET['gibbonCourseClassID'] ?? null) ? trim((s
 $gibbonScaleIDAttainment = is_scalar($_GET['gibbonScaleIDAttainment'] ?? null) ? trim((string) $_GET['gibbonScaleIDAttainment']) : '';
 $settingGateway = $container->get(SettingGateway::class);
 $allowedTypes = scoreLogAllowedTypes($settingGateway->getSettingByScope('Formal Assessment', 'internalAssessmentTypes'));
-$defaultType = $allowedTypes[0] ?? 'Assessment';
+if (empty($allowedTypes)) {
+    $page->addError(scoreLogT('No Formal Assessment types are configured. Ask an administrator to update Formal Assessment settings.'));
+    return;
+}
+$defaultType = $allowedTypes[0];
 
 // Module landing: choose a class or start from an existing draft.
 if ($scoreLogDraftID === '' && ($gibbonCourseClassID === '' || $gibbonScaleIDAttainment === '')) {
@@ -377,7 +382,7 @@ foreach ($columnOrder as $index => $columnID) {
     echo '<input type="text" aria-label="'.htmlPrep(scoreLogT('Assessment Name')).'" class="scoreLogNameInput w-full rounded-md border py-2 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" name="columns['.htmlPrep($columnID).'][name]" value="'.htmlPrep((string) $column['name']).'" maxlength="30" placeholder="'.htmlPrep(scoreLogT('Assessment Name')).'"'.($hidden ? ' disabled' : '').'>';
     echo '<input type="text" aria-label="'.htmlPrep(scoreLogT('Description')).'" class="w-full rounded-md border py-2 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" name="columns['.htmlPrep($columnID).'][description]" value="'.htmlPrep((string) $column['description']).'" maxlength="1000" placeholder="'.htmlPrep(scoreLogT('Description')).'"'.($hidden ? ' disabled' : '').'>';
     echo '<select aria-label="'.htmlPrep(scoreLogT('Type')).'" class="w-full min-w-16 border py-2 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" name="columns['.htmlPrep($columnID).'][type]"'.($hidden ? ' disabled' : '').'>';
-    foreach (($allowedTypes ?: [$defaultType]) as $typeOption) {
+    foreach ($allowedTypes as $typeOption) {
         echo '<option value="'.htmlPrep($typeOption).'"'.($typeOption === ($column['type'] ?? '') ? ' selected' : '').'>'.htmlPrep($typeOption).'</option>';
     }
     echo '</select>';
@@ -440,7 +445,9 @@ foreach ($roster as $student) {
         $comment = array_key_exists('comment', $entry) ? (string) $entry['comment'] : $defaultComment;
         $hasCustomComment = trim($comment) !== '' && trim($comment) !== trim($defaultComment);
         echo '<td data-column-id="'.htmlPrep($columnID).'"'.($hidden ? ' hidden' : '').'>';
-        $scoreList = (($scale['numeric'] ?? 'N') === 'N') ? ' list="scoreLogGrades-'.htmlPrep((string) ($column['scaleID'] ?? '')).'"' : '';
+        $scoreList = isset($gradesByScale[(string) ($column['scaleID'] ?? '')])
+            ? ' list="scoreLogGrades-'.htmlPrep((string) ($column['scaleID'] ?? '')).'"'
+            : '';
         echo '<input aria-label="'.htmlPrep((string) ($column['name'] ?? '')).' / '.htmlPrep($studentName).'" class="scoreLogScoreInput w-full rounded-md border py-2 text-center text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" type="text" inputmode="'.(($scale['numeric'] ?? 'N') === 'Y' ? 'decimal' : 'text').'" data-score="Y"'.$scoreList.' name="scores['.htmlPrep($studentID).']['.htmlPrep($columnID).'][attainmentValue]" value="'.htmlPrep((string) ($entry['attainmentValue'] ?? '')).'"'.($hidden ? ' disabled' : '').'>';
         echo '<details class="scoreLogCommentEditor'.($hasCustomComment ? ' hasComment' : '').'"><summary class="text-xs font-semibold text-blue-800">'.($hasCustomComment ? scoreLogT('Comment') : scoreLogT('Add Comment')).'</summary>';
         echo '<textarea data-default-comment="'.htmlPrep($defaultComment).'" aria-label="'.htmlPrep(scoreLogT('Comment')).' / '.htmlPrep((string) ($column['name'] ?? '')).' / '.htmlPrep($studentName).'" class="w-full rounded-md border py-2 font-sans text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" name="scores['.htmlPrep($studentID).']['.htmlPrep($columnID).'][comment]" maxlength="1000" rows="4"'.($hidden ? ' disabled' : '').'>'.htmlPrep($comment).'</textarea></details>';

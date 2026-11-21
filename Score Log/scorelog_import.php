@@ -51,6 +51,7 @@ $previewToken = is_scalar($_GET['previewToken'] ?? null) ? trim((string) $_GET['
 if (
     !isActionAccessible($guid, $connection2, '/modules/Score Log/scorelog_view.php')
     || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_manage_add.php')
+    || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write_data.php')
 ) {
     $page->addError(scoreLogT('You do not have access to this page.'));
     return;

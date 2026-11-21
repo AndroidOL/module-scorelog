@@ -421,6 +421,10 @@ msgstr "请输入评估名称。"
 msgid "The assessment name must be 30 characters or fewer."
 msgstr "评估名称不得超过 30 个字符。"
 
+#: ⁨Score Log/moduleFunctions.php⁩:436 ⁨Score Log/moduleFunctions.php⁩:583
+msgid "Enter an assessment description."
+msgstr "请输入评估说明。"
+
 #: ⁨Score Log/moduleFunctions.php⁩:422 ⁨Score Log/moduleFunctions.php⁩:565
 msgid "The description must be 1000 characters or fewer."
 msgstr "说明不得超过 1000 个字符。"
@@ -428,6 +432,14 @@ msgstr "说明不得超过 1000 个字符。"
 #: ⁨Score Log/moduleFunctions.php⁩:425 ⁨Score Log/moduleFunctions.php⁩:568
 msgid "Choose a valid assessment type."
 msgstr "请选择有效的评估类型。"
+
+#: ⁨Score Log/scorelog_review.php⁩ ⁨Score Log/scorelog_view.php⁩
+msgid "No Formal Assessment types are configured. Ask an administrator to update Formal Assessment settings."
+msgstr "尚未配置正式评估类型。请联系管理员更新正式评估设置。"
+
+#: ⁨Score Log/moduleFunctions.php⁩:443 ⁨Score Log/moduleFunctions.php⁩:590
+msgid "The assessment type must be 50 characters or fewer."
+msgstr "评估类型不得超过 50 个字符。"
 
 #: ⁨Score Log/moduleFunctions.php⁩:428 ⁨Score Log/moduleFunctions.php⁩:577
 msgid "Choose a valid student visibility setting."
@@ -449,6 +461,10 @@ msgstr "评语不得超过 1000 个字符。"
 #: ⁨Score Log/moduleFunctions.php⁩:466 ⁨Score Log/moduleFunctions.php⁩:917
 msgid "Enter a valid finite number."
 msgstr "请输入有效的有限数值。"
+
+#: ⁨Score Log/moduleFunctions.php⁩
+msgid "Choose a score from the selected scale."
+msgstr "请选择所设评分量表中存在的成绩。"
 
 #: ⁨Score Log/moduleFunctions.php⁩:468 ⁨Score Log/moduleFunctions.php⁩:921
 msgid "Enter a score of 0 or greater."

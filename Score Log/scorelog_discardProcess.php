@@ -41,7 +41,10 @@ $redirect = function (string $return, string $draftID = '') use ($viewURL, $draf
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     $redirect('error3', $scoreLogDraftID);
 }
-if (!isActionAccessible($guid, $connection2, '/modules/Score Log/scorelog_view.php')) {
+if (
+    !isActionAccessible($guid, $connection2, '/modules/Score Log/scorelog_view.php')
+    || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write_data.php')
+) {
     $redirect('error0', $scoreLogDraftID);
 }
 if (!$container->get(TokenHandler::class)->validateCsrfToken()) {

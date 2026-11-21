@@ -45,6 +45,26 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertNull(\scoreLogNormalizeNumericValue('12345678901'));
     }
 
+    public function testNumericMarksRequireAndPreserveAnOfficialScaleGradeRow()
+    {
+        $score = \scoreLogValidateImportScore(
+            '88.0',
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            ['88%' => '88%']
+        );
+        $missing = \scoreLogValidateImportScore(
+            '88.5',
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            ['88%' => '88%', '89%' => '89%']
+        );
+
+        $this->assertTrue($score['valid']);
+        $this->assertSame('88%', $score['normalized']);
+        $this->assertSame('88%', $score['descriptor']);
+        $this->assertFalse($missing['valid']);
+        $this->assertSame('Choose a score from the selected scale.', $missing['error']);
+    }
+
     public function testAssessmentDatesAreStrictlyValidated()
     {
         $this->assertTrue(\scoreLogIsValidDate('2026-02-28'));
@@ -99,7 +119,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
                 ['gibbonPersonID' => '3', 'preferredName' => 'C', 'surname' => 'Three'],
             ],
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            [],
+            $this->numericGrades(),
             ['Quiz']
         );
 
@@ -129,7 +149,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
         ], [
             'numeric' => 'Y',
             'usage' => '',
-        ], [], ['Quiz']);
+        ], $this->numericGrades(), ['Quiz']);
 
         $this->assertFalse($result['valid']);
         $this->assertSame(1, $result['invalid']);
@@ -232,11 +252,11 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $nameScore = \scoreLogDetectImportMapping([
             ['Ada Lovelace', '88'],
             ['Alan Turing', '92'],
-        ], $roster, $scale, []);
+        ], $roster, $scale, $this->numericGrades());
         $swapped = \scoreLogDetectImportMapping([
             ['88', 'Ada Lovelace'],
             ['92', 'Alan Turing'],
-        ], $roster, $scale, []);
+        ], $roster, $scale, $this->numericGrades());
 
         $this->assertSame(0, $nameScore['identifierColumn']);
         $this->assertSame('name', $nameScore['identifierType']);
@@ -250,11 +270,11 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $mapping = \scoreLogDetectImportMapping([
             ['0000000001', '88'],
             ['2', '92'],
-        ], $this->importRoster(), ['numeric' => 'Y', 'usage' => 'Out of 100'], []);
+        ], $this->importRoster(), ['numeric' => 'Y', 'usage' => 'Out of 100'], $this->numericGrades());
         $username = \scoreLogDetectImportMapping([
             ['ADA', '88'],
             ['Alan', '92'],
-        ], $this->importRoster(), ['numeric' => 'Y', 'usage' => 'Out of 100'], []);
+        ], $this->importRoster(), ['numeric' => 'Y', 'usage' => 'Out of 100'], $this->numericGrades());
 
         $this->assertSame(0, $mapping['identifierColumn']);
         $this->assertSame('id', $mapping['identifierType']);
@@ -269,15 +289,15 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $header = \scoreLogDetectImportMapping([
             ['Student ID', 'Score', 'Comment'],
             ['0000000001', '88', 'Good'],
-        ], $roster, $scale, []);
+        ], $roster, $scale, $this->numericGrades());
         $unclear = \scoreLogDetectImportMapping([
             ['Ada Lovelace', 'Ada Lovelace'],
             ['Alan Turing', 'Alan Turing'],
-        ], $roster, $scale, []);
+        ], $roster, $scale, $this->numericGrades());
         $threeColumns = \scoreLogDetectImportMapping([
             ['Ada Lovelace', '88', 'Good'],
             ['Alan Turing', '92', 'Strong'],
-        ], $roster, $scale, []);
+        ], $roster, $scale, $this->numericGrades());
 
         $this->assertSame(0, $header['headerRow']);
         $this->assertSame(2, $header['commentColumn']);
@@ -308,7 +328,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
             $payload,
             $this->importRoster(),
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            [],
+            $this->numericGrades(),
             [],
             false
         );
@@ -318,7 +338,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
             $payload,
             $this->importRoster(),
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            [],
+            $this->numericGrades(),
             [],
             true
         );
@@ -348,7 +368,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
             ],
             $this->importRoster(),
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            [],
+            $this->numericGrades(),
             [],
             true
         );
@@ -374,7 +394,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
             ['students' => []],
             $this->importRoster(),
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            []
+            $this->numericGrades()
         );
         $second = \scoreLogBuildImportPreview(
             [['998', '80']],
@@ -382,7 +402,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
             ['students' => []],
             $this->importRoster(),
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            []
+            $this->numericGrades()
         );
 
         $this->assertSame($first['updates'], $second['updates']);
@@ -419,7 +439,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
             ],
             $this->importRoster(),
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            [],
+            $this->numericGrades(),
             [],
             true
         );
@@ -448,7 +468,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
             ['Ada Lovelace', '=1+1'],
             ['Unknown Student', '80'],
             ['Ada Lovelace', '85'],
-        ], $mapping, ['students' => []], $roster, ['numeric' => 'Y', 'usage' => 'Out of 100'], [], ['0:1' => true]);
+        ], $mapping, ['students' => []], $roster, ['numeric' => 'Y', 'usage' => 'Out of 100'], $this->numericGrades(), ['0:1' => true]);
 
         $this->assertSame('ambiguous', $preview['rows'][0]['status']);
         $this->assertSame('unknown', $preview['rows'][1]['status']);
@@ -458,7 +478,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
             ['Ada Lovelace', '=1+1'],
             ['Unknown Student', '80'],
             ['Ada Lovelace', '85'],
-        ], $mapping, ['students' => []], $this->importRoster(), ['numeric' => 'Y', 'usage' => 'Out of 100'], [], ['0:1' => true]);
+        ], $mapping, ['students' => []], $this->importRoster(), ['numeric' => 'Y', 'usage' => 'Out of 100'], $this->numericGrades(), ['0:1' => true]);
 
         $this->assertSame('invalid', $unique['rows'][0]['status']);
         $this->assertSame('unknown', $unique['rows'][1]['status']);
@@ -513,7 +533,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
             ['students' => []],
             $roster,
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            []
+            $this->numericGrades()
         );
 
         $duplicateRoster = array_merge($roster, [[
@@ -526,7 +546,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
             ['students' => []],
             $duplicateRoster,
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            []
+            $this->numericGrades()
         );
 
         $this->assertSame('wouldFill', $matched['rows'][0]['status']);
@@ -728,11 +748,174 @@ namespace Gibbon\Module\ScoreLog\Tests {
 
         $this->assertIsString($source);
         $this->assertStringContainsString("SELECT COALESCE(MAX(groupingID), 0) + 1", $source);
-        $this->assertStringContainsString("'groupingID'                      => \$nextGroupingID++", $source);
+        $this->assertStringContainsString('$insertColumn($firstColumn, 0)', $source);
+        $this->assertStringContainsString('$insertColumn($column, $nextGroupingID++)', $source);
+        $this->assertStringContainsString('scoreLogCoreAssessmentValues', $source);
+        $this->assertStringContainsString('scoreLogCoreEntryValues', $source);
         $this->assertSame(1, substr_count($source, '->beginTransaction()'));
         $this->assertStringContainsString('->rollBack()', $source);
         $this->assertStringContainsString('DELETE FROM score_log_draft', $source);
         $this->assertStringContainsString('->commit()', $source);
+    }
+
+    public function testCoreAssessmentMappingMatchesFormalAssessmentColumnDefaults()
+    {
+        $values = \scoreLogCoreAssessmentValues([
+            'name' => 'Unit 1',
+            'description' => 'Baseline assessment',
+            'type' => 'Quiz',
+            'scaleID' => '00026',
+            'completeDate' => '2026-11-21',
+            'viewableStudents' => 'Y',
+            'viewableParents' => 'N',
+        ], '00000042', '00000007', 81);
+
+        $this->assertSame([
+            'groupingID'                  => 81,
+            'gibbonCourseClassID'         => '00000042',
+            'name'                        => 'Unit 1',
+            'description'                 => 'Baseline assessment',
+            'type'                        => 'Quiz',
+            'attainment'                  => 'Y',
+            'gibbonScaleIDAttainment'     => '00026',
+            'effort'                      => 'N',
+            'gibbonScaleIDEffort'         => null,
+            'comment'                     => 'Y',
+            'uploadedResponse'            => 'N',
+            'complete'                    => 'Y',
+            'completeDate'                => '2026-11-21',
+            'viewableStudents'            => 'Y',
+            'viewableParents'             => 'N',
+            'attachment'                  => '',
+            'gibbonPersonIDCreator'       => '00000007',
+            'gibbonPersonIDLastEdit'      => '00000007',
+        ], $values);
+
+        $incomplete = \scoreLogCoreAssessmentValues([
+            'completeDate' => '',
+        ], '42', '7', 82);
+        $this->assertSame('N', $incomplete['complete']);
+        $this->assertNull($incomplete['completeDate']);
+    }
+
+    public function testCoreEntryMappingMatchesFormalAssessmentEntryDefaults()
+    {
+        $values = \scoreLogCoreEntryValues(93, [
+            'gibbonPersonID' => '00000005',
+            'attainmentValue' => '12.5',
+            'descriptor' => '12.5',
+            'comment' => 'Clear improvement',
+        ], '00000007');
+
+        $this->assertSame([
+            'gibbonInternalAssessmentColumnID' => 93,
+            'gibbonPersonIDStudent'            => '00000005',
+            'attainmentValue'                  => '12.5',
+            'attainmentDescriptor'             => '12.5',
+            'effortValue'                      => null,
+            'effortDescriptor'                 => null,
+            'comment'                          => 'Clear improvement',
+            'response'                         => null,
+            'gibbonPersonIDLastEdit'           => '00000007',
+        ], $values);
+    }
+
+    public function testMultiAssessmentValidationEnforcesOfficialDescriptionAndTypeLimits()
+    {
+        $result = \scoreLogEvaluateMultiAssessmentPayload([
+            'version' => 2,
+            'columnOrder' => ['c1'],
+            'columns' => [
+                'c1' => [
+                    'name' => 'Quiz',
+                    'description' => '',
+                    'type' => str_repeat('T', 51),
+                    'scaleID' => '26',
+                    'completeDate' => '2026-11-21',
+                    'viewableStudents' => 'Y',
+                    'viewableParents' => 'Y',
+                ],
+            ],
+            'students' => [
+                '0000000001' => ['scores' => [
+                    'c1' => ['attainmentValue' => '88', 'comment' => ''],
+                ]],
+            ],
+        ], [[
+            'gibbonPersonID' => '0000000001',
+            'preferredName' => 'Ada',
+            'surname' => 'Lovelace',
+        ]], [
+            '26' => ['name' => 'Numeric', 'usage' => 'Out of 100', 'numeric' => 'Y', 'active' => 'Y'],
+        ], ['26' => ['88' => '88']], [str_repeat('T', 51)]);
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('Enter an assessment description.', $result['columns']['c1']['errors']);
+        $this->assertContains('The assessment type must be 50 characters or fewer.', $result['columns']['c1']['errors']);
+    }
+
+    public function testFormalAssessmentTypeSettingIsRequired()
+    {
+        $result = \scoreLogEvaluateMultiAssessmentPayload([
+            'version' => 2,
+            'columnOrder' => ['c1'],
+            'columns' => [
+                'c1' => [
+                    'name' => 'Quiz',
+                    'description' => 'Baseline',
+                    'type' => 'Quiz',
+                    'scaleID' => '26',
+                    'completeDate' => '2026-11-21',
+                    'viewableStudents' => 'Y',
+                    'viewableParents' => 'Y',
+                ],
+            ],
+            'students' => [
+                '0000000001' => ['scores' => [
+                    'c1' => ['attainmentValue' => '88', 'comment' => ''],
+                ]],
+            ],
+        ], [[
+            'gibbonPersonID' => '0000000001',
+            'preferredName' => 'Ada',
+            'surname' => 'Lovelace',
+        ]], [
+            '26' => ['name' => 'Numeric', 'usage' => 'Out of 100', 'numeric' => 'Y', 'active' => 'Y'],
+        ], ['26' => ['88' => '88']], []);
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('Choose a valid assessment type.', $result['columns']['c1']['errors']);
+    }
+
+    public function testScoreEntryRoutesRequireFormalAssessmentWritePermission()
+    {
+        $routes = [
+            'scorelog_view.php',
+            'scorelog_draftProcess.php',
+            'scorelog_review.php',
+            'scorelog_drafts.php',
+            'scorelog_import.php',
+            'scorelog_importProcess.php',
+            'scorelog_importApplyProcess.php',
+            'scorelog_importTemplate.php',
+            'scorelog_publishProcess.php',
+            'scorelog_draftDelete.php',
+            'scorelog_discardProcess.php',
+        ];
+
+        foreach ($routes as $route) {
+            $source = file_get_contents(dirname(__DIR__).'/'.$route);
+            $this->assertIsString($source);
+            $this->assertStringContainsString(
+                '/modules/Formal Assessment/internalAssessment_write_data.php',
+                $source
+            );
+        }
+
+        $functions = file_get_contents(dirname(__DIR__).'/moduleFunctions.php');
+        $this->assertIsString($functions);
+        $this->assertStringContainsString("AND role='Teacher'", $functions);
+        $this->assertStringNotContainsString("role IN ('Teacher', 'Assistant', 'Technician')", $functions);
     }
 
     public function testImportAndTemplateAreBoundToOneExplicitAssessmentColumn()
@@ -761,6 +944,16 @@ namespace Gibbon\Module\ScoreLog\Tests {
                 'username' => 'alan', 'preferredName' => 'Alan', 'surname' => 'Turing',
             ],
         ];
+    }
+
+    private function numericGrades(): array
+    {
+        $grades = [];
+        for ($value = 0; $value <= 100; $value++) {
+            $grades[(string) $value] = (string) $value;
+        }
+
+        return $grades;
     }
     }
 }

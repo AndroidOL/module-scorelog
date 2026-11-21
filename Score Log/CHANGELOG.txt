@@ -5,6 +5,12 @@ v1.3.0
 ------
 - Add a multi-assessment entry grid with 1–10 independently configured
   assessment columns sharing one class and roster.
+- Match the official Formal Assessment column and entry field contract,
+  including write-data permission parity and exact grade-scale descriptors.
+- Require configured Formal Assessment types and descriptions before a column
+  can be published, matching the official column validators.
+- Require an official scale-grade row for every entered numeric mark instead of
+  inventing a fallback descriptor.
 - Keep one draft revision and a versioned payload; existing single-assessment
   drafts are adapted automatically.
 - Publish every assessment column and entry set in one all-or-none transaction.

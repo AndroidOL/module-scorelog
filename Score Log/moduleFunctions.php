@@ -121,6 +121,49 @@ function scoreLogNormalizeNumericValue($value): ?string
     return strlen($normalized) <= 10 ? $normalized : null;
 }
 
+function scoreLogScaleGradeNumericValue($value): ?string
+{
+    $value = is_scalar($value) ? trim((string) $value) : '';
+    if (str_ends_with($value, '%')) {
+        $value = rtrim(substr($value, 0, -1));
+    }
+
+    return scoreLogNormalizeNumericValue($value);
+}
+
+function scoreLogResolveScaleGrade($value, array $scale, array $gradeDescriptors): ?array
+{
+    $value = is_scalar($value) ? trim((string) $value) : '';
+
+    if (($scale['numeric'] ?? 'N') === 'Y') {
+        $numericValue = scoreLogNormalizeNumericValue($value);
+        if ($numericValue === null) {
+            return null;
+        }
+
+        foreach ($gradeDescriptors as $gradeValue => $descriptor) {
+            $gradeNumericValue = scoreLogScaleGradeNumericValue($gradeValue);
+            if ($gradeNumericValue !== null && $gradeNumericValue === $numericValue) {
+                return [
+                    'value' => (string) $gradeValue,
+                    'descriptor' => (string) $descriptor,
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    if (!array_key_exists($value, $gradeDescriptors)) {
+        return null;
+    }
+
+    return [
+        'value' => $value,
+        'descriptor' => (string) $gradeDescriptors[$value],
+    ];
+}
+
 function scoreLogIsValidDate($date): bool
 {
     $date = is_scalar($date) ? trim((string) $date) : '';
@@ -143,6 +186,20 @@ function scoreLogDefaultComment(string $scaleName): string
 
 function scoreLogCanEditClass($pdo, $gibbonPersonID, $gibbonCourseClassID, $gibbonSchoolYearID): bool
 {
+    global $guid, $connection2;
+
+    if (
+        empty($guid)
+        || empty($connection2)
+        || !isActionAccessible(
+            $guid,
+            $connection2,
+            '/modules/Formal Assessment/internalAssessment_write_data.php'
+        )
+    ) {
+        return false;
+    }
+
     $class = $pdo->selectOne(
         "SELECT cc.gibbonCourseClassID
          FROM gibbonCourseClass cc
@@ -166,7 +223,7 @@ function scoreLogCanEditClass($pdo, $gibbonPersonID, $gibbonCourseClassID, $gibb
         "SELECT 1 FROM gibbonCourseClassPerson
          WHERE gibbonCourseClassID=:gibbonCourseClassID
            AND gibbonPersonID=:gibbonPersonID
-           AND role IN ('Teacher', 'Assistant', 'Technician')
+           AND role='Teacher'
          LIMIT 1",
         [
             'gibbonCourseClassID' => $gibbonCourseClassID,
@@ -411,18 +468,22 @@ function scoreLogEvaluateDraftPayload(array $payload, array $roster, array $scal
     $viewableStudents = (string) ($meta['viewableStudents'] ?? '');
     $viewableParents = (string) ($meta['viewableParents'] ?? '');
     $completeDate = trim((string) ($meta['completeDate'] ?? ''));
-    $typeOptions = $allowedTypes ?: ['Assessment'];
+    $typeOptions = $allowedTypes;
 
     if ($name === '') {
         $metaErrors['name'] = scoreLogT('Enter an assessment name.');
     } elseif (mb_strlen($name) > 30) {
         $metaErrors['name'] = scoreLogT('The assessment name must be 30 characters or fewer.');
     }
-    if (mb_strlen($description) > 1000) {
+    if ($description === '') {
+        $metaErrors['description'] = scoreLogT('Enter an assessment description.');
+    } elseif (mb_strlen($description) > 1000) {
         $metaErrors['description'] = scoreLogT('The description must be 1000 characters or fewer.');
     }
     if (!in_array($type, $typeOptions, true)) {
         $metaErrors['type'] = scoreLogT('Choose a valid assessment type.');
+    } elseif (mb_strlen($type) > 50) {
+        $metaErrors['type'] = scoreLogT('The assessment type must be 50 characters or fewer.');
     }
     if (!in_array($viewableStudents, ['Y', 'N'], true)) {
         $metaErrors['viewableStudents'] = scoreLogT('Choose a valid student visibility setting.');
@@ -438,7 +499,6 @@ function scoreLogEvaluateDraftPayload(array $payload, array $roster, array $scal
     $entered = 0;
     $missing = 0;
     $invalid = 0;
-    $maxScore = scoreLogMaxScoreFromUsage($scale['usage'] ?? '');
 
     foreach ($roster as $student) {
         $studentID = (string) ($student['gibbonPersonID'] ?? '');
@@ -460,25 +520,13 @@ function scoreLogEvaluateDraftPayload(array $payload, array $roster, array $scal
 
         if ($value === '') {
             $status = 'missing';
-        } elseif (($scale['numeric'] ?? 'N') === 'Y') {
-            $value = scoreLogNormalizeNumericValue($value);
-            if ($value === null) {
-                $errors['score'] = scoreLogT('Enter a valid finite number.');
-            } elseif ((float) $value < 0) {
-                $errors['score'] = scoreLogT('Enter a score of 0 or greater.');
-            } elseif ($maxScore !== null && (float) $value > $maxScore) {
-                $errors['score'] = sprintf(scoreLogT('Enter a score from 0 to %s.'), $maxScore);
-            }
-            if (empty($errors)) {
-                $normalizedValue = $value;
-                $descriptor = $gradeDescriptors[$value] ?? $value;
-            }
         } else {
-            if (!isset($gradeDescriptors[$value])) {
-                $errors['score'] = scoreLogT('Choose a grade from the selected scale.');
+            $score = scoreLogValidateImportScore($value, $scale, $gradeDescriptors);
+            if (!$score['valid']) {
+                $errors['score'] = $score['error'];
             } else {
-                $normalizedValue = $value;
-                $descriptor = $gradeDescriptors[$value];
+                $normalizedValue = $score['normalized'];
+                $descriptor = $score['descriptor'];
             }
         }
 
@@ -528,7 +576,7 @@ function scoreLogEvaluateMultiAssessmentPayload(array $payload, array $roster, a
     $columns = is_array($payload['columns'] ?? null) ? $payload['columns'] : [];
     $columnOrder = array_values(array_intersect((array) ($payload['columnOrder'] ?? []), array_keys($columns)));
     $savedStudents = is_array($payload['students'] ?? null) ? $payload['students'] : [];
-    $typeOptions = $allowedTypes ?: ['Assessment'];
+    $typeOptions = $allowedTypes;
     $errors = [];
     $nameSeen = [];
     $columnResults = [];
@@ -561,11 +609,15 @@ function scoreLogEvaluateMultiAssessmentPayload(array $payload, array $roster, a
         if ($nameKey !== '') {
             $nameSeen[$nameKey] = true;
         }
-        if (mb_strlen($description) > 1000) {
+        if ($description === '') {
+            $columnErrors[] = scoreLogT('Enter an assessment description.');
+        } elseif (mb_strlen($description) > 1000) {
             $columnErrors[] = scoreLogT('The description must be 1000 characters or fewer.');
         }
         if (!in_array($type, $typeOptions, true)) {
             $columnErrors[] = scoreLogT('Choose a valid assessment type.');
+        } elseif (mb_strlen($type) > 50) {
+            $columnErrors[] = scoreLogT('The assessment type must be 50 characters or fewer.');
         }
         if (empty($scale)) {
             $columnErrors[] = scoreLogT('Choose an active assessment scale.');
@@ -709,6 +761,48 @@ function scoreLogDraftProgress(array $payload): array
     }
 
     return ['entered' => $entered, 'total' => count($students)];
+}
+
+function scoreLogCoreAssessmentValues(array $config, $gibbonCourseClassID, $gibbonPersonID, $groupingID): array
+{
+    $completeDate = trim((string) ($config['completeDate'] ?? ''));
+    $complete = scoreLogIsValidDate($completeDate) ? 'Y' : 'N';
+
+    return [
+        'groupingID'                  => (int) $groupingID,
+        'gibbonCourseClassID'         => (string) $gibbonCourseClassID,
+        'name'                        => (string) ($config['name'] ?? ''),
+        'description'                 => (string) ($config['description'] ?? ''),
+        'type'                        => (string) ($config['type'] ?? ''),
+        'attainment'                  => 'Y',
+        'gibbonScaleIDAttainment'     => (string) ($config['scaleID'] ?? ''),
+        'effort'                      => 'N',
+        'gibbonScaleIDEffort'         => null,
+        'comment'                     => 'Y',
+        'uploadedResponse'            => 'N',
+        'complete'                    => $complete,
+        'completeDate'                => $complete === 'Y' ? $completeDate : null,
+        'viewableStudents'            => (string) ($config['viewableStudents'] ?? ''),
+        'viewableParents'             => (string) ($config['viewableParents'] ?? ''),
+        'attachment'                  => '',
+        'gibbonPersonIDCreator'       => (string) $gibbonPersonID,
+        'gibbonPersonIDLastEdit'      => (string) $gibbonPersonID,
+    ];
+}
+
+function scoreLogCoreEntryValues($gibbonInternalAssessmentColumnID, array $entry, $gibbonPersonID): array
+{
+    return [
+        'gibbonInternalAssessmentColumnID' => (int) $gibbonInternalAssessmentColumnID,
+        'gibbonPersonIDStudent'            => (string) ($entry['gibbonPersonID'] ?? ''),
+        'attainmentValue'                  => (string) ($entry['attainmentValue'] ?? ''),
+        'attainmentDescriptor'             => (string) ($entry['descriptor'] ?? ''),
+        'effortValue'                      => null,
+        'effortDescriptor'                 => null,
+        'comment'                          => (string) ($entry['comment'] ?? ''),
+        'response'                         => null,
+        'gibbonPersonIDLastEdit'           => (string) $gibbonPersonID,
+    ];
 }
 
 /**
@@ -929,15 +1023,26 @@ function scoreLogValidateImportScore($value, array $scale, array $gradeDescripto
             ];
         }
 
+        $grade = scoreLogResolveScaleGrade($normalized, $scale, $gradeDescriptors);
+        if ($grade === null) {
+            return [
+                'valid' => false,
+                'normalized' => '',
+                'descriptor' => '',
+                'error' => scoreLogT('Choose a score from the selected scale.'),
+            ];
+        }
+
         return [
             'valid'      => true,
-            'normalized' => $normalized,
-            'descriptor' => $gradeDescriptors[$normalized] ?? $normalized,
+            'normalized' => $grade['value'],
+            'descriptor' => $grade['descriptor'],
             'error'      => '',
         ];
     }
 
-    if (!isset($gradeDescriptors[$value])) {
+    $grade = scoreLogResolveScaleGrade($value, $scale, $gradeDescriptors);
+    if ($grade === null) {
         return [
             'valid' => false,
             'normalized' => '',
@@ -948,8 +1053,8 @@ function scoreLogValidateImportScore($value, array $scale, array $gradeDescripto
 
     return [
         'valid'      => true,
-        'normalized' => $value,
-        'descriptor' => $gradeDescriptors[$value],
+        'normalized' => $grade['value'],
+        'descriptor' => $grade['descriptor'],
         'error'      => '',
     ];
 }

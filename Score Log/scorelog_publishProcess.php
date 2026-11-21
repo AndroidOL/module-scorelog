@@ -42,6 +42,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 if (
     !isActionAccessible($guid, $connection2, '/modules/Score Log/scorelog_view.php')
     || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_manage_add.php')
+    || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write_data.php')
 ) {
     $redirect('error0');
 }
@@ -134,9 +135,18 @@ try {
         throw new RuntimeException('Blank confirmation missing');
     }
 
-    $nextGroupingID = (int) $connection2
-        ->query("SELECT COALESCE(MAX(groupingID), 0) + 1 FROM gibbonInternalAssessmentColumn")
-        ->fetchColumn();
+    $columnStatement = $connection2->prepare(
+        "INSERT INTO gibbonInternalAssessmentColumn
+         SET groupingID=:groupingID, gibbonCourseClassID=:gibbonCourseClassID, name=:name,
+             description=:description, type=:type, attainment=:attainment,
+             gibbonScaleIDAttainment=:gibbonScaleIDAttainment, effort=:effort,
+             gibbonScaleIDEffort=:gibbonScaleIDEffort, comment=:comment,
+             uploadedResponse=:uploadedResponse, complete=:complete,
+             completeDate=:completeDate, viewableStudents=:viewableStudents,
+             viewableParents=:viewableParents, attachment=:attachment,
+             gibbonPersonIDCreator=:gibbonPersonIDCreator,
+             gibbonPersonIDLastEdit=:gibbonPersonIDLastEdit"
+    );
     $entryStatement = $connection2->prepare(
         "INSERT INTO gibbonInternalAssessmentEntry
          SET gibbonInternalAssessmentColumnID=:gibbonInternalAssessmentColumnID,
@@ -148,43 +158,53 @@ try {
              gibbonPersonIDLastEdit=:gibbonPersonID"
     );
 
-    foreach ($evaluation['columns'] as $column) {
-        $config = $column['config'];
-        $columnStatement = $connection2->prepare(
-            "INSERT INTO gibbonInternalAssessmentColumn
-             SET groupingID=:groupingID, gibbonCourseClassID=:gibbonCourseClassID, name=:name,
-                 description=:description, type=:type, attainment='Y',
-                 gibbonScaleIDAttainment=:gibbonScaleIDAttainment, effort='N',
-                 gibbonScaleIDEffort=NULL, comment='Y', uploadedResponse='N',
-                 complete='Y', completeDate=:completeDate,
-                 viewableStudents=:viewableStudents, viewableParents=:viewableParents,
-                 attachment='', gibbonPersonIDCreator=:gibbonPersonID,
-                 gibbonPersonIDLastEdit=:gibbonPersonID"
-        );
-        $columnStatement->execute([
-            'groupingID'                      => $nextGroupingID++,
-            'gibbonCourseClassID'             => $draft['gibbonCourseClassID'],
-            'name'                            => $config['name'],
-            'description'                     => $config['description'],
-            'type'                            => $config['type'],
-            'gibbonScaleIDAttainment'         => $config['scaleID'],
-            'completeDate'                    => $config['completeDate'],
-            'viewableStudents'                => $config['viewableStudents'],
-            'viewableParents'                 => $config['viewableParents'],
-            'gibbonPersonID'                  => $gibbonPersonID,
-        ]);
-        $columnID = (int) $connection2->lastInsertId();
+    $insertColumn = function (array $column, int $groupingID) use (
+        $columnStatement,
+        $connection2,
+        $draft,
+        $gibbonPersonID
+    ) {
+        $columnStatement->execute(scoreLogCoreAssessmentValues(
+            $column['config'],
+            $draft['gibbonCourseClassID'],
+            $gibbonPersonID,
+            $groupingID
+        ));
 
-        foreach ($column['rows'] as $entry) {
-            $entryStatement->execute([
-                'gibbonInternalAssessmentColumnID' => $columnID,
-                'gibbonPersonIDStudent'            => $entry['gibbonPersonID'],
-                'attainmentValue'                  => $entry['attainmentValue'],
-                'attainmentDescriptor'             => $entry['descriptor'],
-                'comment'                          => $entry['comment'],
-                'gibbonPersonID'                   => $gibbonPersonID,
-            ]);
+        return (int) $connection2->lastInsertId();
+    };
+    $insertEntries = function (int $columnID, array $rows) use ($entryStatement, $gibbonPersonID) {
+        foreach ($rows as $entry) {
+            $entryStatement->execute(scoreLogCoreEntryValues($columnID, $entry, $gibbonPersonID));
         }
+    };
+
+    $columnsToPublish = array_values($evaluation['columns']);
+    $firstColumn = array_shift($columnsToPublish);
+    if (empty($firstColumn)) {
+        throw new RuntimeException('No columns to publish');
+    }
+
+    // Reserve and modify the core table before reading MAX. This coordinates
+    // groupingID allocation with the official LOCK TABLES-based add process.
+    $firstColumnID = $insertColumn($firstColumn, 0);
+    $nextGroupingID = (int) $connection2
+        ->query("SELECT COALESCE(MAX(groupingID), 0) + 1 FROM gibbonInternalAssessmentColumn")
+        ->fetchColumn();
+    $groupingStatement = $connection2->prepare(
+        "UPDATE gibbonInternalAssessmentColumn
+         SET groupingID=:groupingID
+         WHERE gibbonInternalAssessmentColumnID=:gibbonInternalAssessmentColumnID"
+    );
+    $groupingStatement->execute([
+        'groupingID'                       => $nextGroupingID++,
+        'gibbonInternalAssessmentColumnID' => $firstColumnID,
+    ]);
+    $insertEntries($firstColumnID, $firstColumn['rows']);
+
+    foreach ($columnsToPublish as $column) {
+        $columnID = $insertColumn($column, $nextGroupingID++);
+        $insertEntries($columnID, $column['rows']);
     }
 
     $deleted = $pdo->delete(

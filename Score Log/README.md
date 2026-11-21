@@ -16,12 +16,16 @@ Gibbon internal assessments for a whole class on one screen.
 3. Install or update the module.
 4. Grant the action to the intended staff roles.
 
-Users also need the Formal Assessment permission to create internal assessments.
+Users also need the Formal Assessment permissions to create internal
+assessments and to enter their scores. Both permissions are checked on every
+workflow that reads or changes score data.
 
 ## Features
 
 - Choose a class the user teaches and an active attainment scale.
 - Enter scores or scale grades and comments for every student in one form.
+- Resolve every numeric or grade mark to an existing grade on the selected
+  official Gibbon scale.
 - Add up to ten assessment columns with independent type, scale, date and visibility.
 - Save a private draft and resume it later without losing whole-class input.
 - Open the dedicated Saved Drafts page to resume or discard private work.
@@ -77,6 +81,13 @@ explicitly selected assessment column.
 The XLSX template is prefilled with the current draft scores and comments. When
 overwrite is enabled, deliberately blank score or comment cells clear those
 draft values; import previews show those clears before Apply.
+
+## Formal Assessment compatibility
+
+Score Log writes the documented Gibbon v31 Formal Assessment column and entry
+fields without changing official schema. A detailed field-by-field matrix,
+permission contract and visibility behavior is in
+[FORMAL-ASSESSMENT-COMPATIBILITY.md](FORMAL-ASSESSMENT-COMPATIBILITY.md).
 
 ## Development
 
