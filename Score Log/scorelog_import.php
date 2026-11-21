@@ -335,15 +335,21 @@ foreach ($preview['rows'] as $row) {
 $previewTable = DataTable::create('scoreLogImportRows');
 $previewTable->setTitle(scoreLogT('Rows'));
 $previewTable->addColumn('rowNumber', scoreLogT('Row'));
-$previewTable->addColumn('identifier', scoreLogT('Identifier'));
-$previewTable->addColumn('studentName', scoreLogT('Student'));
+$previewTable->addColumn('identifier', scoreLogT('Identifier'))->format(function ($row) {
+    return htmlPrep($row['identifier']);
+});
+$previewTable->addColumn('studentName', scoreLogT('Student'))->format(function ($row) {
+    return htmlPrep($row['studentName']);
+});
 $previewTable->addColumn('imported', scoreLogT('Imported'))->format(function ($row) {
     return htmlPrep($row['imported']);
 });
 $previewTable->addColumn('existing', scoreLogT('Existing'))->format(function ($row) {
     return htmlPrep($row['existing']);
 });
-$previewTable->addColumn('status', scoreLogT('Status'));
+$previewTable->addColumn('status', scoreLogT('Status'))->format(function ($row) {
+    return htmlPrep($row['status']);
+});
 $previewTable->addColumn('notes', scoreLogT('Notes'))->format(function ($row) {
     return htmlPrep($row['notes']);
 });

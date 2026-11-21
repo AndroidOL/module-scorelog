@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Score Log 1.5.2\n"
+"Project-Id-Version: Score Log 1.5.5\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-11-21 18:32+0800\n"
 "PO-Revision-Date: 2026-11-21 18:32+0800\n"
@@ -1145,3 +1145,8 @@ msgstr "全部"
 #, php-format
 msgid "%s entered · %s missing · %s invalid"
 msgstr "已录入 %s · 未填 %s · 无效 %s"
+
+msgid ""
+"Every worksheet must use the same assessment metadata and import column "
+"headers."
+msgstr "每个工作表必须使用相同的评估信息与导入列标题。"
