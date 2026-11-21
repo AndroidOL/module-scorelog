@@ -116,11 +116,12 @@ $table->addActionColumn()
             ->setIcon('upload')
             ->setURL('/modules/Score Log/scorelog_import.php')
             ->setAttribute('aria-label', scoreLogT('Import Scores'));
-        $actions->addAction('export', scoreLogT('Export Current Scores (XLSX)'))
+        $actions->addAction('export', scoreLogT('Export Scores (XLSX)'))
             ->setIcon('download')
             ->setURL('/modules/Score Log/scorelog_importTemplate.php')
+            ->addParam('mode', 'scores')
             ->directLink()
-            ->setAttribute('aria-label', scoreLogT('Export Current Scores (XLSX)'));
+            ->setAttribute('aria-label', scoreLogT('Export Scores (XLSX)'));
         $actions->addAction('discard', scoreLogT('Discard Draft'))
             ->setIcon('delete')
             ->setURL('/modules/Score Log/scorelog_draftDelete.php')

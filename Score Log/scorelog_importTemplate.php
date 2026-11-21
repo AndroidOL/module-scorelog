@@ -19,8 +19,6 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-use PhpOffice\PhpSpreadsheet\Cell\DataType;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Gibbon\Forms\Form;
 
@@ -30,6 +28,7 @@ $gibbonPersonID = (string) $session->get('gibbonPersonID');
 $gibbonSchoolYearID = (string) $session->get('gibbonSchoolYearID');
 $scoreLogDraftID = is_scalar($_GET['draftID'] ?? null) ? trim((string) $_GET['draftID']) : '';
 $columnID = is_scalar($_GET['columnID'] ?? null) ? trim((string) $_GET['columnID']) : '';
+$exportMode = ($_GET['mode'] ?? '') === 'scores' ? 'scores' : 'template';
 
 if (
     !isActionAccessible($guid, $connection2, '/modules/Score Log/scorelog_view.php')
@@ -65,59 +64,21 @@ if ($columnID === '' || empty($draft['payloadData']['columns'][$columnID])) {
     $form->setTitle(scoreLogT('Choose Assessment Column for Export'));
     $form->addHiddenValue('q', '/modules/Score Log/scorelog_importTemplate.php');
     $form->addHiddenValue('draftID', $scoreLogDraftID);
+    $form->addHiddenValue('mode', $exportMode);
     $row = $form->addRow();
     $row->addLabel('columnID', scoreLogT('Assessment'));
     $row->addSelect('columnID')->fromArray($columnOptions)->required()->placeholder(scoreLogT('Please select...'));
     $row = $form->addRow();
     $row->addFooter();
-    $row->addSubmit(scoreLogT('Export Current Scores (XLSX)'));
+    $row->addSubmit($exportMode === 'scores' ? scoreLogT('Export Scores (XLSX)') : scoreLogT('Export Template'));
     $page->write($form->getOutput());
     return;
 }
 
 $roster = scoreLogCurrentRoster($pdo, $draft['gibbonCourseClassID']);
-$savedStudents = is_array($draft['payloadData']['students'] ?? null) ? $draft['payloadData']['students'] : [];
-$spreadsheet = new Spreadsheet();
-$sheet = $spreadsheet->getActiveSheet();
-$sheet->setTitle(scoreLogT('Scores'));
-$headers = [
-    scoreLogT('Student ID'),
-    scoreLogT('Username'),
-    scoreLogT('Student Name'),
-    scoreLogT('Score'),
-    scoreLogT('Comment'),
-];
-$sheet->fromArray($headers, null, 'A1');
+$spreadsheet = scoreLogBuildAssessmentSpreadsheet($draft['payloadData'], $roster, $columnID, $exportMode);
 
-$rowNumber = 2;
-foreach ($roster as $student) {
-    $studentID = (string) ($student['gibbonPersonID'] ?? '');
-    $saved = is_array($savedStudents[$studentID]['scores'][$columnID] ?? null)
-        ? $savedStudents[$studentID]['scores'][$columnID]
-        : [];
-    $templateStudentID = trim((string) ($student['studentID'] ?? ''));
-    if ($templateStudentID === '') {
-        $templateStudentID = $studentID;
-    }
-    $sheet->setCellValueExplicit('A'.$rowNumber, $templateStudentID, DataType::TYPE_STRING);
-    $sheet->setCellValueExplicit('B'.$rowNumber, (string) ($student['username'] ?? ''), DataType::TYPE_STRING);
-    $sheet->setCellValueExplicit(
-        'C'.$rowNumber,
-        trim((string) ($student['preferredName'] ?? '').' '.(string) ($student['surname'] ?? '')),
-        DataType::TYPE_STRING
-    );
-    $sheet->setCellValueExplicit('D'.$rowNumber, (string) ($saved['attainmentValue'] ?? ''), DataType::TYPE_STRING);
-    $sheet->setCellValueExplicit('E'.$rowNumber, (string) ($saved['comment'] ?? ''), DataType::TYPE_STRING);
-    $rowNumber++;
-}
-
-foreach (['A', 'B', 'C', 'D', 'E'] as $column) {
-    $sheet->getColumnDimension($column)->setAutoSize(true);
-}
-$sheet->getStyle('A1:E1')->getFont()->setBold(true);
-$sheet->freezePane('A2');
-
-$filename = 'score-log-import-'.date('Ymd').'.xlsx';
+$filename = 'score-log-'.($exportMode === 'scores' ? 'scores' : 'template').'-'.date('Ymd').'.xlsx';
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment; filename="'.$filename.'"');
 header('Cache-Control: no-store, no-cache, must-revalidate');

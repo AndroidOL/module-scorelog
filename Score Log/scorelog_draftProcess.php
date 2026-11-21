@@ -33,7 +33,9 @@ $action = array_key_exists('reviewPublish', $_POST)
     ? 'review'
     : (array_key_exists('importScores', $_POST)
         ? 'import'
-        : (array_key_exists('exportScores', $_POST) ? 'export' : 'draft'));
+        : (array_key_exists('exportTemplate', $_POST)
+            ? 'exportTemplate'
+            : (array_key_exists('exportScores', $_POST) ? 'exportScores' : 'draft')));
 $viewURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php';
 
 $redirect = function (string $return, string $draftID = '') use ($viewURL) {
@@ -176,7 +178,7 @@ try {
         $scoreLogDraftID = (string) $connection2->lastInsertId();
     }
 
-    $targetColumnID = in_array($action, ['import', 'export'], true)
+    $targetColumnID = in_array($action, ['import', 'exportTemplate', 'exportScores'], true)
         ? scoreLogInputString($input, 'targetColumnID')
         : '';
     if ($targetColumnID !== ''
@@ -189,9 +191,12 @@ try {
     if ($action === 'import') {
         $newURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_import.php'
             .'&draftID='.urlencode($scoreLogDraftID).'&columnID='.urlencode($targetColumnID).'&return=success1';
-    } elseif ($action === 'export') {
+    } elseif ($action === 'exportTemplate') {
         $newURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_importTemplate.php'
-            .'&draftID='.urlencode($scoreLogDraftID).'&columnID='.urlencode($targetColumnID);
+            .'&draftID='.urlencode($scoreLogDraftID).'&columnID='.urlencode($targetColumnID).'&mode=template';
+    } elseif ($action === 'exportScores') {
+        $newURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_importTemplate.php'
+            .'&draftID='.urlencode($scoreLogDraftID).'&columnID='.urlencode($targetColumnID).'&mode=scores';
     } elseif ($action === 'review') {
         $newURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_review.php&draftID='.urlencode($scoreLogDraftID).'&return=success1';
     } else {

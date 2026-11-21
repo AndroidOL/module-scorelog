@@ -410,6 +410,15 @@ $form->addHiddenValue("columns[$columnID][scaleID]", $gibbonScaleIDAttainment);
 
 $reloadURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php'
     .($scoreLogDraftID !== '' ? '&draftID='.urlencode($scoreLogDraftID) : '');
+$overwriteButton = new FormButton(
+    scoreLogT('Overwrite latest with this tab'),
+    'submit',
+    null,
+    'scoreLogAutosaveOverwrite'
+);
+$overwriteButton->setSize('sm')
+    ->addClass('hidden')
+    ->setIcon('solid', 'arrow-path');
 $reloadButton = new FormButton(
     scoreLogT('Reload latest draft'),
     'button',
@@ -417,6 +426,7 @@ $reloadButton = new FormButton(
     'scoreLogAutosaveReload'
 );
 $reloadButton->setSize('sm')
+    ->setColor('gray')
     ->addClass('hidden')
     ->setAttribute('data-reload-url', $reloadURL);
 $row = $form->addRow();
@@ -427,6 +437,7 @@ $row->addContent(
         ? sprintf(scoreLogT('Saved · revision %s'), (string) $revision)
         : scoreLogT('Not saved yet'))
     .'</span>'
+    .' '.$overwriteButton->getOutput()
     .' '.$reloadButton->getOutput()
 );
 
@@ -437,8 +448,8 @@ $topActions->addSubmit(scoreLogT('Import Scores'))
     ->setSize('sm')
     ->setColor('gray')
     ->setIcon('solid', 'upload');
-$topActions->addSubmit(scoreLogT('Export Current Scores (XLSX)'))
-    ->setName('exportScores')
+$topActions->addSubmit(scoreLogT('Export Template'))
+    ->setName('exportTemplate')
     ->setSize('sm')
     ->setColor('gray')
     ->setIcon('solid', 'download');
@@ -472,9 +483,10 @@ $row->addSelect("columns[$columnID][type]")
 $row = $form->addRow();
 $row->addLabel('scoreLogAssessmentScale', scoreLogT('Assessment Scale'))
     ->description(htmlPrep((string) ($scale['usage'] ?? '')));
-$row->addSelect('scoreLogAssessmentScale')
-    ->fromArray([$gibbonScaleIDAttainment => (string) ($scale['name'] ?? '')])
-    ->selected($gibbonScaleIDAttainment);
+$row->addTextField('scoreLogAssessmentScale')
+    ->setID('scoreLogAssessmentScale')
+    ->readOnly()
+    ->setValue((string) ($scale['name'] ?? ''));
 
 $row = $form->addRow();
 $row->addLabel('scoreLogAssessmentDate', scoreLogT('Assessment Date'));
@@ -611,13 +623,19 @@ foreach ($roster as $student) {
 }
 
 $row = $form->addRow();
-$actions = $row->addColumn();
-$actions->addSubmit(scoreLogT('Save Draft'))
+$row->addSubmit(scoreLogT('Save Draft'))
     ->setName('saveDraft')
+    ->setSize('sm')
     ->setColor('gray')
     ->setAttribute('formnovalidate', 'formnovalidate');
-$actions->addSubmit(scoreLogT('Review and Publish'))
-    ->setName('reviewPublish');
+$row->addSubmit(scoreLogT('Export Scores (XLSX)'))
+    ->setName('exportScores')
+    ->setSize('sm')
+    ->setColor('gray')
+    ->setIcon('solid', 'download');
+$row->addSubmit(scoreLogT('Review and Publish'))
+    ->setName('reviewPublish')
+    ->setSize('sm');
 
 echo '<a id="scoreLogStudents"></a>';
 echo $form->getOutput();
@@ -689,7 +707,7 @@ echo '<script>window.scoreLogCommentLibrary='.json_encode(array_values($commentL
         'autosaveSaved'      => scoreLogT('Saved'),
         'autosaveRevision'   => scoreLogT('revision'),
         'autosaveOffline'    => scoreLogT('Offline — changes are not saved.'),
-        'autosaveConflict'   => scoreLogT('Conflict — another tab saved a newer revision. Reload the latest draft.'),
+        'autosaveConflict'   => scoreLogT('Conflict — another tab saved a newer revision. Overwrite with this tab or reload the latest draft.'),
         'autosaveFailed'     => scoreLogT('Autosave failed. Your changes remain unsaved.'),
         'autosaveSessionExpired' => scoreLogT('Session expired. Reload the page and sign in again.'),
         'autosaveForbidden'  => scoreLogT('Autosave stopped: permission denied.'),

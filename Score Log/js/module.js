@@ -27,6 +27,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         const structureStatus = document.getElementById('scoreLogStructureStatus');
         const autosaveStatus = document.getElementById('scoreLogAutosaveStatus');
         const autosaveReload = document.getElementById('scoreLogAutosaveReload');
+        const autosaveOverwrite = document.getElementById('scoreLogAutosaveOverwrite');
         const draftIDInput = form.querySelector('input[name="scoreLogDraftID"]');
         const revisionInput = form.querySelector('input[name="revision"]');
         const autosaveSequenceInput = form.querySelector('input[name="autosaveSequence"]');
@@ -39,7 +40,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         let changeVersion = 0;
         let autosaveTimer = null;
         let autosaveInFlight = null;
+        let autosaveFlushPromise = null;
         let autosaveConflict = false;
+        let autosaveConflictRevision = 0;
         let autosaveOffline = false;
         let autosaveAuthBlocked = false;
         let autosaveAuthMessage = '';
@@ -68,6 +71,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             };
             autosaveStatus.classList.add(classes[state] || 'text-gray-600');
             if (autosaveReload) autosaveReload.classList.toggle('hidden', !['conflict', 'auth'].includes(state));
+            if (autosaveOverwrite) {
+                autosaveOverwrite.classList.toggle(
+                    'hidden',
+                    state !== 'conflict' || autosaveConflictRevision < 1
+                );
+            }
         };
 
         const updateReloadLink = () => {
@@ -184,6 +193,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             }
             if (response.status === 409 || data.status === 'conflict') {
                 autosaveConflict = true;
+                autosaveConflictRevision = Math.max(0, Number(data.revision || 0));
                 if (autosaveTimer) {
                     window.clearTimeout(autosaveTimer);
                     autosaveTimer = null;
@@ -212,6 +222,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                 return false;
             }
 
+            autosaveConflictRevision = 0;
             setDraftIdentity(data.draftID || '', data.revision);
             if (changeVersion === savedVersion) dirty = false;
             if (dirty) {
@@ -226,20 +237,60 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             return true;
         };
 
-        const flushAutosave = async () => {
+        const runAutosaveFlush = async () => {
             if (autosaveConflict || autosaveAuthBlocked) return false;
             if (autosaveInFlight) {
                 const priorResult = await autosaveInFlight;
                 if (!priorResult) return false;
             }
-            if (!dirty) return true;
+
+            while (dirty) {
+                if (autosaveTimer) {
+                    window.clearTimeout(autosaveTimer);
+                    autosaveTimer = null;
+                }
+                autosaveInFlight = performAutosave();
+                let result = false;
+                try {
+                    result = await autosaveInFlight;
+                } finally {
+                    autosaveInFlight = null;
+                }
+                if (!result) return false;
+            }
+
+            return true;
+        };
+
+        const flushAutosave = async () => {
+            if (autosaveConflict || autosaveAuthBlocked) return false;
+            if (autosaveFlushPromise) return autosaveFlushPromise;
+            autosaveFlushPromise = runAutosaveFlush();
+            try {
+                return await autosaveFlushPromise;
+            } finally {
+                autosaveFlushPromise = null;
+            }
+        };
+
+        const overwriteLatest = async (event) => {
+            event.preventDefault();
+            if (!autosaveConflict || autosaveConflictRevision < 1 || !draftIDInput || draftIDInput.value === '') return;
+
+            setDraftIdentity(draftIDInput.value, autosaveConflictRevision);
+            autosaveConflict = false;
+            dirty = true;
+            if (autosaveInFlight) {
+                await autosaveInFlight;
+            }
             autosaveInFlight = performAutosave();
             try {
-                return await autosaveInFlight;
+                await autosaveInFlight;
             } finally {
                 autosaveInFlight = null;
             }
         };
+        if (autosaveOverwrite) autosaveOverwrite.addEventListener('click', overwriteLatest);
 
         const scoreRows = () => Array.from(form.querySelectorAll('tr[data-student-id]'));
         const scoreInputFor = (row) => row ? row.querySelector('input.scoreLogScoreInput') : null;

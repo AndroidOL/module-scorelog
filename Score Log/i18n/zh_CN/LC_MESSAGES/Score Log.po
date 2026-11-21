@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Score Log 1.5.1\n"
+"Project-Id-Version: Score Log 1.5.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 16:53+0800\n"
-"PO-Revision-Date: 2026-11-21 16:53+0800\n"
+"POT-Creation-Date: 2026-11-21 17:48+0800\n"
+"PO-Revision-Date: 2026-11-21 17:48+0800\n"
 "Last-Translator: AndroidOL\n"
 "Language-Team: Gibbon zh_CN\n"
 "Language: zh_CN\n"
@@ -993,6 +993,9 @@ msgstr "尚未保存"
 msgid "Reload latest draft"
 msgstr "重新载入最新草稿"
 
+msgid "Overwrite latest with this tab"
+msgstr "用此页面覆盖最新草稿"
+
 msgid "Unsaved changes"
 msgstr "有未保存的更改"
 
@@ -1008,8 +1011,10 @@ msgstr "修订版本"
 msgid "Offline — changes are not saved."
 msgstr "离线 — 更改尚未保存。"
 
-msgid "Conflict — another tab saved a newer revision. Reload the latest draft."
-msgstr "冲突 — 另一个页面已保存较新的修订版本。请重新载入最新草稿。"
+msgid ""
+"Conflict — another tab saved a newer revision. Overwrite with this tab or "
+"reload the latest draft."
+msgstr "冲突 — 另一个页面已保存较新的修订版本。请选择用此页面覆盖，或重新载入最新草稿。"
 
 msgid "Autosave failed. Your changes remain unsaved."
 msgstr "自动保存失败。您的更改仍未保存。"
@@ -1077,6 +1082,15 @@ msgstr "从评语库选择"
 
 msgid "Add from library..."
 msgstr "从评语库添加..."
+
+msgid "Export Template"
+msgstr "导出模板"
+
+msgid "Export Scores (XLSX)"
+msgstr "导出成绩（XLSX）"
+
+msgid "Import Template"
+msgstr "导入模板"
 
 msgid "Append comment"
 msgstr "追加评语"

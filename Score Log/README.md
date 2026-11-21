@@ -71,7 +71,8 @@ draft. After the first autosave, the draft ID is added to the browser URL.
 Reconnect retries pending changes, while authentication, validation and server
 errors remain distinct from network loss.
 
-Manual Save, Review, Import and Export flush any pending autosave first.
+Manual Save, Review, Import, Template Export and Score Export flush any pending
+autosave first.
 Autosave never triggers Review or Publish, and browser storage is not used as an
 authoritative score store.
 
@@ -96,7 +97,7 @@ Apply to Draft updates only the private draft. Existing manual values are
 preserved unless overwrite is explicitly selected. Formula cells are rejected
 without evaluation, and rows are limited to 500 with a 2 MiB file limit.
 
-Every import and template download targets the draft's assessment.
+Every import, template export and score export targets the draft's assessment.
 
 ## Private comment library
 
@@ -110,9 +111,13 @@ The structure-copy action copies an existing assessment's name, description,
 type, date and visibility into the current draft. Scores and comments are never
 copied.
 
-The XLSX template is prefilled with the current draft scores and comments. When
-overwrite is enabled, deliberately blank score or comment cells clear those
-draft values; import previews show those clears before Apply.
+The XLSX template contains the current roster plus a separate Assessment sheet
+with the assessment name and description, while the score and comment columns
+are blank for editing. Export Scores contains the same roster and metadata with
+the current draft values. The import path reads only the first Scores sheet and
+does not require assessment configuration fields. When overwrite is enabled,
+deliberately blank score or comment cells clear those draft values; previews
+show those clears before Apply.
 
 ## Formal Assessment compatibility
 

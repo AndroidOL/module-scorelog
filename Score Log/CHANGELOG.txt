@@ -1,6 +1,17 @@
 CHANGELOG
 =========
 
+v1.5.2
+------
+- Keep the manual Save, Export Scores and Review actions on one compact row.
+- Show the fixed assessment scale as a read-only value.
+- Split top-level Import Scores / Export Template from bottom Export Scores.
+- Let teachers explicitly overwrite a conflicting draft with this tab, while
+  retaining Reload latest as the safe secondary action.
+- Include assessment name and description in exported workbooks as metadata
+  without adding either field to the import mapping.
+- Flush queued score changes through a shared loop before manual submission.
+
 v1.5.1
 ------
 - Rebuild the single-assessment editor around one aligned Student, Assessment

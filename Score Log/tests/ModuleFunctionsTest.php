@@ -993,10 +993,12 @@ namespace Gibbon\Module\ScoreLog\Tests {
     {
         $changedb = file_get_contents(dirname(__DIR__).'/CHANGEDB.php');
         $this->assertIsString($changedb);
+        $this->assertStringContainsString('$sql[$count][0] = "1.5.2";', $changedb);
         $this->assertStringContainsString('$sql[$count][0] = "1.5.1";', $changedb);
         $this->assertStringContainsString("UPDATE gibbonAction", $changedb);
         $this->assertStringContainsString('scorelog_autosaveProcess.php', $changedb);
-        $this->assertStringContainsString("WHERE name='Create Assessment'", $changedb);
+        $this->assertStringContainsString("entryURL='scorelog_view.php'", $changedb);
+        $this->assertStringContainsString("URLList LIKE '%scorelog_view.php%'", $changedb);
         $this->assertStringContainsString("WHERE name='Score Log'", $changedb);
     }
 
@@ -1029,14 +1031,31 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringContainsString('max-h-32 overflow-y-auto', $view);
         $this->assertStringContainsString('allowManualSubmit = false;', $script);
         $this->assertStringContainsString('submissionPending = false;', $script);
+        $this->assertStringContainsString('let autosaveFlushPromise = null;', $script);
+        $this->assertStringContainsString('while (dirty)', $script);
         $this->assertStringContainsString("addHiddenValue('targetColumnID'", $view);
         $this->assertStringContainsString("setName('importScores')", $view);
+        $this->assertStringContainsString("setName('exportTemplate')", $view);
         $this->assertStringContainsString("setName('exportScores')", $view);
+        $this->assertLessThan(
+            strpos($view, "addHeading('assessmentDetails'"),
+            strpos($view, "Export Template")
+        );
+        $this->assertGreaterThan(
+            strpos($view, 'foreach ($roster as $student)'),
+            strpos($view, "Export Scores (XLSX)")
+        );
+        $this->assertStringContainsString('scoreLogAutosaveOverwrite', $view);
+        $this->assertStringContainsString("addTextField('scoreLogAssessmentScale')", $view);
+        $this->assertStringContainsString('Overwrite latest with this tab', $view);
         $this->assertStringNotContainsString("setValue(\$columnID)", $view);
         $process = file_get_contents(dirname(__DIR__).'/scorelog_draftProcess.php');
         $this->assertStringContainsString("array_key_exists('importScores', \$_POST)", $process);
+        $this->assertStringContainsString("array_key_exists('exportTemplate', \$_POST)", $process);
         $this->assertStringContainsString("array_key_exists('exportScores', \$_POST)", $process);
         $this->assertStringContainsString("scoreLogInputString(\$input, 'targetColumnID')", $process);
+        $this->assertStringContainsString('&mode=template', $process);
+        $this->assertStringContainsString('&mode=scores', $process);
         foreach ([
             'scoreLogOnlyMissing',
             'scoreLogNextMissing',
@@ -1064,9 +1083,9 @@ namespace Gibbon\Module\ScoreLog\Tests {
         foreach ([$manifest, $changedb, $process, $view, $script, $version] as $source) {
             $this->assertIsString($source);
         }
-        $this->assertStringContainsString("\$version     = '1.5.1'", $manifest);
+        $this->assertStringContainsString("\$version     = '1.5.2'", $manifest);
         $this->assertStringContainsString('CREATE TABLE IF NOT EXISTS `score_log_draft`', $changedb);
-        $this->assertStringContainsString("\$moduleVersion = '1.5.1'", $version);
+        $this->assertStringContainsString("\$moduleVersion = '1.5.2'", $version);
         $this->assertStringContainsString('CREATE TABLE `score_log_comment`', $manifest);
         $this->assertStringContainsString('CREATE TABLE IF NOT EXISTS `score_log_comment`', $changedb);
         $this->assertStringContainsString('scorelog_comments.php', $manifest);
@@ -1170,6 +1189,47 @@ namespace Gibbon\Module\ScoreLog\Tests {
             $this->assertStringContainsString("['columns'][\$columnID]", $source);
         }
         $this->assertStringContainsString("['scores'][\$columnID]", $apply);
+    }
+
+    public function testTemplateExportsAssessmentMetadataWithoutChangingImportColumns()
+    {
+        $payload = [
+            'columns' => [
+                'c1' => [
+                    'name' => 'Forces and Motion',
+                    'description' => 'End-of-unit assessment',
+                ],
+            ],
+            'students' => [
+                '0000000001' => ['scores' => [
+                    'c1' => ['attainmentValue' => '88', 'comment' => 'Good work'],
+                ]],
+            ],
+        ];
+        $spreadsheet = \scoreLogBuildAssessmentSpreadsheet($payload, $this->importRoster(), 'c1');
+        $scoresSpreadsheet = \scoreLogBuildAssessmentSpreadsheet($payload, $this->importRoster(), 'c1', 'scores');
+
+        $this->assertSame(['Scores', 'Assessment'], $spreadsheet->getSheetNames());
+        $this->assertSame('Assessment Name', $spreadsheet->getSheetByName('Assessment')->getCell('A1')->getValue());
+        $this->assertSame('Forces and Motion', $spreadsheet->getSheetByName('Assessment')->getCell('B1')->getValue());
+        $this->assertSame('Description', $spreadsheet->getSheetByName('Assessment')->getCell('A2')->getValue());
+        $this->assertSame('End-of-unit assessment', $spreadsheet->getSheetByName('Assessment')->getCell('B2')->getValue());
+        $this->assertSame('', $spreadsheet->getSheetByName('Scores')->getCell('D2')->getValue());
+        $this->assertSame('', $spreadsheet->getSheetByName('Scores')->getCell('E2')->getValue());
+        $this->assertSame('88', $scoresSpreadsheet->getSheetByName('Scores')->getCell('D2')->getValue());
+        $this->assertSame('Good work', $scoresSpreadsheet->getSheetByName('Scores')->getCell('E2')->getValue());
+
+        $path = tempnam(sys_get_temp_dir(), 'scorelog-template-');
+        $this->assertIsString($path);
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($scoresSpreadsheet))->save($path);
+        $parsed = \scoreLogParseImportFile($path, 'xlsx');
+        $matrix = $parsed['matrix'];
+        unlink($path);
+
+        $this->assertSame('Student ID', $matrix[0][0]);
+        $this->assertSame('Comment', $matrix[0][4]);
+        $this->assertNotContains('Assessment Name', array_merge(...$matrix));
+        $this->assertNotContains('Description', array_merge(...$matrix));
     }
 
     private function importRoster(): array

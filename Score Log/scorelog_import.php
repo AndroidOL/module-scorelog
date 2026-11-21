@@ -104,10 +104,11 @@ $page->navigator->addHeaderAction('back', scoreLogT('Back to Draft'))
     ->addParam('draftID', $scoreLogDraftID)
     ->setIcon('back')
     ->displayLabel();
-$page->navigator->addHeaderAction('exportCurrentScores', scoreLogT('Export Current Scores (XLSX)'))
+$page->navigator->addHeaderAction('exportTemplate', scoreLogT('Export Template'))
     ->setURL('/modules/Score Log/scorelog_importTemplate.php')
     ->addParam('draftID', $scoreLogDraftID)
     ->addParam('columnID', $columnID)
+    ->addParam('mode', 'template')
     ->setIcon('download')
     ->directLink()
     ->displayLabel();

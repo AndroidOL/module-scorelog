@@ -1577,6 +1577,88 @@ function scoreLogParseImportFile(string $path, string $extension): array
     return scoreLogImportWorksheetToMatrix($spreadsheet->getSheet(0));
 }
 
+function scoreLogBuildAssessmentSpreadsheet(
+    array $payload,
+    array $roster,
+    string $columnID,
+    string $exportMode = 'template'
+): \PhpOffice\PhpSpreadsheet\Spreadsheet
+{
+    $includeScores = $exportMode === 'scores';
+    $savedStudents = is_array($payload['students'] ?? null) ? $payload['students'] : [];
+    $column = is_array($payload['columns'][$columnID] ?? null) ? $payload['columns'][$columnID] : [];
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $spreadsheet->getProperties()
+        ->setTitle($includeScores ? scoreLogT('Scores') : scoreLogT('Import Template'))
+        ->setDescription((string) ($column['description'] ?? ''));
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle(scoreLogT('Scores'));
+    $sheet->fromArray([
+        scoreLogT('Student ID'),
+        scoreLogT('Username'),
+        scoreLogT('Student Name'),
+        scoreLogT('Score'),
+        scoreLogT('Comment'),
+    ], null, 'A1');
+
+    $rowNumber = 2;
+    foreach ($roster as $student) {
+        $studentID = (string) ($student['gibbonPersonID'] ?? '');
+        $saved = is_array($savedStudents[$studentID]['scores'][$columnID] ?? null)
+            ? $savedStudents[$studentID]['scores'][$columnID]
+            : [];
+        $templateStudentID = trim((string) ($student['studentID'] ?? ''));
+        if ($templateStudentID === '') {
+            $templateStudentID = $studentID;
+        }
+        $sheet->setCellValueExplicit(
+            'A'.$rowNumber,
+            $templateStudentID,
+            \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+        );
+        $sheet->setCellValueExplicit(
+            'B'.$rowNumber,
+            (string) ($student['username'] ?? ''),
+            \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+        );
+        $sheet->setCellValueExplicit(
+            'C'.$rowNumber,
+            trim((string) ($student['preferredName'] ?? '').' '.(string) ($student['surname'] ?? '')),
+            \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+        );
+        $sheet->setCellValueExplicit(
+            'D'.$rowNumber,
+            $includeScores ? (string) ($saved['attainmentValue'] ?? '') : '',
+            \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+        );
+        $sheet->setCellValueExplicit(
+            'E'.$rowNumber,
+            $includeScores ? (string) ($saved['comment'] ?? '') : '',
+            \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+        );
+        $rowNumber++;
+    }
+
+    foreach (['A', 'B', 'C', 'D', 'E'] as $columnLetter) {
+        $sheet->getColumnDimension($columnLetter)->setAutoSize(true);
+    }
+    $sheet->getStyle('A1:E1')->getFont()->setBold(true);
+    $sheet->freezePane('A2');
+
+    $metadata = $spreadsheet->createSheet();
+    $metadata->setTitle(scoreLogT('Assessment'));
+    $metadata->fromArray([
+        [scoreLogT('Assessment Name'), (string) ($column['name'] ?? '')],
+        [scoreLogT('Description'), (string) ($column['description'] ?? '')],
+    ], null, 'A1');
+    $metadata->getStyle('A1:A2')->getFont()->setBold(true);
+    $metadata->getStyle('B2')->getAlignment()->setWrapText(true);
+    $metadata->getColumnDimension('A')->setWidth(24);
+    $metadata->getColumnDimension('B')->setWidth(72);
+
+    return $spreadsheet;
+}
+
 function scoreLogParseImportPaste(string $contents): array
 {
     if (strlen($contents) > 524288) {
