@@ -248,7 +248,13 @@ if ($scoreLogDraftID !== '') {
          ORDER BY d.updateTimestamp DESC, d.scoreLogDraftID DESC",
         ['gibbonPersonID' => $gibbonPersonID, 'gibbonSchoolYearID' => $gibbonSchoolYearID]
     )->fetchAll(\PDO::FETCH_COLUMN);
-    $draftPosition = array_search((string) $scoreLogDraftID, array_map('strval', $draftNavigation), true);
+    $draftPosition = false;
+    foreach ($draftNavigation as $index => $draftID) {
+        if ((int) $draftID === (int) $scoreLogDraftID) {
+            $draftPosition = $index;
+            break;
+        }
+    }
     if ($draftPosition !== false) {
         $olderDraftID = (string) ($draftNavigation[$draftPosition + 1] ?? '');
         $newerDraftID = (string) ($draftNavigation[$draftPosition - 1] ?? '');
