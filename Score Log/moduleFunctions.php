@@ -431,6 +431,19 @@ function scoreLogRosterHash(array $roster): string
     return hash('sha256', implode(',', scoreLogRosterIDs($roster)));
 }
 
+function scoreLogDraftProgress(array $payload): array
+{
+    $students = is_array($payload['students'] ?? null) ? $payload['students'] : [];
+    $entered = 0;
+    foreach ($students as $student) {
+        if (is_array($student) && trim((string) ($student['attainmentValue'] ?? '')) !== '') {
+            $entered++;
+        }
+    }
+
+    return ['entered' => $entered, 'total' => count($students)];
+}
+
 /**
  * Keep the original roster snapshot while editing a draft. Saving scores after
  * a roster change must not hide the change from the review step.

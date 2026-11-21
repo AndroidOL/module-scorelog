@@ -533,6 +533,33 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertSame('ambiguous', $ambiguous['rows'][0]['status']);
     }
 
+    public function testSavedDraftProgressCountsEnteredStudents()
+    {
+        $progress = \scoreLogDraftProgress([
+            'students' => [
+                '1' => ['attainmentValue' => '88', 'comment' => ''],
+                '2' => ['attainmentValue' => '', 'comment' => 'Imported'],
+                '3' => ['attainmentValue' => '0', 'comment' => ''],
+            ],
+        ]);
+
+        $this->assertSame(2, $progress['entered']);
+        $this->assertSame(3, $progress['total']);
+    }
+
+    public function testSavedDraftsRoutesAreRegisteredAndDiscardReturnsToTheList()
+    {
+        $manifest = file_get_contents(dirname(__DIR__).'/manifest.php');
+        $discard = file_get_contents(dirname(__DIR__).'/scorelog_discardProcess.php');
+
+        $this->assertIsString($manifest);
+        $this->assertIsString($discard);
+        $this->assertStringContainsString('scorelog_drafts.php', $manifest);
+        $this->assertStringContainsString('scorelog_draftDelete.php', $manifest);
+        $this->assertStringContainsString("'returnPage'", $discard);
+        $this->assertStringContainsString('draftsURL', $discard);
+    }
+
     private function importRoster(): array
     {
         return [

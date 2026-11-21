@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Score Log 1.2.0\n"
+"Project-Id-Version: Score Log 1.2.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 13:45+0800\n"
-"PO-Revision-Date: 2026-11-21 13:36+0800\n"
+"POT-Creation-Date: 2026-11-21 13:52+0800\n"
+"PO-Revision-Date: 2026-11-21 13:53+0800\n"
 "Last-Translator: AndroidOL\n"
 "Language-Team: Gibbon zh_CN\n"
 "Language: zh_CN\n"
@@ -14,6 +14,10 @@ msgstr ""
 #, php-format
 msgid "%s data rows detected. Extra columns: %s."
 msgstr "检测到 %s 行数据。额外列：%s。"
+
+#, php-format
+msgid "%s of %s entered"
+msgstr "已录入 %s / %s"
 
 #, php-format
 msgid "%s: %s/%s rows matched as %s."
@@ -121,6 +125,9 @@ msgstr "发布前请修正以下评估信息："
 msgid "Create Internal Assessment"
 msgstr "创建内部评估"
 
+msgid "Create New Assessment"
+msgstr "创建新评估"
+
 msgid "Date"
 msgstr "日期"
 
@@ -129,6 +136,11 @@ msgstr "说明"
 
 msgid "Detected mapping"
 msgstr "自动识别结果"
+
+#, php-format
+msgid ""
+"Discard %s? This permanently removes the private draft and cannot be undone."
+msgstr "确定丢弃“%s”吗？此操作将永久删除该私有草稿，且无法撤销。"
 
 msgid "Discard Draft"
 msgstr "丢弃草稿"
@@ -324,6 +336,14 @@ msgstr "请选择……"
 msgid "Preserved Manual Values"
 msgstr "保留手工值"
 
+msgid ""
+"Private drafts created by you for the current school year. Only you can "
+"resume or discard them."
+msgstr "本学年由您创建的私有草稿。只有您可以继续编辑或丢弃。"
+
+msgid "Progress"
+msgstr "进度"
+
 msgid "Publish Assessment"
 msgstr "发布评估"
 
@@ -353,6 +373,9 @@ msgstr "继续编辑草稿"
 msgid "Review and Publish"
 msgstr "复核并发布"
 
+msgid "Revision"
+msgstr "修订版本"
+
 msgid "Row"
 msgstr "行"
 
@@ -361,6 +384,9 @@ msgstr "数据行"
 
 msgid "Save Draft"
 msgstr "保存草稿"
+
+msgid "Saved Drafts"
+msgstr "已保存草稿"
 
 msgid "Score"
 msgstr "分值"
@@ -483,7 +509,9 @@ msgstr "保存失败，可能另一个评估正在创建，请稍后重试。"
 msgid ""
 "Unchecked preserves existing values. Checked overwrites changed values and "
 "clears an existing mapped Score or Comment when the imported cell is blank."
-msgstr "未勾选时保留现有值；勾选后，将覆盖发生变化的导入值，并在导入的成绩或评语单元格为空时清除对应的现有值。"
+msgstr ""
+"未勾选时保留现有值；勾选后，将覆盖发生变化的导入值，并在导入的成绩或评语单元"
+"格为空时清除对应的现有值。"
 
 msgid "Unknown student"
 msgstr "未知学生"
@@ -545,6 +573,9 @@ msgstr "是"
 
 msgid "You do not have access to this page."
 msgstr "您没有权限访问该页面。"
+
+msgid "You do not have any saved drafts."
+msgstr "您没有已保存的草稿。"
 
 msgid "You do not have permission to perform this action."
 msgstr "您没有权限执行该操作。"

@@ -23,6 +23,7 @@ Users also need the Formal Assessment permission to create internal assessments.
 - Choose a class the user teaches and an active attainment scale.
 - Enter scores or scale grades and comments for every student in one form.
 - Save a private draft and resume it later without losing whole-class input.
+- Open the dedicated Saved Drafts page to resume or discard private work.
 - Import scores from CSV, XLSX or a spreadsheet paste with mapping preview.
 - Review current-roster changes, invalid rows and missing scores before publishing.
 - Validate class membership, student eligibility, score ranges and assessment types.

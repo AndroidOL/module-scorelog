@@ -27,13 +27,14 @@ require_once __DIR__.'/moduleFunctions.php';
 
 $gibbonPersonID = (string) $session->get('gibbonPersonID');
 $viewURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php';
+$draftsURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_drafts.php';
 $scoreLogDraftID = is_scalar($_POST['scoreLogDraftID'] ?? null) ? trim((string) $_POST['scoreLogDraftID']) : '';
-$redirect = function (string $return, string $draftID = '') use ($viewURL) {
-    header(
-        'Location: '.$viewURL
-        .($draftID !== '' ? '&draftID='.urlencode($draftID) : '')
-        .'&return='.$return
-    );
+$returnPage = ($_POST['returnPage'] ?? '') === 'drafts' ? 'drafts' : 'view';
+$redirect = function (string $return, string $draftID = '') use ($viewURL, $draftsURL, &$returnPage) {
+    $url = $returnPage === 'drafts'
+        ? $draftsURL
+        : $viewURL.($draftID !== '' ? '&draftID='.urlencode($draftID) : '');
+    header('Location: '.$url.'&return='.$return);
     exit;
 };
 

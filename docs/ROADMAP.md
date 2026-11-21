@@ -8,6 +8,7 @@
 - Formal Assessment integration and recent-assessment history.
 - Private drafts, roster revalidation, review and safe publication.
 - CSV, XLSX and spreadsheet-paste score import with mapping preview.
+- Dedicated Saved Drafts page with resume and revision-bound discard.
 
 ## Next candidates
 

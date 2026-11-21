@@ -63,6 +63,13 @@ $settingGateway = $container->get(SettingGateway::class);
 $allowedTypes = scoreLogAllowedTypes($settingGateway->getSettingByScope('Formal Assessment', 'internalAssessmentTypes'));
 $defaultType = $allowedTypes[0] ?? 'Assessment';
 
+$draftActions = Form::createBlank('scoreLogDraftNavigation');
+$draftActions->addHeaderAction('savedDrafts', scoreLogT('Saved Drafts'))
+    ->setURL('/modules/Score Log/scorelog_drafts.php')
+    ->setIcon('markbook')
+    ->displayLabel();
+$page->write($draftActions->getOutput());
+
 // Select an existing private draft or start a new one.
 if ($scoreLogDraftID === '' && ($gibbonCourseClassID === '' || $gibbonScaleIDAttainment === '')) {
     $draftRows = [];

@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+v1.2.1
+------
+- Add a dedicated Saved Drafts page with progress, revision and last-saved
+  details.
+- Add Resume and revision-bound Discard actions to saved drafts.
+- Add a Saved Drafts header action to the assessment workflow.
+
 v1.2.0
 ------
 - Add CSV, XLSX and tab-separated paste import for score drafts.
