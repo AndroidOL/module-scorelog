@@ -76,7 +76,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             if (!autosaveReload) return;
             const draftID = draftIDInput ? draftIDInput.value : '';
             if (draftID === '') {
-                autosaveReload.href = '#';
+                autosaveReload.href = window.location.href;
                 return;
             }
             const url = new URL(window.location.href);
@@ -165,6 +165,17 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             }
 
             autosaveOffline = false;
+            const hasContentType = response.headers && typeof response.headers.get === 'function';
+            const contentType = hasContentType
+                ? String(response.headers.get('content-type') || '').toLowerCase()
+                : '';
+            if (response.redirected || (response.ok && hasContentType && !contentType.includes('application/json'))) {
+                autosaveAuthBlocked = true;
+                autosaveAuthMessage = labels.autosaveSessionExpired || 'Session expired. Reload the page and sign in again.';
+                updateReloadLink();
+                setAutosaveState('auth', autosaveAuthMessage);
+                return false;
+            }
             let data = {};
             try {
                 data = await response.json();

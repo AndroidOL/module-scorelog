@@ -1094,6 +1094,9 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringContainsString("setAutosaveState('offline'", $script);
         $this->assertStringContainsString("setAutosaveState('auth'", $script);
         $this->assertStringContainsString("setAutosaveState('failed'", $script);
+        $this->assertStringContainsString('autosaveReload.href = window.location.href', $script);
+        $this->assertStringContainsString('response.redirected', $script);
+        $this->assertStringContainsString("!contentType.includes('application/json')", $script);
         $this->assertStringNotContainsString('localStorage', $script);
         $this->assertStringNotContainsString('scoreLogColumnOrder', $script);
         $this->assertStringNotContainsString('scorelog_review.php', $endpoint);
