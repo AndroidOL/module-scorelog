@@ -389,7 +389,8 @@ foreach ($roster as $index => $student) {
     );
 
     $row->addTextArea('comment-'.$studentID)
-        ->setRows(2)
+        ->setRows(1)
+        ->autosize()
         ->maxLength(1000)
         ->setValue($savedComment)
         ->setClass('scoreLogCommentCell')

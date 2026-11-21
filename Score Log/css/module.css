@@ -124,9 +124,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .scoreLogEntryTable td.scoreLogScoreCell > .scoreLogEntryField > input,
 .scoreLogEntryTable td.scoreLogScoreCell > .scoreLogEntryField > select {
-    max-width: 5rem;
+    max-width: 7rem;
     margin-right: auto;
     margin-left: auto;
+}
+
+.scoreLogEntryTable td.scoreLogCommentCell textarea {
+    max-height: 6.5rem;
+    overflow-y: auto !important;
 }
 
 @media (min-width: 768px) {
