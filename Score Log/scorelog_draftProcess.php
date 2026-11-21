@@ -108,7 +108,10 @@ try {
             throw new RuntimeException('Unable to encode draft');
         }
 
-        $revision = is_scalar($input['revision'] ?? null) ? max(1, (int) $input['revision']) : 0;
+        $revision = is_scalar($input['revision'] ?? null) ? max(0, (int) $input['revision']) : 0;
+        if ($revision < 1) {
+            throw new RuntimeException('Invalid revision');
+        }
         $updated = $pdo->update(
             "UPDATE score_log_draft
              SET payload=:payload, revision=revision+1

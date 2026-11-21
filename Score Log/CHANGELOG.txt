@@ -11,6 +11,8 @@ v1.5.0
 - Flush pending autosave before manual submission and never trigger Review or
   Publish automatically. Browser storage is not used as a score source.
 - Render the autosave reload action with Gibbon's standard Button component.
+- Require the full teacher assessment permission set when discarding a draft.
+- Reject missing or zero draft revisions before save, publish or discard.
 
 v1.4.1
 ------

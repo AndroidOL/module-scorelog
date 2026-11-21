@@ -43,6 +43,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 }
 if (
     !isActionAccessible($guid, $connection2, '/modules/Score Log/scorelog_view.php')
+    || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_manage_add.php')
     || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write_data.php')
 ) {
     $redirect('error0', $scoreLogDraftID);
@@ -52,7 +53,7 @@ if (!$container->get(TokenHandler::class)->validateCsrfToken()) {
 }
 
 $input = $container->get(Validator::class)->sanitize($_POST);
-$revision = is_scalar($input['revision'] ?? null) ? max(1, (int) $input['revision']) : 0;
+$revision = is_scalar($input['revision'] ?? null) ? max(0, (int) $input['revision']) : 0;
 if ($scoreLogDraftID === '' || $revision < 1) {
     $redirect('error1', $scoreLogDraftID);
 }
