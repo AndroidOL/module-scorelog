@@ -83,6 +83,7 @@ foreach ($drafts as $draft) {
     }
     $draft['scaleName'] = scoreLogDraftScaleLabels($payload, $scaleNames) ?: scoreLogT('Unassigned');
     $draft['progress'] = sprintf(scoreLogT('%s of %s entered'), $progress['entered'], $progress['total']);
+    $draft['draftID'] = $draft['scoreLogDraftID'];
     $rows[] = $draft;
 }
 

@@ -237,6 +237,36 @@ if ($scoreLogDraftID !== '') {
             ->setIcon('markbook')
             ->displayLabel();
     }
+
+    $draftNavigation = $pdo->select(
+        "SELECT d.scoreLogDraftID
+         FROM score_log_draft d
+         JOIN gibbonCourseClass cc ON cc.gibbonCourseClassID=d.gibbonCourseClassID
+         JOIN gibbonCourse course ON course.gibbonCourseID=cc.gibbonCourseID
+         WHERE d.gibbonPersonIDCreator=:gibbonPersonID
+           AND course.gibbonSchoolYearID=:gibbonSchoolYearID
+         ORDER BY d.updateTimestamp DESC, d.scoreLogDraftID DESC",
+        ['gibbonPersonID' => $gibbonPersonID, 'gibbonSchoolYearID' => $gibbonSchoolYearID]
+    )->fetchAll(\PDO::FETCH_COLUMN);
+    $draftPosition = array_search((string) $scoreLogDraftID, array_map('strval', $draftNavigation), true);
+    if ($draftPosition !== false) {
+        $olderDraftID = (string) ($draftNavigation[$draftPosition + 1] ?? '');
+        $newerDraftID = (string) ($draftNavigation[$draftPosition - 1] ?? '');
+        if ($olderDraftID !== '') {
+            $page->navigator->addHeaderAction('previousDraft', scoreLogT('Previous Assessment'))
+                ->setURL('/modules/Score Log/scorelog_view.php')
+                ->addParam('draftID', $olderDraftID)
+                ->setIcon('back')
+                ->displayLabel();
+        }
+        if ($newerDraftID !== '') {
+            $page->navigator->addHeaderAction('nextDraft', scoreLogT('Next Assessment'))
+                ->setURL('/modules/Score Log/scorelog_view.php')
+                ->addParam('draftID', $newerDraftID)
+                ->setIcon('forward')
+                ->displayLabel();
+        }
+    }
 } else {
     if (!scoreLogCanEditClass($pdo, $gibbonPersonID, $gibbonCourseClassID, $gibbonSchoolYearID)) {
         $page->addError(scoreLogT('You do not have access to this page.'));
@@ -324,6 +354,10 @@ if ($scoreLogDraftID !== '' && count($savedColumnOrder) > 1) {
     return;
 }
 $columnID = (string) ($savedColumnOrder[0] ?? 'c1');
+$scoreLogBaseURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/';
+$importURL = $scoreLogBaseURL.'scorelog_import.php&draftID='.urlencode($scoreLogDraftID).'&columnID='.urlencode($columnID);
+$exportTemplateURL = $scoreLogBaseURL.'scorelog_importTemplate.php&draftID='.urlencode($scoreLogDraftID).'&columnID='.urlencode($columnID).'&mode=template';
+$exportScoresURL = $scoreLogBaseURL.'scorelog_importTemplate.php&draftID='.urlencode($scoreLogDraftID).'&columnID='.urlencode($columnID).'&mode=scores';
 $column = is_array($payload['columns'][$columnID] ?? null) ? $payload['columns'][$columnID] : [
     'name'             => '',
     'description'      => '',
@@ -443,18 +477,16 @@ $row->addContent(
 
 $row = $form->addRow();
 $topActions = $row->addColumn()->addClass('flex flex-wrap gap-2 justify-end');
-$topActions->addSubmit(scoreLogT('Import Scores'))
-    ->setName('importScores')
-    ->setSize('sm')
-    ->setColor('gray')
-    ->setIcon('solid', 'upload')
-    ->setAttribute('formnovalidate', 'formnovalidate');
-$topActions->addSubmit(scoreLogT('Export Template'))
-    ->setName('exportTemplate')
-    ->setSize('sm')
-    ->setColor('gray')
-    ->setIcon('solid', 'download')
-    ->setAttribute('formnovalidate', 'formnovalidate');
+if ($scoreLogDraftID !== '') {
+    $topActions->addButton(scoreLogT('Import Scores'), 'window.location.href='.json_encode($importURL))
+        ->setSize('sm')
+        ->setColor('gray')
+        ->setIcon('solid', 'upload');
+    $topActions->addButton(scoreLogT('Export Template'), 'window.location.href='.json_encode($exportTemplateURL))
+        ->setSize('sm')
+        ->setColor('gray')
+        ->setIcon('solid', 'download');
+}
 
 $form->addRow()->addHeading('assessmentDetails', scoreLogT('Assessment Details'));
 
@@ -634,17 +666,18 @@ foreach ($roster as $student) {
 }
 
 $row = $form->addRow();
+$row->addFooter();
 $row->addSubmit(scoreLogT('Save Draft'))
     ->setName('saveDraft')
     ->setSize('sm')
     ->setColor('gray')
     ->setAttribute('formnovalidate', 'formnovalidate');
-$row->addSubmit(scoreLogT('Export Scores (XLSX)'))
-    ->setName('exportScores')
-    ->setSize('sm')
-    ->setColor('gray')
-    ->setIcon('solid', 'download')
-    ->setAttribute('formnovalidate', 'formnovalidate');
+if ($scoreLogDraftID !== '') {
+    $row->addButton(scoreLogT('Export Scores (XLSX)'), 'window.location.href='.json_encode($exportScoresURL))
+        ->setSize('sm')
+        ->setColor('gray')
+        ->setIcon('solid', 'download');
+}
 $row->addSubmit(scoreLogT('Review and Publish'))
     ->setName('reviewPublish')
     ->setSize('sm');

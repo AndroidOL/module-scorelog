@@ -1089,9 +1089,17 @@ function scoreLogValidateImportScore($value, array $scale, array $gradeDescripto
 function scoreLogDetectImportMapping(array $matrix, array $roster, array $scale, array $gradeDescriptors): array
 {
     $matrix = array_values($matrix);
-    $header = !empty($matrix) ? scoreLogDetectImportHeader($matrix[0]) : null;
-    $headerRow = $header['headerRow'] ?? null;
-    $rows = $headerRow === null ? $matrix : array_slice($matrix, 1);
+    $header = null;
+    $headerRow = null;
+    foreach ($matrix as $index => $row) {
+        $candidate = scoreLogDetectImportHeader($row);
+        if ($candidate !== null) {
+            $header = $candidate;
+            $headerRow = $index;
+            break;
+        }
+    }
+    $rows = $headerRow === null ? $matrix : array_slice($matrix, $headerRow + 1);
     $columnCount = 0;
     foreach ($matrix as $row) {
         $columnCount = max($columnCount, count($row));
@@ -1564,15 +1572,24 @@ function scoreLogBuildAssessmentSpreadsheet(
         ->setDescription((string) ($column['description'] ?? ''));
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setTitle(scoreLogT('Scores'));
+    $sheet->setCellValueExplicit('A1', scoreLogT('Assessment Name'), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    $sheet->setCellValueExplicit('B1', (string) ($column['name'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    $sheet->setCellValueExplicit('A2', scoreLogT('Description'), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    $sheet->setCellValueExplicit('B2', (string) ($column['description'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    $sheet->setCellValueExplicit('A3', scoreLogT('Assessment Date'), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    $sheet->setCellValueExplicit('B3', (string) ($column['completeDate'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    $sheet->mergeCells('B1:E1');
+    $sheet->mergeCells('B2:E2');
+    $sheet->mergeCells('B3:E3');
     $sheet->fromArray([
         scoreLogT('Student ID'),
         scoreLogT('Username'),
         scoreLogT('Student Name'),
         scoreLogT('Score'),
         scoreLogT('Comment'),
-    ], null, 'A1');
+    ], null, 'A5');
 
-    $rowNumber = 2;
+    $rowNumber = 6;
     foreach ($roster as $student) {
         $studentID = (string) ($student['gibbonPersonID'] ?? '');
         $saved = is_array($savedStudents[$studentID]['scores'][$columnID] ?? null)
@@ -1613,21 +1630,11 @@ function scoreLogBuildAssessmentSpreadsheet(
     foreach (['A', 'B', 'C', 'D', 'E'] as $columnLetter) {
         $sheet->getColumnDimension($columnLetter)->setAutoSize(true);
     }
-    $sheet->getStyle('A1:E1')->getFont()->setBold(true);
-    $sheet->freezePane('A2');
-
-    $metadata = $spreadsheet->createSheet();
-    $metadata->setTitle(scoreLogT('Assessment'));
-    $metadata->setCellValueExplicit('A1', scoreLogT('Assessment Name'), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-    $metadata->setCellValueExplicit('B1', (string) ($column['name'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-    $metadata->setCellValueExplicit('A2', scoreLogT('Description'), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-    $metadata->setCellValueExplicit('B2', (string) ($column['description'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-    $metadata->setCellValueExplicit('A3', scoreLogT('Assessment Date'), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-    $metadata->setCellValueExplicit('B3', (string) ($column['completeDate'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-    $metadata->getStyle('A1:A3')->getFont()->setBold(true);
-    $metadata->getStyle('B2')->getAlignment()->setWrapText(true);
-    $metadata->getColumnDimension('A')->setWidth(24);
-    $metadata->getColumnDimension('B')->setWidth(72);
+    $sheet->getStyle('A1:A3')->getFont()->setBold(true);
+    $sheet->getStyle('A5:E5')->getFont()->setBold(true);
+    $sheet->getStyle('B2')->getAlignment()->setWrapText(true);
+    $sheet->getColumnDimension('A')->setWidth(24);
+    $sheet->freezePane('A6');
 
     return $spreadsheet;
 }

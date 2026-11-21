@@ -1,6 +1,18 @@
 CHANGELOG
 =========
 
+v1.5.3
+------
+- Fix saved-draft action links so Resume, Import, Export and Discard receive
+  the draft ID from the table row.
+- Make Import Scores, Export Template and Export Scores direct links: exports no
+  longer submit the assessment form, require assessment metadata, or leave the
+  button spinning.
+- Keep the assessment name, description and date with the student roster in one
+  worksheet, and detect headers after that metadata preamble during import.
+- Add Previous Assessment / Next Assessment navigation for saved drafts.
+- Use a standard Gibbon footer row for Save Draft, Export Scores and Review.
+
 v1.5.2
 ------
 - Keep the manual Save, Export Scores and Review actions on one compact row.

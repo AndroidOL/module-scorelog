@@ -48,6 +48,10 @@ if (
     $page->addError(scoreLogT('The specified record does not exist.'));
     return;
 }
+$columnOrder = $draft['payloadData']['columnOrder'] ?? [];
+if ($columnID === '' && count($columnOrder) === 1) {
+    $columnID = (string) $columnOrder[0];
+}
 if ($columnID === '' || empty($draft['payloadData']['columns'][$columnID])) {
     if ($columnID !== '') {
         $page->addError(scoreLogT('Select the assessment column to import.'));
