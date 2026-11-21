@@ -33,11 +33,15 @@ $page->return->addReturns([
     'success0' => scoreLogT('Assessment published.'),
     'success1' => scoreLogT('Draft saved.'),
     'success2' => scoreLogT('Draft discarded.'),
+    'success3' => scoreLogT('Imported score values applied to the draft.'),
     'error0'   => scoreLogT('You do not have permission to perform this action.'),
     'error1'   => scoreLogT('The submitted data is invalid. Check the class, scale and scores.'),
     'error2'   => scoreLogT('Unable to save. Another assessment may be in progress; try again shortly.'),
     'error3'   => scoreLogT('No submitted data was received.'),
     'error4'   => scoreLogT('This draft changed in another tab. Reopen it before continuing.'),
+    'error6'   => scoreLogT('The draft changed after the import preview. Reopen the draft and import again.'),
+    'error7'   => scoreLogT('The import mapping changed after preview. Refresh the preview before applying.'),
+    'error8'   => scoreLogT('Confirm that unmatched or invalid import rows will be skipped.'),
     'error9'   => scoreLogT('Your session expired. Refresh the page and try again.'),
     'error10'  => scoreLogT('This legacy action is no longer available. Start or resume a draft.'),
 ]);
@@ -213,7 +217,7 @@ if ($scoreLogDraftID !== '') {
         ['gibbonCourseClassID' => $gibbonCourseClassID, 'gibbonSchoolYearID' => $gibbonSchoolYearID]
     );
     $scale = $pdo->selectOne(
-        "SELECT gibbonScaleID, name, `usage`, numeric
+        "SELECT gibbonScaleID, name, `usage`, `numeric`
          FROM gibbonScale WHERE gibbonScaleID=:gibbonScaleID AND active='Y'",
         ['gibbonScaleID' => $gibbonScaleIDAttainment]
     );
@@ -299,6 +303,14 @@ if (isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internal
         ->setURL('/modules/Formal Assessment/internalAssessment_write.php')
         ->addParam('gibbonCourseClassID', $gibbonCourseClassID)
         ->setIcon('markbook')
+        ->displayLabel()
+        ->prepend(' | ');
+}
+if ($scoreLogDraftID !== '') {
+    $form->addHeaderAction('importScores', scoreLogT('Import Scores'))
+        ->setURL('/modules/Score Log/scorelog_import.php')
+        ->addParam('draftID', $scoreLogDraftID)
+        ->setIcon('upload')
         ->displayLabel()
         ->prepend(' | ');
 }

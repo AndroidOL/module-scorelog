@@ -178,7 +178,8 @@ function scoreLogCanEditClass($pdo, $gibbonPersonID, $gibbonCourseClassID, $gibb
 function scoreLogCurrentRoster($pdo, $gibbonCourseClassID): array
 {
     return $pdo->select(
-        "SELECT gibbonPerson.gibbonPersonID, gibbonPerson.preferredName, gibbonPerson.surname
+        "SELECT gibbonPerson.gibbonPersonID, gibbonPerson.studentID, gibbonPerson.username,
+                gibbonPerson.preferredName, gibbonPerson.surname
          FROM gibbonCourseClassPerson
          JOIN gibbonPerson ON gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID
          WHERE gibbonCourseClassPerson.gibbonCourseClassID=:gibbonCourseClassID
@@ -232,6 +233,16 @@ function scoreLogLoadDraft($pdo, $scoreLogDraftID, $gibbonPersonID): ?array
 function scoreLogInputString(array $input, string $key): string
 {
     return is_scalar($input[$key] ?? null) ? trim((string) $input[$key]) : '';
+}
+
+function scoreLogSamePersonID($left, $right): bool
+{
+    if (!is_scalar($left) || !is_scalar($right)
+        || !ctype_digit((string) $left) || !ctype_digit((string) $right)) {
+        return false;
+    }
+
+    return (int) $left === (int) $right;
 }
 
 /**
@@ -464,4 +475,707 @@ function scoreLogRosterDiff(array $payload, array $roster): array
         'removed' => $removed,
         'changed' => !empty($added) || !empty($removed),
     ];
+}
+
+function scoreLogNormalizeImportText($value): string
+{
+    $value = is_scalar($value) ? (string) $value : '';
+    $value = preg_replace('/^\xEF\xBB\xBF/u', '', $value) ?? $value;
+    $value = str_replace("\xC2\xA0", ' ', $value);
+
+    return trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
+}
+
+function scoreLogNormalizeImportKey($value): string
+{
+    return mb_strtolower(scoreLogNormalizeImportText($value));
+}
+
+function scoreLogNormalizeImportComment($value): string
+{
+    $value = is_scalar($value) ? (string) $value : '';
+    $value = preg_replace('/^\xEF\xBB\xBF/u', '', $value) ?? $value;
+    $value = str_replace("\xC2\xA0", ' ', $value);
+    $value = str_replace(["\r\n", "\r"], "\n", $value);
+    $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\x{0080}-\x{009F}]/u', '', $value) ?? $value;
+
+    return trim($value);
+}
+
+function scoreLogNormalizeImportIdentifier($value): string
+{
+    $value = scoreLogNormalizeImportText($value);
+    if (preg_match('/^\d+$/D', $value)) {
+        $value = ltrim($value, '0');
+
+        return $value === '' ? '0' : $value;
+    }
+
+    return mb_strtolower($value);
+}
+
+function scoreLogImportNameVariants(array $student): array
+{
+    $preferred = scoreLogNormalizeImportKey($student['preferredName'] ?? '');
+    $surname = scoreLogNormalizeImportKey($student['surname'] ?? '');
+    if ($preferred === '' || $surname === '') {
+        return [];
+    }
+
+    return array_values(array_unique([
+        scoreLogNormalizeImportKey($preferred.' '.$surname),
+        scoreLogNormalizeImportKey($surname.' '.$preferred),
+        scoreLogNormalizeImportKey($preferred.$surname),
+        scoreLogNormalizeImportKey($surname.$preferred),
+        scoreLogNormalizeImportKey($surname.', '.$preferred),
+        scoreLogNormalizeImportKey($surname.','.$preferred),
+    ]));
+}
+
+function scoreLogImportRosterIndexes(array $roster): array
+{
+    $indexes = [
+        'id'       => [],
+        'username' => [],
+        'name'     => [],
+    ];
+
+    foreach ($roster as $student) {
+        $gibbonPersonID = (string) ($student['gibbonPersonID'] ?? '');
+        if ($gibbonPersonID === '') {
+            continue;
+        }
+
+        foreach ([$student['studentID'] ?? '', $gibbonPersonID] as $id) {
+            $key = scoreLogNormalizeImportIdentifier($id);
+            if ($key !== '') {
+                $indexes['id'][$key] = array_key_exists($key, $indexes['id']) && $indexes['id'][$key] !== $gibbonPersonID
+                    ? null
+                    : $gibbonPersonID;
+            }
+        }
+
+        $username = scoreLogNormalizeImportKey($student['username'] ?? '');
+        if ($username !== '') {
+            $indexes['username'][$username] = array_key_exists($username, $indexes['username']) && $indexes['username'][$username] !== $gibbonPersonID
+                ? null
+                : $gibbonPersonID;
+        }
+
+        foreach (scoreLogImportNameVariants($student) as $name) {
+            $indexes['name'][$name] = array_key_exists($name, $indexes['name']) && $indexes['name'][$name] !== $gibbonPersonID
+                ? null
+                : $gibbonPersonID;
+        }
+    }
+
+    return $indexes;
+}
+
+function scoreLogImportHeaderType($value): ?string
+{
+    $key = scoreLogNormalizeImportKey($value);
+    $headers = [
+        'id' => ['id', 'student id', 'studentid', 'student number', '学号', '学生编号', '编号'],
+        'username' => ['username', 'user name', 'login', 'login name', '用户名', '账号', '登录名'],
+        'name' => ['name', 'student', 'student name', 'full name', '姓名', '学生姓名'],
+        'score' => ['score', 'mark', 'marks', 'grade', 'result', '成绩', '分数', '得分'],
+        'comment' => ['comment', 'comments', 'note', 'notes', 'remark', 'remarks', '评语', '备注'],
+    ];
+
+    foreach ($headers as $type => $labels) {
+        if (in_array($key, $labels, true)) {
+            return $type;
+        }
+    }
+
+    return null;
+}
+
+function scoreLogDetectImportHeader(array $row): ?array
+{
+    $identifier = null;
+    $scoreColumn = null;
+    $commentColumn = null;
+
+    foreach (array_values($row) as $column => $value) {
+        $type = scoreLogImportHeaderType($value);
+        if (in_array($type, ['id', 'username', 'name'], true)) {
+            if ($identifier === null || ($type === 'id' && $identifier['type'] !== 'id')) {
+                $identifier = ['column' => $column, 'type' => $type];
+            }
+        } elseif ($type === 'score' && $scoreColumn === null) {
+            $scoreColumn = $column;
+        } elseif ($type === 'comment' && $commentColumn === null) {
+            $commentColumn = $column;
+        }
+    }
+
+    if ($identifier === null || $scoreColumn === null || $identifier['column'] === $scoreColumn) {
+        return null;
+    }
+
+    return [
+        'headerRow'     => 0,
+        'identifierColumn' => $identifier['column'],
+        'identifierType'   => $identifier['type'],
+        'scoreColumn'      => $scoreColumn,
+        'commentColumn'    => $commentColumn,
+    ];
+}
+
+function scoreLogValidateImportScore($value, array $scale, array $gradeDescriptors): array
+{
+    $value = scoreLogNormalizeImportText($value);
+    if ($value === '') {
+        return ['valid' => true, 'normalized' => '', 'descriptor' => '', 'error' => ''];
+    }
+
+    if (($scale['numeric'] ?? 'N') === 'Y') {
+        $normalized = scoreLogNormalizeNumericValue($value);
+        if ($normalized === null) {
+            return ['valid' => false, 'normalized' => '', 'descriptor' => '', 'error' => scoreLogT('Enter a valid finite number.')];
+        }
+        $maxScore = scoreLogMaxScoreFromUsage($scale['usage'] ?? '');
+        if ((float) $normalized < 0) {
+            return ['valid' => false, 'normalized' => '', 'descriptor' => '', 'error' => scoreLogT('Enter a score of 0 or greater.')];
+        }
+        if ($maxScore !== null && (float) $normalized > $maxScore) {
+            return [
+                'valid' => false,
+                'normalized' => '',
+                'descriptor' => '',
+                'error' => sprintf(scoreLogT('Enter a score from 0 to %s.'), $maxScore),
+            ];
+        }
+
+        return [
+            'valid'      => true,
+            'normalized' => $normalized,
+            'descriptor' => $gradeDescriptors[$normalized] ?? $normalized,
+            'error'      => '',
+        ];
+    }
+
+    if (!isset($gradeDescriptors[$value])) {
+        return [
+            'valid' => false,
+            'normalized' => '',
+            'descriptor' => '',
+            'error' => scoreLogT('Choose a grade from the selected scale.'),
+        ];
+    }
+
+    return [
+        'valid'      => true,
+        'normalized' => $value,
+        'descriptor' => $gradeDescriptors[$value],
+        'error'      => '',
+    ];
+}
+
+function scoreLogDetectImportMapping(array $matrix, array $roster, array $scale, array $gradeDescriptors): array
+{
+    $matrix = array_values($matrix);
+    $header = !empty($matrix) ? scoreLogDetectImportHeader($matrix[0]) : null;
+    $headerRow = $header['headerRow'] ?? null;
+    $rows = $headerRow === null ? $matrix : array_slice($matrix, 1);
+    $columnCount = 0;
+    foreach ($matrix as $row) {
+        $columnCount = max($columnCount, count($row));
+    }
+    $indexes = scoreLogImportRosterIndexes($roster);
+    $identifierStats = [];
+    $scoreStats = [];
+
+    foreach ($rows as $row) {
+        for ($column = 0; $column < $columnCount; $column++) {
+            $value = scoreLogNormalizeImportText($row[$column] ?? '');
+            if ($value === '') {
+                continue;
+            }
+            foreach (['id', 'username', 'name'] as $type) {
+                $identifierStats[$column][$type]['total'] = ($identifierStats[$column][$type]['total'] ?? 0) + 1;
+                $key = $type === 'id'
+                    ? scoreLogNormalizeImportIdentifier($value)
+                    : scoreLogNormalizeImportKey($value);
+                if (isset($indexes[$type][$key]) && $indexes[$type][$key] !== null) {
+                    $identifierStats[$column][$type]['matched'] = ($identifierStats[$column][$type]['matched'] ?? 0) + 1;
+                }
+            }
+
+            $scoreStats[$column]['total'] = ($scoreStats[$column]['total'] ?? 0) + 1;
+            $score = scoreLogValidateImportScore($value, $scale, $gradeDescriptors);
+            if ($score['valid']) {
+                $scoreStats[$column]['valid'] = ($scoreStats[$column]['valid'] ?? 0) + 1;
+            }
+        }
+    }
+
+    $mapping = [
+        'identifierColumn' => null,
+        'identifierType'   => '',
+        'scoreColumn'      => null,
+        'commentColumn'    => null,
+        'headerRow'        => $headerRow,
+        'headerDetected'   => $header !== null,
+        'confidence'       => [],
+    ];
+
+    if ($header !== null) {
+        $mapping = array_replace($mapping, [
+            'identifierColumn' => $header['identifierColumn'],
+            'identifierType'   => $header['identifierType'],
+            'scoreColumn'      => $header['scoreColumn'],
+            'commentColumn'    => $header['commentColumn'],
+        ]);
+    } else {
+        $priority = ['id' => 3, 'username' => 2, 'name' => 1];
+        $best = null;
+        $tie = false;
+
+        foreach ($identifierStats as $identifierColumn => $types) {
+            foreach ($types as $type => $stats) {
+                foreach ($scoreStats as $scoreColumn => $scores) {
+                    if ($identifierColumn === $scoreColumn || empty($stats['total']) || empty($scores['total'])) {
+                        continue;
+                    }
+
+                    $identifierRatio = ($stats['matched'] ?? 0) / $stats['total'];
+                    $scoreRatio = ($scores['valid'] ?? 0) / $scores['total'];
+                    if ($identifierRatio < 0.5 || $scoreRatio < 0.5) {
+                        continue;
+                    }
+
+                    $rank = [
+                        round($identifierRatio * $scoreRatio, 9),
+                        round($identifierRatio, 9),
+                        round($scoreRatio, 9),
+                        $priority[$type],
+                        -$identifierColumn,
+                        -$scoreColumn,
+                    ];
+                    if ($best === null || $rank > $best['rank']) {
+                        $best = [
+                            'rank' => $rank,
+                            'identifierColumn' => $identifierColumn,
+                            'identifierType' => $type,
+                            'scoreColumn' => $scoreColumn,
+                        ];
+                        $tie = false;
+                    } elseif ($rank === $best['rank']) {
+                        $tie = true;
+                    }
+                }
+            }
+        }
+
+        if ($best !== null && !$tie) {
+            $mapping['identifierColumn'] = $best['identifierColumn'];
+            $mapping['identifierType'] = $best['identifierType'];
+            $mapping['scoreColumn'] = $best['scoreColumn'];
+
+            $remaining = array_values(array_diff(range(0, max(0, $columnCount - 1)), [
+                $mapping['identifierColumn'],
+                $mapping['scoreColumn'],
+            ]));
+            if ($columnCount === 3 && count($remaining) === 1 && ($scoreStats[$remaining[0]]['total'] ?? 0) > 0) {
+                $mapping['commentColumn'] = $remaining[0];
+            }
+        }
+    }
+
+    if ($mapping['identifierColumn'] !== null && $mapping['scoreColumn'] !== null) {
+        $idColumn = (int) $mapping['identifierColumn'];
+        $idType = (string) $mapping['identifierType'];
+        $scoreColumn = (int) $mapping['scoreColumn'];
+        $mapping['confidence'] = [
+            [
+                'column'  => $idColumn,
+                'role'    => $idType,
+                'matched' => (int) ($identifierStats[$idColumn][$idType]['matched'] ?? 0),
+                'total'   => (int) ($identifierStats[$idColumn][$idType]['total'] ?? 0),
+            ],
+            [
+                'column'  => $scoreColumn,
+                'role'    => 'score',
+                'matched' => (int) ($scoreStats[$scoreColumn]['valid'] ?? 0),
+                'total'   => (int) ($scoreStats[$scoreColumn]['total'] ?? 0),
+            ],
+        ];
+    }
+
+    $mapping['columnCount'] = $columnCount;
+
+    return $mapping;
+}
+
+function scoreLogBuildImportPreview(array $matrix, array $mapping, array $payload, array $roster, array $scale, array $gradeDescriptors, array $formulaCells = [], bool $overwrite = false): array
+{
+    $indexes = scoreLogImportRosterIndexes($roster);
+    $headerRow = $mapping['headerRow'] ?? null;
+    $identifierColumn = isset($mapping['identifierColumn']) ? (int) $mapping['identifierColumn'] : null;
+    $identifierType = in_array($mapping['identifierType'] ?? '', ['id', 'username', 'name'], true)
+        ? $mapping['identifierType']
+        : '';
+    $scoreColumn = isset($mapping['scoreColumn']) ? (int) $mapping['scoreColumn'] : null;
+    $commentColumn = isset($mapping['commentColumn']) && $mapping['commentColumn'] !== ''
+        ? (int) $mapping['commentColumn']
+        : null;
+    $savedStudents = is_array($payload['students'] ?? null) ? $payload['students'] : [];
+    $rows = [];
+    $resolvedCounts = [];
+
+    foreach ($matrix as $rowIndex => $row) {
+        if ($headerRow !== null && $rowIndex <= $headerRow) {
+            continue;
+        }
+
+        $identifier = $identifierColumn === null ? '' : scoreLogNormalizeImportText($row[$identifierColumn] ?? '');
+        $scoreValue = $scoreColumn === null ? '' : scoreLogNormalizeImportText($row[$scoreColumn] ?? '');
+        $comment = $commentColumn === null ? '' : scoreLogNormalizeImportComment($row[$commentColumn] ?? '');
+        if ($identifier === '' && $scoreValue === '' && $comment === '') {
+            continue;
+        }
+
+        $errors = [];
+        $errorTypes = [];
+        $studentID = null;
+        if ($identifierColumn === null || $identifierType === '' || $scoreColumn === null) {
+            $errors[] = scoreLogT('Choose how the identifier and score columns should be mapped.');
+            $errorTypes[] = 'mapping';
+        } else {
+            $key = $identifierType === 'id'
+                ? scoreLogNormalizeImportIdentifier($identifier)
+                : scoreLogNormalizeImportKey($identifier);
+            if (!array_key_exists($key, $indexes[$identifierType])) {
+                $errors[] = scoreLogT('The student identifier is unknown.');
+                $errorTypes[] = 'unknown';
+            } elseif ($indexes[$identifierType][$key] === null) {
+                $errors[] = scoreLogT('The student identifier is ambiguous.');
+                $errorTypes[] = 'ambiguous';
+            } else {
+                $studentID = (string) $indexes[$identifierType][$key];
+                $resolvedCounts[$studentID] = ($resolvedCounts[$studentID] ?? 0) + 1;
+            }
+        }
+
+        foreach (array_filter([$identifierColumn, $scoreColumn, $commentColumn], function ($column) {
+            return $column !== null;
+        }) as $column) {
+            if (!empty($formulaCells[$rowIndex.':'.$column])) {
+                $errors[] = scoreLogT('Formula cells cannot be imported.');
+                $errorTypes[] = 'formula';
+                break;
+            }
+        }
+
+        $score = scoreLogValidateImportScore($scoreValue, $scale, $gradeDescriptors);
+        if (!$score['valid']) {
+            $errors[] = $score['error'];
+            $errorTypes[] = 'score';
+        }
+        if (mb_strlen($comment) > 1000) {
+            $errors[] = scoreLogT('The comment must be 1000 characters or fewer.');
+            $errorTypes[] = 'comment';
+        }
+
+        $existing = $studentID !== null && is_array($savedStudents[$studentID] ?? null)
+            ? $savedStudents[$studentID]
+            : [];
+        $existingScore = trim((string) ($existing['attainmentValue'] ?? ''));
+        $existingComment = trim((string) ($existing['comment'] ?? ''));
+
+        $rows[] = [
+            'rowNumber'      => $rowIndex + 1,
+            'identifier'     => $identifier,
+            'studentID'      => $studentID,
+            'studentName'    => $studentID !== null ? scoreLogImportStudentName($roster, $studentID) : '',
+            'importScore'    => $scoreValue,
+            'normalizedScore'=> $score['normalized'],
+            'importComment'  => $comment,
+            'existingScore'  => $existingScore,
+            'existingComment'=> $existingComment,
+            'errors'         => array_values(array_unique($errors)),
+            'errorTypes'     => array_values(array_unique($errorTypes)),
+            'status'         => '',
+        ];
+    }
+
+    $counts = [
+        'total' => count($rows),
+        'matched' => 0,
+        'wouldFill' => 0,
+        'preserved' => 0,
+        'wouldOverwrite' => 0,
+        'wouldClear' => 0,
+        'unknown' => 0,
+        'ambiguous' => 0,
+        'duplicate' => 0,
+        'invalid' => 0,
+        'noChange' => 0,
+    ];
+    $updates = [];
+
+    foreach ($rows as &$row) {
+        if (!empty($row['errors'])) {
+            $row['status'] = in_array('unknown', $row['errorTypes'], true)
+                ? 'unknown'
+                : (in_array('ambiguous', $row['errorTypes'], true) ? 'ambiguous' : 'invalid');
+            $counts[$row['status']]++;
+            continue;
+        }
+
+        $counts['matched']++;
+        if (($resolvedCounts[$row['studentID']] ?? 0) > 1) {
+            $row['status'] = 'duplicate';
+            $counts['duplicate']++;
+            continue;
+        }
+
+        $changes = [];
+        $clears = [];
+        $overwrites = [];
+        $preserved = false;
+        if ($row['existingScore'] === '') {
+            if ($row['normalizedScore'] !== '') {
+                $changes['attainmentValue'] = $row['normalizedScore'];
+            }
+        } elseif ($overwrite) {
+            if ($row['normalizedScore'] === '') {
+                $changes['attainmentValue'] = '';
+                $clears[] = scoreLogImportRoleLabel('score');
+            } elseif ($row['existingScore'] !== $row['normalizedScore']) {
+                $changes['attainmentValue'] = $row['normalizedScore'];
+                $overwrites[] = scoreLogImportRoleLabel('score');
+            } else {
+                $preserved = true;
+            }
+        } else {
+            $preserved = true;
+        }
+
+        if ($commentColumn !== null) {
+            if ($row['existingComment'] === '') {
+                if ($row['importComment'] !== '') {
+                    $changes['comment'] = $row['importComment'];
+                }
+            } elseif ($overwrite) {
+                if ($row['importComment'] === '') {
+                    $changes['comment'] = '';
+                    $clears[] = scoreLogImportRoleLabel('comment');
+                } elseif ($row['existingComment'] !== $row['importComment']) {
+                    $changes['comment'] = $row['importComment'];
+                    $overwrites[] = scoreLogImportRoleLabel('comment');
+                } else {
+                    $preserved = true;
+                }
+            } else {
+                $preserved = true;
+            }
+        }
+
+        if ($row['normalizedScore'] !== '' && $row['existingScore'] === $row['normalizedScore']) {
+            $preserved = true;
+        }
+        if ($commentColumn !== null && $row['importComment'] !== '' && $row['existingComment'] === $row['importComment']) {
+            $preserved = true;
+        }
+
+        if (!empty($overwrites)) {
+            $row['status'] = 'wouldOverwrite';
+            $counts['wouldOverwrite']++;
+        } elseif (!empty($clears)) {
+            $row['status'] = 'wouldClear';
+            $counts['wouldClear']++;
+        } elseif (!empty($changes)) {
+            $row['status'] = 'wouldFill';
+            $counts['wouldFill']++;
+        } elseif ($preserved) {
+            $row['status'] = 'preserved';
+            $counts['preserved']++;
+        } else {
+            $row['status'] = 'noChange';
+            $counts['noChange']++;
+        }
+
+        $row['clears'] = $clears;
+        $row['overwrites'] = $overwrites;
+
+        if (!empty($changes)) {
+            $updates[$row['studentID']] = $changes;
+        }
+    }
+    unset($row);
+
+    return [
+        'rows'    => $rows,
+        'counts'  => $counts,
+        'updates' => $updates,
+        'mapping' => $mapping,
+    ];
+}
+
+function scoreLogImportStudentName(array $roster, $studentID): string
+{
+    foreach ($roster as $student) {
+        $left = (string) ($student['gibbonPersonID'] ?? '');
+        $right = (string) $studentID;
+        if (ctype_digit($left) && ctype_digit($right) && (int) $left === (int) $right) {
+            return trim((string) ($student['preferredName'] ?? '').' '.$student['surname']);
+        }
+    }
+
+    return '';
+}
+
+function scoreLogImportPreviewHash(array $mapping, array $preview, $revision): string
+{
+    return hash('sha256', json_encode([
+        'mapping'  => $mapping,
+        'counts'   => $preview['counts'],
+        'rows'     => array_map(function ($row) {
+            return [
+                'rowNumber' => $row['rowNumber'],
+                'identifier'=> $row['identifier'],
+                'studentID' => $row['studentID'],
+                'importScore' => $row['importScore'],
+                'normalizedScore' => $row['normalizedScore'],
+                'importComment'   => $row['importComment'],
+                'status'    => $row['status'],
+                'clears'    => $row['clears'] ?? [],
+                'overwrites'=> $row['overwrites'] ?? [],
+                'errors'    => $row['errors'],
+            ];
+        }, $preview['rows']),
+        'updates'  => $preview['updates'],
+        'revision' => (string) $revision,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+}
+
+function scoreLogImportColumnLabel($column): string
+{
+    return sprintf(scoreLogT('Column %s'), ((int) $column + 1));
+}
+
+function scoreLogImportRoleLabel($role): string
+{
+    return [
+        'id'       => scoreLogT('Student ID'),
+        'username' => scoreLogT('Username'),
+        'name'     => scoreLogT('Student Name'),
+        'score'    => scoreLogT('Score'),
+        'comment'  => scoreLogT('Comment'),
+    ][$role] ?? scoreLogT('Unmapped');
+}
+
+function scoreLogImportSkippedCount(array $counts): int
+{
+    return (int) ($counts['unknown'] ?? 0)
+        + (int) ($counts['ambiguous'] ?? 0)
+        + (int) ($counts['duplicate'] ?? 0)
+        + (int) ($counts['invalid'] ?? 0);
+}
+
+function scoreLogImportCsvEncoding(string $contents): string
+{
+    $sample = substr($contents, 0, 8192);
+    if (str_starts_with($sample, "\xEF\xBB\xBF")) {
+        return 'UTF-8';
+    }
+
+    $encoding = mb_detect_encoding($sample, ['UTF-8', 'GB18030', 'GBK', 'BIG-5', 'CP1252'], true);
+
+    return $encoding ?: 'UTF-8';
+}
+
+function scoreLogImportWorksheetToMatrix($sheet): array
+{
+    $maxRows = 500;
+    $maxColumns = 20;
+    $highestRow = $sheet->getHighestDataRow();
+    $highestColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+    if ($highestRow > $maxRows) {
+        throw new RuntimeException('Too many rows');
+    }
+
+    $readColumns = min($maxColumns, $highestColumn);
+    $matrix = [];
+    $formulaCells = [];
+    for ($row = 1; $row <= $highestRow; $row++) {
+        $values = [];
+        for ($column = 1; $column <= $readColumns; $column++) {
+            $cell = $sheet->getCell([$column, $row]);
+            $value = $cell->getValue();
+            if ($cell->isFormula()) {
+                $formulaCells[($row - 1).':'.($column - 1)] = true;
+            }
+            if (is_object($value) && method_exists($value, 'getPlainText')) {
+                $value = $value->getPlainText();
+            }
+            $value = is_scalar($value) ? (string) $value : '';
+            if (preg_match('/^\s*[=+@]/u', $value)) {
+                $formulaCells[($row - 1).':'.($column - 1)] = true;
+            }
+            $values[] = $value;
+        }
+        $matrix[] = $values;
+    }
+
+    return [
+        'matrix'         => $matrix,
+        'formulaCells'   => $formulaCells,
+        'rowCount'       => $highestRow,
+        'columnCount'    => $highestColumn,
+        'ignoredColumns' => max(0, $highestColumn - $readColumns),
+        'sheetName'      => $sheet->getTitle(),
+    ];
+}
+
+function scoreLogParseImportFile(string $path, string $extension): array
+{
+    $extension = strtolower($extension);
+    if (!in_array($extension, ['csv', 'xlsx'], true)) {
+        throw new RuntimeException('Unsupported file type');
+    }
+
+    if ($extension === 'csv') {
+        $contents = file_get_contents($path);
+        if ($contents === false) {
+            throw new RuntimeException('Unable to read file');
+        }
+        $reader = new \PhpOffice\PhpSpreadsheet\Reader\Csv();
+        $reader->setInputEncoding(scoreLogImportCsvEncoding($contents));
+        $reader->setReadDataOnly(true);
+        $spreadsheet = $reader->load($path);
+    } else {
+        $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+        $reader->setReadDataOnly(true);
+        $sheetInfo = $reader->listWorksheetInfo($path);
+        if (empty($sheetInfo[0]['worksheetName'])) {
+            throw new RuntimeException('Unable to read workbook');
+        }
+        if ((int) ($sheetInfo[0]['totalRows'] ?? 0) > 500) {
+            throw new RuntimeException('Too many rows');
+        }
+        $reader->setLoadSheetsOnly([$sheetInfo[0]['worksheetName']]);
+        $spreadsheet = $reader->load($path);
+    }
+
+    return scoreLogImportWorksheetToMatrix($spreadsheet->getSheet(0));
+}
+
+function scoreLogParseImportPaste(string $contents): array
+{
+    if (strlen($contents) > 524288) {
+        throw new RuntimeException('Paste too large');
+    }
+
+    $reader = new \PhpOffice\PhpSpreadsheet\Reader\Csv();
+    $reader->setDelimiter("\t");
+    $reader->setInputEncoding('UTF-8');
+    $reader->setReadDataOnly(true);
+    $spreadsheet = $reader->loadSpreadsheetFromString($contents);
+
+    return scoreLogImportWorksheetToMatrix($spreadsheet->getSheet(0));
 }

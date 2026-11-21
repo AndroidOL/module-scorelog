@@ -7,6 +7,7 @@
 - Class membership, student eligibility, score and date validation.
 - Formal Assessment integration and recent-assessment history.
 - Private drafts, roster revalidation, review and safe publication.
+- CSV, XLSX and spreadsheet-paste score import with mapping preview.
 
 ## Next candidates
 

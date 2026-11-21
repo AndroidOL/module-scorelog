@@ -223,5 +223,328 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringContainsString('gibbonPersonIDCreator=:gibbonPersonID', $discard);
         $this->assertStringContainsString('revision=:revision', $discard);
     }
+
+    public function testHeaderlessImportAutoDetectsNameScoreAndSwappedColumns()
+    {
+        $roster = $this->importRoster();
+        $scale = ['numeric' => 'Y', 'usage' => 'Out of 100'];
+
+        $nameScore = \scoreLogDetectImportMapping([
+            ['Ada Lovelace', '88'],
+            ['Alan Turing', '92'],
+        ], $roster, $scale, []);
+        $swapped = \scoreLogDetectImportMapping([
+            ['88', 'Ada Lovelace'],
+            ['92', 'Alan Turing'],
+        ], $roster, $scale, []);
+
+        $this->assertSame(0, $nameScore['identifierColumn']);
+        $this->assertSame('name', $nameScore['identifierType']);
+        $this->assertSame(1, $nameScore['scoreColumn']);
+        $this->assertSame(0, $swapped['scoreColumn']);
+        $this->assertSame(1, $swapped['identifierColumn']);
+    }
+
+    public function testHeaderlessImportAutoDetectsZeroPaddedStudentIDs()
+    {
+        $mapping = \scoreLogDetectImportMapping([
+            ['0000000001', '88'],
+            ['2', '92'],
+        ], $this->importRoster(), ['numeric' => 'Y', 'usage' => 'Out of 100'], []);
+        $username = \scoreLogDetectImportMapping([
+            ['ADA', '88'],
+            ['Alan', '92'],
+        ], $this->importRoster(), ['numeric' => 'Y', 'usage' => 'Out of 100'], []);
+
+        $this->assertSame(0, $mapping['identifierColumn']);
+        $this->assertSame('id', $mapping['identifierType']);
+        $this->assertSame(1, $mapping['scoreColumn']);
+        $this->assertSame('username', $username['identifierType']);
+    }
+
+    public function testHeaderDetectionSupportsCommentAndLeavesUnclearMappingEmpty()
+    {
+        $roster = $this->importRoster();
+        $scale = ['numeric' => 'Y', 'usage' => 'Out of 100'];
+        $header = \scoreLogDetectImportMapping([
+            ['Student ID', 'Score', 'Comment'],
+            ['0000000001', '88', 'Good'],
+        ], $roster, $scale, []);
+        $unclear = \scoreLogDetectImportMapping([
+            ['Ada Lovelace', 'Ada Lovelace'],
+            ['Alan Turing', 'Alan Turing'],
+        ], $roster, $scale, []);
+        $threeColumns = \scoreLogDetectImportMapping([
+            ['Ada Lovelace', '88', 'Good'],
+            ['Alan Turing', '92', 'Strong'],
+        ], $roster, $scale, []);
+
+        $this->assertSame(0, $header['headerRow']);
+        $this->assertSame(2, $header['commentColumn']);
+        $this->assertSame(2, $threeColumns['commentColumn']);
+        $this->assertNull($unclear['identifierColumn']);
+        $this->assertNull($unclear['scoreColumn']);
+    }
+
+    public function testImportPreviewPreservesManualValuesUnlessOverwriteIsEnabled()
+    {
+        $mapping = [
+            'headerRow' => null,
+            'identifierColumn' => 0,
+            'identifierType' => 'name',
+            'scoreColumn' => 1,
+            'commentColumn' => 2,
+        ];
+        $matrix = [['Ada Lovelace', '88', 'Imported']];
+        $payload = [
+            'students' => [
+                '0000000001' => ['attainmentValue' => '70', 'comment' => 'Manual'],
+            ],
+        ];
+
+        $preview = \scoreLogBuildImportPreview(
+            $matrix,
+            $mapping,
+            $payload,
+            $this->importRoster(),
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            [],
+            [],
+            false
+        );
+        $overwrite = \scoreLogBuildImportPreview(
+            $matrix,
+            $mapping,
+            $payload,
+            $this->importRoster(),
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            [],
+            [],
+            true
+        );
+
+        $this->assertSame('preserved', $preview['rows'][0]['status']);
+        $this->assertEmpty($preview['updates']);
+        $this->assertSame('wouldOverwrite', $overwrite['rows'][0]['status']);
+        $this->assertSame('88', $overwrite['updates']['0000000001']['attainmentValue']);
+    }
+
+    public function testOverwriteModeTreatsBlankMappedCellsAsExplicitClears()
+    {
+        $mapping = [
+            'headerRow' => null,
+            'identifierColumn' => 0,
+            'identifierType' => 'name',
+            'scoreColumn' => 1,
+            'commentColumn' => 2,
+        ];
+        $preview = \scoreLogBuildImportPreview(
+            [['Ada Lovelace', '', '']],
+            $mapping,
+            [
+                'students' => [
+                    '0000000001' => ['attainmentValue' => '70', 'comment' => 'Manual'],
+                ],
+            ],
+            $this->importRoster(),
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            [],
+            [],
+            true
+        );
+
+        $this->assertSame('wouldClear', $preview['rows'][0]['status']);
+        $this->assertSame(['Score', 'Comment'], $preview['rows'][0]['clears']);
+        $this->assertSame('', $preview['updates']['0000000001']['attainmentValue']);
+        $this->assertSame('', $preview['updates']['0000000001']['comment']);
+    }
+
+    public function testPreviewHashChangesWhenSkippedRowOutcomeChanges()
+    {
+        $mapping = [
+            'headerRow' => null,
+            'identifierColumn' => 0,
+            'identifierType' => 'id',
+            'scoreColumn' => 1,
+            'commentColumn' => null,
+        ];
+        $first = \scoreLogBuildImportPreview(
+            [['999', '80']],
+            $mapping,
+            ['students' => []],
+            $this->importRoster(),
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            []
+        );
+        $second = \scoreLogBuildImportPreview(
+            [['998', '80']],
+            $mapping,
+            ['students' => []],
+            $this->importRoster(),
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            []
+        );
+
+        $this->assertSame($first['updates'], $second['updates']);
+        $this->assertNotSame(
+            \scoreLogImportPreviewHash($mapping, $first, 3),
+            \scoreLogImportPreviewHash($mapping, $second, 3)
+        );
+    }
+
+    public function testMultilineCommentsSurviveImportRoundTripUnchanged()
+    {
+        $mapping = [
+            'headerRow' => null,
+            'identifierColumn' => 0,
+            'identifierType' => 'name',
+            'scoreColumn' => 1,
+            'commentColumn' => 2,
+        ];
+        $comment = "First line\nSecond line";
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->fromArray(['Ada Lovelace', '88', $comment], null, 'A1');
+        $path = tempnam(sys_get_temp_dir(), 'scorelog-roundtrip-');
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
+        $parsed = \scoreLogParseImportFile($path, 'xlsx');
+        unlink($path);
+        $preview = \scoreLogBuildImportPreview(
+            $parsed['matrix'],
+            $mapping,
+            [
+                'students' => [
+                    '0000000001' => ['attainmentValue' => '88', 'comment' => $comment],
+                ],
+            ],
+            $this->importRoster(),
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            [],
+            [],
+            true
+        );
+
+        $this->assertSame($comment, $preview['rows'][0]['importComment']);
+        $this->assertSame('preserved', $preview['rows'][0]['status']);
+        $this->assertEmpty($preview['updates']);
+        $this->assertSame("AB\tC\nD", \scoreLogNormalizeImportComment(" A\x00B\tC\r\nD "));
+    }
+
+    public function testImportPreviewRejectsFormulaUnknownDuplicateAndAmbiguousRows()
+    {
+        $roster = $this->importRoster();
+        $roster[] = [
+            'gibbonPersonID' => '0000000003', 'studentID' => '0000000003',
+            'username' => 'ada2', 'preferredName' => 'Ada', 'surname' => 'Lovelace',
+        ];
+        $mapping = [
+            'headerRow' => null,
+            'identifierColumn' => 0,
+            'identifierType' => 'name',
+            'scoreColumn' => 1,
+            'commentColumn' => null,
+        ];
+        $preview = \scoreLogBuildImportPreview([
+            ['Ada Lovelace', '=1+1'],
+            ['Unknown Student', '80'],
+            ['Ada Lovelace', '85'],
+        ], $mapping, ['students' => []], $roster, ['numeric' => 'Y', 'usage' => 'Out of 100'], [], ['0:1' => true]);
+
+        $this->assertSame('ambiguous', $preview['rows'][0]['status']);
+        $this->assertSame('unknown', $preview['rows'][1]['status']);
+        $this->assertSame('ambiguous', $preview['rows'][2]['status']);
+
+        $unique = \scoreLogBuildImportPreview([
+            ['Ada Lovelace', '=1+1'],
+            ['Unknown Student', '80'],
+            ['Ada Lovelace', '85'],
+        ], $mapping, ['students' => []], $this->importRoster(), ['numeric' => 'Y', 'usage' => 'Out of 100'], [], ['0:1' => true]);
+
+        $this->assertSame('invalid', $unique['rows'][0]['status']);
+        $this->assertSame('unknown', $unique['rows'][1]['status']);
+        $this->assertSame('duplicate', $unique['rows'][2]['status']);
+    }
+
+    public function testPastedAndXlsxFormulaCellsAreFlaggedWithoutCalculation()
+    {
+        $paste = \scoreLogParseImportPaste("Ada Lovelace\t=1+1");
+        $this->assertTrue($paste['formulaCells']['0:1']);
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setCellValue('A1', 'Ada Lovelace');
+        $sheet->setCellValue('B1', '=1+1');
+        $path = tempnam(sys_get_temp_dir(), 'scorelog-import-');
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
+        $parsed = \scoreLogParseImportFile($path, 'xlsx');
+        unlink($path);
+
+        $this->assertTrue($parsed['formulaCells']['0:1']);
+        $this->assertSame('=1+1', $parsed['matrix'][0][1]);
+    }
+
+    public function testUtf8BomCsvParsesHeaderlessChineseData()
+    {
+        $path = tempnam(sys_get_temp_dir(), 'scorelog-csv-');
+        file_put_contents($path, "\xEF\xBB\xBF张三\t88\n李四\t92\n");
+        $parsed = \scoreLogParseImportFile($path, 'csv');
+        unlink($path);
+
+        $this->assertSame('张三', $parsed['matrix'][0][0]);
+        $this->assertSame('88', $parsed['matrix'][0][1]);
+    }
+
+    public function testChineseFullNamesMatchWithoutSpacesAndKeepDuplicatesAmbiguous()
+    {
+        $roster = [[
+            'gibbonPersonID' => '0000000010', 'studentID' => '0000000010',
+            'username' => 'zhangsan', 'preferredName' => '三', 'surname' => '张',
+        ]];
+        $mapping = [
+            'headerRow' => null,
+            'identifierColumn' => 0,
+            'identifierType' => 'name',
+            'scoreColumn' => 1,
+            'commentColumn' => null,
+        ];
+        $matched = \scoreLogBuildImportPreview(
+            [['张三', '88']],
+            $mapping,
+            ['students' => []],
+            $roster,
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            []
+        );
+
+        $duplicateRoster = array_merge($roster, [[
+            'gibbonPersonID' => '0000000011', 'studentID' => '0000000011',
+            'username' => 'zhangsan2', 'preferredName' => '三', 'surname' => '张',
+        ]]);
+        $ambiguous = \scoreLogBuildImportPreview(
+            [['张三', '88']],
+            $mapping,
+            ['students' => []],
+            $duplicateRoster,
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            []
+        );
+
+        $this->assertSame('wouldFill', $matched['rows'][0]['status']);
+        $this->assertSame('ambiguous', $ambiguous['rows'][0]['status']);
+    }
+
+    private function importRoster(): array
+    {
+        return [
+            [
+                'gibbonPersonID' => '0000000001', 'studentID' => '0000000001',
+                'username' => 'ada', 'preferredName' => 'Ada', 'surname' => 'Lovelace',
+            ],
+            [
+                'gibbonPersonID' => '0000000002', 'studentID' => '0000000002',
+                'username' => 'alan', 'preferredName' => 'Alan', 'surname' => 'Turing',
+            ],
+        ];
+    }
     }
 }

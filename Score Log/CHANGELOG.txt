@@ -1,6 +1,18 @@
 CHANGELOG
 =========
 
+v1.2.0
+------
+- Add CSV, XLSX and tab-separated paste import for score drafts.
+- Auto-detect student identifier and score columns, including headerless
+  two-column name/score and ID/score pastes.
+- Preview matched, unknown, ambiguous, duplicate, invalid and overwrite rows
+  before atomically applying changes to the private draft.
+- Preserve manual draft values by default and require confirmation to overwrite.
+- Reject spreadsheet formula cells without evaluating them.
+- Add a roster-based XLSX round-trip template prefilled with current draft
+  scores and comments.
+
 v1.1.0
 ------
 - Add private, resumable whole-class drafts with revision checks; core Formal
