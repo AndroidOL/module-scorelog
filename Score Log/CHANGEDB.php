@@ -4,6 +4,21 @@
 $sql = [];
 $count = 0;
 
+// v1.4.0
+$sql[$count][0] = "1.4.0";
+$sql[$count][1] = "CREATE TABLE IF NOT EXISTS `score_log_comment` (
+    `scoreLogCommentID` INT(10) UNSIGNED ZEROFILL NOT NULL AUTO_INCREMENT,
+    `gibbonPersonIDCreator` INT(10) UNSIGNED ZEROFILL NOT NULL,
+    `label` VARCHAR(80) NOT NULL,
+    `comment` TEXT NOT NULL,
+    `createTimestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updateTimestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`scoreLogCommentID`),
+    UNIQUE KEY `creatorLabel` (`gibbonPersonIDCreator`, `label`),
+    KEY `creator` (`gibbonPersonIDCreator`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;end";
+$count++;
+
 // v1.1.0
 $sql[$count][0] = "1.1.0";
 $sql[$count][1] = "CREATE TABLE IF NOT EXISTS `score_log_draft` (

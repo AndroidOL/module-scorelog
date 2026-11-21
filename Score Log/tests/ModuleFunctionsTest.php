@@ -963,6 +963,95 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringNotContainsString("role IN ('Teacher', 'Assistant', 'Technician')", $functions);
     }
 
+    public function testTeacherQuickEntryUsesCheckedStudentsPreviewAndRevisionBoundUndo()
+    {
+        $view = file_get_contents(dirname(__DIR__).'/scorelog_view.php');
+        $script = file_get_contents(dirname(__DIR__).'/js/module.js');
+
+        $this->assertIsString($view);
+        $this->assertIsString($script);
+        foreach ([
+            'scoreLogOnlyMissing',
+            'scoreLogNextMissing',
+            'scoreLogBulkValue',
+            'scoreLogBulkFill',
+            'scoreLogBulkClear',
+            'scoreLogBulkPreview',
+            'scoreLogBulkUndo',
+            'scoreLogStudentSelect',
+        ] as $controlID) {
+            $this->assertStringContainsString($controlID, $view);
+        }
+        $this->assertStringContainsString('name="revision"', $view);
+        $this->assertStringContainsString('focusNextMissing', $script);
+        $this->assertStringContainsString('checkedScoreRows', $script);
+        $this->assertStringContainsString('revisionInput.value', $script);
+        $this->assertStringContainsString("event.key.toLowerCase() === 'n'", $script);
+        $this->assertStringContainsString('invalidateUndoForRow', $script);
+    }
+
+    public function testPrivateCommentLibraryAndStructureReuseRemainDraftOnly()
+    {
+        $manifest = file_get_contents(dirname(__DIR__).'/manifest.php');
+        $changedb = file_get_contents(dirname(__DIR__).'/CHANGEDB.php');
+        $process = file_get_contents(dirname(__DIR__).'/scorelog_commentProcess.php');
+        $view = file_get_contents(dirname(__DIR__).'/scorelog_view.php');
+        $script = file_get_contents(dirname(__DIR__).'/js/module.js');
+        $version = file_get_contents(dirname(__DIR__).'/version.php');
+
+        foreach ([$manifest, $changedb, $process, $view, $script, $version] as $source) {
+            $this->assertIsString($source);
+        }
+        $this->assertStringContainsString("\$version     = '1.4.0'", $manifest);
+        $this->assertStringContainsString('"1.4.0"', $changedb);
+        $this->assertStringContainsString("\$moduleVersion = '1.4.0'", $version);
+        $this->assertStringContainsString('CREATE TABLE `score_log_comment`', $manifest);
+        $this->assertStringContainsString('CREATE TABLE IF NOT EXISTS `score_log_comment`', $changedb);
+        $this->assertStringContainsString('scorelog_comments.php', $manifest);
+        $this->assertStringContainsString('scorelog_commentManage.php', $manifest);
+        $this->assertStringContainsString('scorelog_commentProcess.php', $manifest);
+        $this->assertStringContainsString('validateCsrfToken', $process);
+        $this->assertStringContainsString('gibbonPersonIDCreator=:gibbonPersonID', $process);
+        $this->assertStringContainsString('window.scoreLogCommentLibrary', $view);
+        $this->assertStringContainsString('scoreLogCommentLibraryInsert', $view);
+        $this->assertStringContainsString('scoreLogStructureSource', $view);
+        $this->assertStringContainsString('data-name=', $view);
+        $this->assertStringContainsString('.scoreLogScoreInput, .scoreLogCommentEditor textarea', $script);
+        $this->assertStringContainsString('Assessment structure copied without scores or comments.', $view);
+    }
+
+    public function testPrivateCommentValidationRequiresLabelAndCommentLimits()
+    {
+        $valid = \scoreLogValidateComment([
+            'label' => ' Effort ',
+            'comment' => ' Consistent effort this term. ',
+        ]);
+        $missingLabel = \scoreLogValidateComment([
+            'label' => '',
+            'comment' => 'Comment',
+        ]);
+        $longLabel = \scoreLogValidateComment([
+            'label' => str_repeat('L', 81),
+            'comment' => 'Comment',
+        ]);
+        $missingComment = \scoreLogValidateComment([
+            'label' => 'Label',
+            'comment' => ' ',
+        ]);
+        $longComment = \scoreLogValidateComment([
+            'label' => 'Label',
+            'comment' => str_repeat('C', 1001),
+        ]);
+
+        $this->assertTrue($valid['valid']);
+        $this->assertSame('Effort', $valid['label']);
+        $this->assertSame('Consistent effort this term.', $valid['comment']);
+        $this->assertFalse($missingLabel['valid']);
+        $this->assertFalse($longLabel['valid']);
+        $this->assertFalse($missingComment['valid']);
+        $this->assertFalse($longComment['valid']);
+    }
+
     public function testImportAndTemplateAreBoundToOneExplicitAssessmentColumn()
     {
         $import = file_get_contents(dirname(__DIR__).'/scorelog_importProcess.php');

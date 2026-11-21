@@ -120,6 +120,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     max-width: 18rem;
 }
 
+.scoreLogQuickEntry {
+    display: grid;
+    gap: 0.55rem;
+    margin: 1rem 0;
+}
+
+.scoreLogQuickEntryRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+#scoreLogBulkValue,
+#scoreLogStructureSource {
+    flex: 1 1 14rem;
+    max-width: 22rem;
+}
+
 .scoreLogGridScroll {
     overflow-x: auto;
     margin: 1rem 0;
@@ -146,6 +165,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     z-index: 2;
     min-width: 13rem;
     max-width: 13rem;
+}
+
+.scoreLogGrid tbody tr[hidden] {
+    display: none;
 }
 
 .scoreLogGrid thead .scoreLogStudentColumn {
@@ -193,6 +216,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     margin-top: 0.35rem;
 }
 
+.scoreLogCommentLibraryRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+    margin-top: 0.35rem;
+}
+
 .scoreLogFormFooter {
     display: flex;
     flex-wrap: wrap;
@@ -212,6 +243,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     .scoreLogEditorTools select {
         width: 100%;
+        max-width: none;
+    }
+
+    #scoreLogBulkValue,
+    #scoreLogStructureSource {
         max-width: none;
     }
 

@@ -27,7 +27,13 @@ workflow that reads or changes score data.
 - Resolve every numeric or grade mark to an existing grade on the selected
   official Gibbon scale.
 - Add up to ten assessment columns with independent type, scale, date and visibility.
+- Move through missing scores with Enter or Alt+N and optionally show only
+  missing students in the selected assessment column.
+- Select students explicitly, preview affected counts, then bulk fill or clear
+  their score in the selected column with revision-bound undo.
+- Reuse a previous assessment's structure without copying scores or comments.
 - Save a private draft and resume it later without losing whole-class input.
+- Insert private reusable comments from a per-teacher comment library.
 - Open the dedicated Saved Drafts page to resume or discard private work.
 - Import scores from CSV, XLSX or a spreadsheet paste with mapping preview.
 - Review current-roster changes, invalid rows and missing scores before publishing.
@@ -48,6 +54,11 @@ scales and settings. Each save carries a revision number so a stale tab cannot o
 publishing re-resolve the current reportable roster; added and removed students
 are shown explicitly. Publishing always goes through a review page. A creator
 can permanently discard their own draft with a CSRF-protected POST.
+
+Bulk fill, clear and undo operate only on the live draft form. They do not
+write a Formal Assessment until the normal Review and Publish flow succeeds.
+Undo is discarded when the draft revision changes or a bulk-affected score is
+edited manually.
 
 Multi-assessment drafts share one class and roster but keep separate assessment
 names, types, scales, dates and visibility settings. Publish creates every
@@ -77,6 +88,17 @@ without evaluation, and rows are limited to 500 with a 2 MiB file limit.
 
 In a multi-assessment draft, every import and template download targets one
 explicitly selected assessment column.
+
+## Private comment library
+
+Each teacher can maintain private reusable comments from the Score Log header.
+Library records are creator-bound and can be inserted into any comment drawer
+in a draft. Adding, editing and deleting comments uses CSRF-protected POST
+actions.
+
+The structure-copy action copies an existing assessment's name, description,
+type, scale, date and visibility into a new draft column. Scores and comments
+are always cleared from the copied structure.
 
 The XLSX template is prefilled with the current draft scores and comments. When
 overwrite is enabled, deliberately blank score or comment cells clear those

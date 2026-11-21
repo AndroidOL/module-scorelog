@@ -988,3 +988,153 @@ msgstr "保存并导入成绩"
 
 msgid "Save and Export Current Scores"
 msgstr "保存并导出当前成绩"
+
+#: ⁨Score Log/scorelog_view.php⁩
+msgid "Quick score entry"
+msgstr "快捷录入"
+
+msgid "Only missing"
+msgstr "仅未填"
+
+msgid "Next Missing"
+msgstr "下一个未填"
+
+msgid "Bulk score or grade"
+msgstr "批量成绩或等级"
+
+msgid "Fill checked"
+msgstr "填充已勾选"
+
+msgid "Clear checked"
+msgstr "清除已勾选"
+
+msgid "Undo Bulk Change"
+msgstr "撤销批量修改"
+
+#, php-format
+msgid "Select %s"
+msgstr "选择 %s"
+
+msgid "Bulk score"
+msgstr "批量成绩"
+
+msgid "Bulk grade"
+msgstr "批量等级"
+
+msgid "Selected"
+msgstr "已选择"
+
+msgid "Fill will change"
+msgstr "填充将修改"
+
+msgid "Clear will change"
+msgstr "清除将修改"
+
+msgid "Select students to fill or clear."
+msgstr "请先勾选学生再填充或清除。"
+
+msgid "Bulk value is not in the selected scale."
+msgstr "批量值不在所选评分量表中。"
+
+msgid "The checked students already have these values."
+msgstr "已勾选学生已具有这些值。"
+
+msgid "Score values changed:"
+msgstr "已修改成绩数量："
+
+msgid "Draft revision changed; undo is no longer available."
+msgstr "草稿修订版本已变化，无法再撤销。"
+
+msgid "Bulk change undone."
+msgstr "已撤销批量修改。"
+
+msgid "A score changed after the bulk action; undo was cleared."
+msgstr "批量操作后成绩已被修改，撤销记录已清除。"
+
+msgid "No more missing scores in this assessment column."
+msgstr "当前评估列没有其他未填成绩。"
+
+msgid "Comment Library"
+msgstr "评语库"
+
+msgid "Edit Comment"
+msgstr "编辑评语"
+
+msgid "Edit"
+msgstr "编辑"
+
+msgid "Private Comment Library"
+msgstr "私有评语库"
+
+msgid "Only you can see and reuse these comments in your Score Log drafts."
+msgstr "这些评语仅您可见，并可在您的 Score Log 草稿中复用。"
+
+msgid "You do not have any reusable comments."
+msgstr "您没有可复用的评语。"
+
+msgid "Last Updated"
+msgstr "最后更新"
+
+msgid "Comment added to your private library."
+msgstr "评语已添加到您的私有评语库。"
+
+msgid "Comment updated."
+msgstr "评语已更新。"
+
+msgid "Comment deleted."
+msgstr "评语已删除。"
+
+msgid "The comment could not be saved. Check the label and comment text."
+msgstr "无法保存评语。请检查标签和评语内容。"
+
+msgid "Delete Comment"
+msgstr "删除评语"
+
+#, php-format
+msgid "Delete “%s” from your private comment library?"
+msgstr "是否从您的私有评语库删除“%s”？"
+
+msgid "Delete this reusable comment?"
+msgstr "确定删除这条可复用评语吗？"
+
+msgid "Comments in this library are private to you and can be inserted into any Score Log draft."
+msgstr "此评语库仅您可见，评语可插入任意 Score Log 草稿。"
+
+msgid "Label"
+msgstr "标签"
+
+msgid "A short name for finding this comment."
+msgstr "用于查找该评语的简短名称。"
+
+msgid "Choose from comment library"
+msgstr "从评语库选择"
+
+msgid "Choose from comment library..."
+msgstr "从评语库选择..."
+
+msgid "Use comment"
+msgstr "使用评语"
+
+msgid "Manage library"
+msgstr "管理评语库"
+
+msgid "Reuse assessment structure"
+msgstr "复用评估结构"
+
+msgid "Reuse assessment structure..."
+msgstr "复用评估结构..."
+
+msgid "Add Structure Copy"
+msgstr "添加结构副本"
+
+msgid "Copy"
+msgstr "副本"
+
+msgid "Choose an assessment structure to reuse."
+msgstr "请选择要复用的评估结构。"
+
+msgid "Assessment structure copied without scores or comments."
+msgstr "已复制评估结构，不包含成绩或评语。"
+
+msgid "No unused assessment column is available."
+msgstr "没有可用的空白评估列。"

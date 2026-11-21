@@ -25,7 +25,7 @@ $description = 'Quickly create internal assessments and enter student scores.'; 
 $entryURL    = "scorelog_view.php";   // The landing page for the unit, used in the main menu
 $type        = "Additional";  // Do not change.
 $category    = 'Other';            // The main menu area to place the module in
-$version     = '1.3.0';            // Version number
+$version     = '1.4.0';            // Version number
 $author      = 'Tianhao Wu';            // Your name
 $url         = 'https://gibbonedu.org';            // Your URL
 
@@ -43,6 +43,17 @@ $moduleTables[] = 'CREATE TABLE `score_log_draft` (
     KEY `creator` (`gibbonPersonIDCreator`),
     KEY `class` (`gibbonCourseClassID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;';
+$moduleTables[] = 'CREATE TABLE `score_log_comment` (
+    `scoreLogCommentID` INT(10) UNSIGNED ZEROFILL NOT NULL AUTO_INCREMENT,
+    `gibbonPersonIDCreator` INT(10) UNSIGNED ZEROFILL NOT NULL,
+    `label` VARCHAR(80) NOT NULL,
+    `comment` TEXT NOT NULL,
+    `createTimestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updateTimestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`scoreLogCommentID`),
+    UNIQUE KEY `creatorLabel` (`gibbonPersonIDCreator`, `label`),
+    KEY `creator` (`gibbonPersonIDCreator`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;';
 
 // Add gibbonSettings entries
 // $gibbonSetting[] = "";
@@ -53,7 +64,7 @@ $actionRows[] = [
     'precedence'                => '0',// If it is a grouped action, the precedence controls which is highest action in group
     'category'                  => 'Assessment', // Optional: subgroups for the right hand side module menu
     'description'               => 'Create an internal assessment and enter scores for a class.', // Text description
-    'URLList'                   => 'scorelog_view.php, scorelog_createProcess.php, scorelog_draftProcess.php, scorelog_discardProcess.php, scorelog_review.php, scorelog_publishProcess.php, scorelog_import.php, scorelog_importProcess.php, scorelog_importApplyProcess.php, scorelog_importTemplate.php, scorelog_drafts.php, scorelog_draftDelete.php', // List of pages included in this action
+    'URLList'                   => 'scorelog_view.php, scorelog_createProcess.php, scorelog_draftProcess.php, scorelog_discardProcess.php, scorelog_review.php, scorelog_publishProcess.php, scorelog_import.php, scorelog_importProcess.php, scorelog_importApplyProcess.php, scorelog_importTemplate.php, scorelog_drafts.php, scorelog_draftDelete.php, scorelog_comments.php, scorelog_commentManage.php, scorelog_commentProcess.php', // List of pages included in this action
     'entryURL'                  => 'scorelog_view.php', // The landing action for the page.
     'entrySidebar'              => 'Y', // Whether or not there's a sidebar on entry to the action
     'menuShow'                  => 'Y', // Whether or not this action shows up in menus or if it's hidden

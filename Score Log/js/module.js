@@ -26,11 +26,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     const toolColumnSelect = document.getElementById('scoreLogToolColumn');
     const topImportButton = document.getElementById('scoreLogTopImport');
     const topExportButton = document.getElementById('scoreLogTopExport');
+    const onlyMissingToggle = document.getElementById('scoreLogOnlyMissing');
+    const nextMissingButton = document.getElementById('scoreLogNextMissing');
+    const focusStatus = document.getElementById('scoreLogFocusStatus');
+    const bulkValueInput = document.getElementById('scoreLogBulkValue');
+    const bulkFillButton = document.getElementById('scoreLogBulkFill');
+    const bulkClearButton = document.getElementById('scoreLogBulkClear');
+    const bulkPreview = document.getElementById('scoreLogBulkPreview');
+    const bulkUndoButton = document.getElementById('scoreLogBulkUndo');
+    const bulkGrades = document.getElementById('scoreLogBulkGrades');
+    const structureSource = document.getElementById('scoreLogStructureSource');
+    const reuseStructureButton = document.getElementById('scoreLogReuseStructure');
+    const revisionInput = form.querySelector('input[name="revision"]');
     const scaleData = window.scoreLogScaleData || {};
     const gradeData = window.scoreLogImportScaleData || {};
+    const commentLibraryData = window.scoreLogCommentLibrary || [];
     const labels = window.scoreLogImportLabels || {};
     let columnOrder = (orderInput.value || '').split(',').filter(Boolean);
     let dirty = false;
+    let bulkUndo = null;
 
     const numericValue = (value) => {
         const normalized = String(value || '').trim().replace(/%$/, '');
@@ -44,6 +58,312 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         if (number === null) return false;
 
         return Object.keys(grades).some((gradeValue) => numericValue(gradeValue) === number);
+    };
+
+    const activeColumnID = () => {
+        const selected = toolColumnSelect ? toolColumnSelect.value : '';
+        return columnOrder.includes(selected) ? selected : (columnOrder[0] || '');
+    };
+
+    const scoreCellFor = (row, columnID) => Array.from(row.children)
+        .find((child) => child.getAttribute('data-column-id') === columnID) || null;
+
+    const scoreInputFor = (row, columnID) => {
+        const cell = scoreCellFor(row, columnID);
+        return cell ? cell.querySelector('.scoreLogScoreInput') : null;
+    };
+
+    const scoreRows = () => Array.from(document.querySelectorAll('#scoreLogGrid tbody tr[data-student-id]'));
+
+    const checkedScoreRows = () => scoreRows().filter((row) => {
+        const checkbox = row.querySelector('.scoreLogStudentSelect');
+        return checkbox && checkbox.checked;
+    });
+
+    const scoreIsValid = (value, scaleID) => {
+        value = String(value || '').trim();
+        if (value === '') return false;
+        const config = scaleData[scaleID] || {};
+        const grades = gradeData[scaleID] || {};
+        if (config.numeric === 'Y') {
+            const number = numericValue(value);
+            return number !== null
+                && number >= 0
+                && (config.max === null || config.max === undefined || number <= Number(config.max))
+                && matchesNumericGrade(value, grades);
+        }
+
+        return Object.prototype.hasOwnProperty.call(grades, value);
+    };
+
+    const setFocusStatus = (message) => {
+        if (focusStatus) focusStatus.textContent = message || '';
+    };
+
+    const updateUndoButton = () => {
+        if (!bulkUndoButton) return;
+        bulkUndoButton.hidden = !bulkUndo;
+        bulkUndoButton.disabled = false;
+        if (bulkUndo) {
+            bulkUndoButton.textContent = (labels.undoBulk || 'Undo Bulk Change')
+                + ' (' + bulkUndo.changes.length + ')';
+        }
+    };
+
+    const invalidateUndoForRow = (studentID) => {
+        if (!bulkUndo || !bulkUndo.changes.some((change) => change.studentID === studentID)) return;
+        bulkUndo = null;
+        updateUndoButton();
+        setFocusStatus(labels.undoInvalidated || 'A score changed after the bulk action; undo was cleared.');
+    };
+
+    const applyOnlyMissingView = () => {
+        const columnID = activeColumnID();
+        const scaleID = selectedScaleID(columnID);
+        const onlyMissing = !!(onlyMissingToggle && onlyMissingToggle.checked);
+        scoreRows().forEach((row) => {
+            const input = scoreInputFor(row, columnID);
+            row.hidden = onlyMissing && input && scoreIsValid(input.value, scaleID);
+        });
+        updateBulkPreview();
+    };
+
+    const updateBulkInput = () => {
+        if (!bulkValueInput) return;
+        const columnID = activeColumnID();
+        const scaleID = selectedScaleID(columnID);
+        const config = scaleData[scaleID] || {};
+        const grades = gradeData[scaleID] || {};
+        bulkValueInput.placeholder = config.numeric === 'Y'
+            ? (labels.bulkScore || 'Bulk score')
+            : (labels.bulkGrade || 'Bulk grade');
+        if (scaleID !== '') {
+            bulkValueInput.setAttribute('list', 'scoreLogBulkGrades');
+        } else {
+            bulkValueInput.removeAttribute('list');
+        }
+        if (bulkGrades) {
+            bulkGrades.textContent = '';
+            Object.entries(grades).forEach(([value, descriptor]) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = descriptor;
+                bulkGrades.appendChild(option);
+            });
+        }
+    };
+
+    const updateBulkPreview = () => {
+        if (!bulkPreview || !bulkFillButton || !bulkClearButton) return;
+        const columnID = activeColumnID();
+        const scaleID = selectedScaleID(columnID);
+        const selectedRows = checkedScoreRows();
+        const value = bulkValueInput ? bulkValueInput.value.trim() : '';
+        const valueValid = value === '' || scoreIsValid(value, scaleID);
+        let fillChanges = 0;
+        let clearChanges = 0;
+
+        selectedRows.forEach((row) => {
+            const input = scoreInputFor(row, columnID);
+            const current = input ? input.value.trim() : '';
+            if (valueValid && value !== '' && current !== value) fillChanges++;
+            if (current !== '') clearChanges++;
+        });
+
+        bulkFillButton.disabled = selectedRows.length === 0 || value === '' || !valueValid || fillChanges === 0;
+        bulkClearButton.disabled = selectedRows.length === 0 || clearChanges === 0;
+        if (selectedRows.length === 0) {
+            bulkPreview.textContent = labels.selectStudentsFirst || 'Select students to fill or clear.';
+            return;
+        }
+
+        const parts = [
+            (labels.selected || 'Selected') + ' ' + selectedRows.length,
+            (labels.fillWillChange || 'Fill will change') + ' ' + fillChanges,
+            (labels.clearWillChange || 'Clear will change') + ' ' + clearChanges,
+        ];
+        if (!valueValid) parts.push(labels.bulkValueInvalid || 'Bulk value is not in the selected scale.');
+        bulkPreview.textContent = parts.join(' · ');
+    };
+
+    const applyOnlyMissingViewAndFocus = () => {
+        applyOnlyMissingView();
+        if (onlyMissingToggle && onlyMissingToggle.checked) focusNextMissing();
+    };
+
+    const focusNextMissing = () => {
+        const focusedInput = document.activeElement && document.activeElement.closest
+            ? document.activeElement.closest('.scoreLogScoreInput')
+            : null;
+        const focusedCell = focusedInput ? focusedInput.closest('[data-column-id]') : null;
+        const columnID = focusedCell ? focusedCell.getAttribute('data-column-id') : activeColumnID();
+        if (toolColumnSelect && columnID && columnOrder.includes(columnID)) {
+            toolColumnSelect.value = columnID;
+        }
+        updateBulkInput();
+
+        const rows = scoreRows();
+        const currentRow = focusedInput ? focusedInput.closest('tr') : null;
+        const currentIndex = currentRow ? rows.indexOf(currentRow) : -1;
+        const candidates = rows.filter((row) => {
+            const input = scoreInputFor(row, columnID);
+            return input && !input.disabled && input.value.trim() === '';
+        });
+        const afterCurrent = candidates.find((row) => rows.indexOf(row) > currentIndex);
+        const nextRow = afterCurrent || candidates[0];
+
+        if (!nextRow) {
+            setFocusStatus(labels.noMissing || 'No more missing scores in this assessment column.');
+            updateBulkPreview();
+            return;
+        }
+
+        const nextInput = scoreInputFor(nextRow, columnID);
+        setFocusStatus('');
+        nextInput.focus();
+        nextInput.select();
+        updateBulkPreview();
+    };
+
+    const applyBulkChange = (mode) => {
+        const columnID = activeColumnID();
+        const scaleID = selectedScaleID(columnID);
+        const fillValue = bulkValueInput ? bulkValueInput.value.trim() : '';
+        if (mode === 'fill' && !scoreIsValid(fillValue, scaleID)) {
+            setFocusStatus(labels.bulkValueInvalid || 'Bulk value is not in the selected scale.');
+            updateBulkPreview();
+            return;
+        }
+
+        const changes = [];
+        checkedScoreRows().forEach((row) => {
+            const input = scoreInputFor(row, columnID);
+            if (!input) return;
+            const previous = input.value;
+            const next = mode === 'fill' ? fillValue : '';
+            if (previous === next) return;
+            changes.push({
+                studentID: row.getAttribute('data-student-id'),
+                previous,
+            });
+            input.value = next;
+        });
+
+        if (changes.length === 0) {
+            setFocusStatus(labels.noBulkChanges || 'The checked students already have these values.');
+            updateBulkPreview();
+            return;
+        }
+
+        bulkUndo = {
+            revision: revisionInput ? String(revisionInput.value) : '',
+            columnID,
+            changes,
+        };
+        dirty = true;
+        updateColumnProgress(columnID);
+        applyOnlyMissingView();
+        updateUndoButton();
+        updateBulkPreview();
+        setFocusStatus((labels.bulkChanged || 'Score values changed:') + ' ' + changes.length);
+    };
+
+    const undoBulkChange = () => {
+        if (!bulkUndo) return;
+        if (!revisionInput || String(revisionInput.value) !== bulkUndo.revision) {
+            bulkUndo = null;
+            updateUndoButton();
+            setFocusStatus(labels.undoUnavailable || 'Draft revision changed; undo is no longer available.');
+            return;
+        }
+
+        const restoredColumnID = bulkUndo.columnID;
+        bulkUndo.changes.forEach((change) => {
+            const row = scoreRows().find((candidate) => candidate.getAttribute('data-student-id') === change.studentID);
+            const input = row ? scoreInputFor(row, restoredColumnID) : null;
+            if (input) input.value = change.previous;
+        });
+        bulkUndo = null;
+        dirty = true;
+        updateColumnProgress(restoredColumnID);
+        applyOnlyMissingView();
+        updateUndoButton();
+        updateBulkPreview();
+        setFocusStatus(labels.undoComplete || 'Bulk change undone.');
+    };
+
+    const populateCommentLibrary = (select) => {
+        if (!select || select.dataset.libraryLoaded === 'Y') return;
+        commentLibraryData.forEach((comment) => {
+            const option = document.createElement('option');
+            option.value = String(comment.scoreLogCommentID || '');
+            option.textContent = comment.label || '';
+            option.dataset.comment = comment.comment || '';
+            select.appendChild(option);
+        });
+        select.dataset.libraryLoaded = 'Y';
+    };
+
+    const uniqueCopyName = (sourceName) => {
+        const base = String(sourceName || labels.assessment || 'Assessment').trim();
+        const suffixLabel = labels.copySuffix || 'Copy';
+        const usedNames = new Set(columnOrder.map((columnID) => columnName(columnID).trim().toLowerCase()));
+        let copyNumber = 1;
+
+        while (true) {
+            const suffix = ' (' + suffixLabel + (copyNumber > 1 ? ' ' + copyNumber : '') + ')';
+            const candidate = base.slice(0, Math.max(1, 30 - suffix.length)).trim() + suffix;
+            if (!usedNames.has(candidate.toLowerCase())) return candidate;
+            copyNumber++;
+        }
+    };
+
+    const reuseStructure = () => {
+        const option = structureSource && structureSource.selectedIndex >= 0
+            ? structureSource.options[structureSource.selectedIndex]
+            : null;
+        if (!option || option.value === '') {
+            setFocusStatus(labels.structureRequired || 'Choose an assessment structure to reuse.');
+            return;
+        }
+
+        const nextID = allColumnIDs.find((columnID) => !columnOrder.includes(columnID));
+        if (!nextID) {
+            setFocusStatus(labels.noStructureSlots || 'No unused assessment column is available.');
+            return;
+        }
+
+        setColumnVisible(nextID, true);
+        const header = elementsFor(nextID).find((element) => element.querySelector('input[name$="[name]"]'));
+        if (!header) return;
+
+        elementsFor(nextID).forEach((element) => {
+            element.querySelectorAll('.scoreLogScoreInput, .scoreLogCommentEditor textarea').forEach((input) => {
+                input.value = '';
+            });
+        });
+
+        const setField = (suffix, value) => {
+            const field = header.querySelector('[name$="'+suffix+'"]');
+            if (field && value !== undefined && value !== null) field.value = value;
+        };
+        setField('[name]', uniqueCopyName(option.dataset.name));
+        setField('[description]', option.dataset.description || '');
+        setField('[type]', option.dataset.type || '');
+        setField('[scaleID]', option.dataset.scaleId || '');
+        setField('[completeDate]', option.dataset.completeDate || '');
+        setField('[viewableStudents]', option.dataset.viewableStudents || 'Y');
+        setField('[viewableParents]', option.dataset.viewableParents || 'Y');
+
+        columnOrder.push(nextID);
+        if (toolColumnSelect) toolColumnSelect.value = nextID;
+        reorderDOMColumns();
+        updateOrder();
+        updateStickyHeader(nextID);
+        updateColumnProgress(nextID);
+        applyOnlyMissingView();
+        dirty = true;
+        setFocusStatus(labels.structureAdded || 'Assessment structure copied without scores or comments.');
     };
 
     const allColumnIDs = Array.from(document.querySelectorAll('#scoreLogGrid [data-column-id]'))
@@ -61,6 +381,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             const column = button.closest('[data-column-id]');
             button.disabled = columnOrder.length <= 1 || (column && column.hidden);
         });
+        updateBulkInput();
+        updateBulkPreview();
     };
 
     const columnName = (columnID) => {
@@ -136,8 +458,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     const updateColumnProgress = (columnID) => {
         const scaleID = selectedScaleID(columnID);
-        const config = scaleData[scaleID] || {};
-        const grades = gradeData[scaleID] || {};
         let entered = 0;
         let missing = 0;
         let invalid = 0;
@@ -153,16 +473,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 return;
             }
 
-            let rowInvalid = false;
-            if (config.numeric === 'Y') {
-                const number = numericValue(value);
-                rowInvalid = number === null
-                    || number < 0
-                    || (config.max !== null && config.max !== undefined && number > Number(config.max))
-                    || !matchesNumericGrade(value, grades);
-            } else {
-                rowInvalid = !Object.prototype.hasOwnProperty.call(grades, value);
-            }
+            const rowInvalid = !scoreIsValid(value, scaleID);
 
             if (rowInvalid) invalid++;
             else entered++;
@@ -206,6 +517,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     };
 
     form.addEventListener('click', (event) => {
+        const commentInsertButton = event.target.closest('.scoreLogCommentLibraryInsert');
+        if (commentInsertButton) {
+            const editor = commentInsertButton.closest('.scoreLogCommentEditor');
+            const select = editor ? editor.querySelector('.scoreLogCommentLibrarySelect') : null;
+            const textarea = editor ? editor.querySelector('textarea') : null;
+            populateCommentLibrary(select);
+            const option = select && select.selectedIndex >= 0 ? select.options[select.selectedIndex] : null;
+            if (textarea && option && option.dataset.comment !== undefined && option.dataset.comment !== '') {
+                textarea.value = option.dataset.comment;
+                textarea.dispatchEvent(new Event('input', {bubbles: true}));
+                textarea.focus();
+            }
+            return;
+        }
+
         const toolButton = event.target.closest('.scoreLogColumnTool');
         if (toolButton) {
             submitTopTool(toolButton.dataset.actionName, toolButton.value);
@@ -257,6 +583,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     });
 
     form.addEventListener('input', (event) => {
+        if (event.target === bulkValueInput) {
+            updateBulkPreview();
+            return;
+        }
+
         dirty = true;
         if (event.target.classList.contains('scoreLogNameInput')) {
             const column = event.target.closest('[data-column-id]');
@@ -268,7 +599,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         }
         if (event.target.classList.contains('scoreLogScoreInput')) {
             const column = event.target.closest('[data-column-id]');
+            const row = event.target.closest('tr[data-student-id]');
+            if (row) invalidateUndoForRow(row.getAttribute('data-student-id'));
             if (column) updateColumnProgress(column.getAttribute('data-column-id'));
+            updateBulkPreview();
         }
         if (event.target.matches('.scoreLogCommentEditor textarea')) {
             const editor = event.target.closest('.scoreLogCommentEditor');
@@ -281,6 +615,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     });
 
     form.addEventListener('change', (event) => {
+        if (event.target === onlyMissingToggle) {
+            applyOnlyMissingViewAndFocus();
+            return;
+        }
+        if (event.target.classList.contains('scoreLogStudentSelect')) {
+            updateBulkPreview();
+            return;
+        }
+        if (event.target === toolColumnSelect) {
+            updateBulkInput();
+            applyOnlyMissingView();
+            updateBulkPreview();
+            return;
+        }
+        if (event.target === bulkValueInput) {
+            updateBulkPreview();
+            return;
+        }
+
         dirty = true;
         if (event.target.classList.contains('scoreLogScaleSelect')) {
             const column = event.target.closest('[data-column-id]');
@@ -288,7 +641,47 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 const columnID = column.getAttribute('data-column-id');
                 updateStickyHeader(columnID);
                 updateColumnProgress(columnID);
+                updateBulkInput();
+                updateBulkPreview();
             }
+        }
+    });
+
+    form.addEventListener('focusin', (event) => {
+        const scoreInput = event.target.closest('.scoreLogScoreInput');
+        if (!scoreInput) return;
+        const cell = scoreInput.closest('[data-column-id]');
+        const columnID = cell ? cell.getAttribute('data-column-id') : '';
+        if (toolColumnSelect && columnID && columnOrder.includes(columnID)) {
+            toolColumnSelect.value = columnID;
+            updateBulkInput();
+            updateBulkPreview();
+        }
+    });
+
+    form.addEventListener('focusout', (event) => {
+        if (!event.target.classList.contains('scoreLogScoreInput') || !onlyMissingToggle) return;
+        window.setTimeout(() => {
+            if (onlyMissingToggle.checked) applyOnlyMissingView();
+        }, 0);
+    });
+
+    form.addEventListener('keydown', (event) => {
+        if (event.altKey && event.key.toLowerCase() === 'n') {
+            event.preventDefault();
+            focusNextMissing();
+            return;
+        }
+        if (
+            event.key === 'Enter'
+            && !event.shiftKey
+            && !event.altKey
+            && !event.ctrlKey
+            && !event.metaKey
+            && event.target.classList.contains('scoreLogScoreInput')
+        ) {
+            event.preventDefault();
+            focusNextMissing();
         }
     });
 
@@ -311,10 +704,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     if (topExportButton) {
         topExportButton.addEventListener('click', () => submitTopTool('exportColumnID'));
     }
+    if (nextMissingButton) {
+        nextMissingButton.addEventListener('click', focusNextMissing);
+    }
+    if (bulkFillButton) {
+        bulkFillButton.addEventListener('click', () => applyBulkChange('fill'));
+    }
+    if (bulkClearButton) {
+        bulkClearButton.addEventListener('click', () => applyBulkChange('clear'));
+    }
+    if (bulkUndoButton) {
+        bulkUndoButton.addEventListener('click', undoBulkChange);
+    }
+    if (reuseStructureButton) {
+        reuseStructureButton.addEventListener('click', reuseStructure);
+    }
 
     form.querySelectorAll('.scoreLogCommentEditor').forEach((editor) => {
         editor.addEventListener('toggle', () => {
             if (editor.open) {
+                populateCommentLibrary(editor.querySelector('.scoreLogCommentLibrarySelect'));
                 const textarea = editor.querySelector('textarea');
                 if (textarea) textarea.focus();
             }
@@ -332,6 +741,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     updateOrder();
     updateAllProgress();
+    updateBulkInput();
+    applyOnlyMissingView();
+    updateBulkPreview();
     };
 
     if (document.readyState === 'loading') {

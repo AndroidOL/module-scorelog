@@ -293,6 +293,21 @@ function scoreLogInputString(array $input, string $key): string
     return is_scalar($input[$key] ?? null) ? trim((string) $input[$key]) : '';
 }
 
+function scoreLogValidateComment(array $input): array
+{
+    $label = scoreLogInputString($input, 'label');
+    $comment = is_scalar($input['comment'] ?? null) ? trim((string) $input['comment']) : '';
+
+    return [
+        'valid' => $label !== ''
+            && mb_strlen($label) <= 80
+            && $comment !== ''
+            && mb_strlen($comment) <= 1000,
+        'label' => $label,
+        'comment' => $comment,
+    ];
+}
+
 function scoreLogSamePersonID($left, $right): bool
 {
     if (!is_scalar($left) || !is_scalar($right)

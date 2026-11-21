@@ -1,6 +1,16 @@
 CHANGELOG
 =========
 
+v1.4.0
+------
+- Add Next Missing navigation with Alt+N and Enter shortcuts, active-column
+  selection and an Only Missing row filter.
+- Add selected-student bulk fill and clear with live affected-count preview,
+  manual-edit invalidation and revision-bound undo.
+- Add a private reusable comment library with creator-bound add, edit and
+  delete actions plus in-drawer comment insertion.
+- Reuse a previous assessment's structure without copying scores or comments.
+
 v1.3.0
 ------
 - Add a multi-assessment entry grid with 1–10 independently configured

@@ -3,8 +3,8 @@
 Audited against Gibbon `31.0.00` on 2026-11-21.
 
 Score Log is a workflow layer over the official Formal Assessment tables. It
-does not create or alter formal-assessment schema. The only module-owned table
-is `score_log_draft`.
+does not create or alter formal-assessment schema. Its private state is limited
+to module-owned `score_log_draft` and `score_log_comment` tables.
 
 ## Core column mapping
 
@@ -79,8 +79,10 @@ official Gibbon form classes, the server uses Gibbon's `Validator` and CSRF
 tokens, and its persistence follows the same SQL shape as the official
 Formal Assessment processes.
 
-The private draft remains entirely module-owned. No draft is visible to Formal
-Assessment, reports, students or parents until an atomic publication succeeds.
+The private draft and comment library remain entirely module-owned. Reusing an
+assessment structure copies only configuration fields and never copies scores
+or comments. No draft is visible to Formal Assessment, reports, students or
+parents until an atomic publication succeeds.
 
 ## Verification status
 
