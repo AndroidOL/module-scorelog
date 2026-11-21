@@ -27,7 +27,7 @@ use Gibbon\Tables\DataTable;
 
 require_once __DIR__.'/moduleFunctions.php';
 
-$page->breadcrumbs->add(scoreLogT('Create Internal Assessment'));
+$page->breadcrumbs->add(scoreLogT('Create Internal Assessment'), 'scorelog_view.php');
 
 $page->return->addReturns([
     'success0' => scoreLogT('Assessment published.'),
@@ -63,15 +63,13 @@ $settingGateway = $container->get(SettingGateway::class);
 $allowedTypes = scoreLogAllowedTypes($settingGateway->getSettingByScope('Formal Assessment', 'internalAssessmentTypes'));
 $defaultType = $allowedTypes[0] ?? 'Assessment';
 
-$draftActions = Form::createBlank('scoreLogDraftNavigation');
-$draftActions->addHeaderAction('savedDrafts', scoreLogT('Saved Drafts'))
+// Select an existing private draft or start a new one.
+if ($scoreLogDraftID === '' && ($gibbonCourseClassID === '' || $gibbonScaleIDAttainment === '')) {
+    $page->navigator->addHeaderAction('savedDrafts', scoreLogT('Saved Drafts'))
     ->setURL('/modules/Score Log/scorelog_drafts.php')
     ->setIcon('markbook')
     ->displayLabel();
-$page->write($draftActions->getOutput());
 
-// Select an existing private draft or start a new one.
-if ($scoreLogDraftID === '' && ($gibbonCourseClassID === '' || $gibbonScaleIDAttainment === '')) {
     $draftRows = [];
     $drafts = $pdo->select(
         "SELECT d.scoreLogDraftID, d.gibbonCourseClassID, d.revision, d.payload, d.updateTimestamp,
@@ -190,6 +188,10 @@ if ($scoreLogDraftID === '' && ($gibbonCourseClassID === '' || $gibbonScaleIDAtt
 }
 
 if ($scoreLogDraftID !== '') {
+    $page->breadcrumbs
+        ->add(scoreLogT('Saved Drafts'), 'scorelog_drafts.php')
+        ->add(scoreLogT('Edit Draft'));
+
     $draft = scoreLogLoadDraft($pdo, $scoreLogDraftID, $gibbonPersonID);
     if (
         empty($draft)
@@ -292,6 +294,9 @@ $form = Form::create(
 );
 $form->setFactory(DatabaseFormFactory::create($pdo));
 $form->setTitle($scoreLogDraftID !== '' ? scoreLogT('Edit Draft') : scoreLogT('Create Internal Assessment'));
+if ($scoreLogDraftID !== '') {
+    $form->setDescription(scoreLogT('Export the current scores, edit the XLSX file, then import it back. Import changes are previewed before they are applied.'));
+}
 $form->addHiddenValue('scoreLogDraftID', $scoreLogDraftID);
 $form->addHiddenValue('revision', (string) $revision);
 $form->addHiddenValue('gibbonCourseClassID', $gibbonCourseClassID);
@@ -305,21 +310,25 @@ if ($scoreLogDraftID !== '') {
     ))->wrap('<div class="text-sm text-gray-600">', '</div>');
 }
 
-if (isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write.php')) {
-    $form->addHeaderAction('viewMarks', scoreLogT('View Marks'))
-        ->setURL('/modules/Formal Assessment/internalAssessment_write.php')
-        ->addParam('gibbonCourseClassID', $gibbonCourseClassID)
-        ->setIcon('markbook')
-        ->displayLabel()
-        ->prepend(' | ');
-}
 if ($scoreLogDraftID !== '') {
-    $form->addHeaderAction('importScores', scoreLogT('Import Scores'))
+    $page->navigator->addHeaderAction('importScores', scoreLogT('Import Scores'))
         ->setURL('/modules/Score Log/scorelog_import.php')
         ->addParam('draftID', $scoreLogDraftID)
         ->setIcon('upload')
-        ->displayLabel()
-        ->prepend(' | ');
+        ->displayLabel();
+    $page->navigator->addHeaderAction('exportCurrentScores', scoreLogT('Export Current Scores (XLSX)'))
+        ->setURL('/modules/Score Log/scorelog_importTemplate.php')
+        ->addParam('draftID', $scoreLogDraftID)
+        ->setIcon('download')
+        ->directLink()
+        ->displayLabel();
+}
+if (isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write.php')) {
+    $page->navigator->addHeaderAction('viewMarks', scoreLogT('View Marks'))
+        ->setURL('/modules/Formal Assessment/internalAssessment_write.php')
+        ->addParam('gibbonCourseClassID', $gibbonCourseClassID)
+        ->setIcon('markbook')
+        ->displayLabel();
 }
 
 $row = $form->addRow();
@@ -345,13 +354,15 @@ if (!empty($allowedTypes)) {
 }
 
 $form->addRow()->addHeading('Students', scoreLogT('Students'));
-$table = $form->addRow()->addTable()->setClass('smallIntBorder w-full colorOddEven noMargin noPadding noBorder');
+$table = $form->addRow()->addTable()
+    ->setClass('scoreLogEntryTable w-full')
+    ->setAttribute('aria-label', scoreLogT('Students').' — '.scoreLogT('Score').' / '.scoreLogT('Comment'));
 $header = $table->addHeaderRow();
-$header->addTableCell(scoreLogT('Student'))->rowSpan(2);
-$header->addTableCell($scale['name'])->setTitle($scale['usage'])->setClass('textCenter')->colSpan(2);
+$header->addTableCell(scoreLogT('Student'))->rowSpan(2)->setClass('scoreLogStudentColumn');
+$header->addTableCell($scale['name'])->setTitle($scale['usage'])->setClass('scoreLogScaleHeader textCenter')->colSpan(2);
 $header = $table->addHeaderRow();
-$header->addContent(scoreLogT('Score'))->setClass('textCenter');
-$header->addContent(scoreLogT('Comment'))->setClass('textCenter');
+$header->addContent(scoreLogT('Score'))->setClass('scoreLogScoreColumn textCenter');
+$header->addContent(scoreLogT('Comment'))->setClass('scoreLogCommentColumn textCenter');
 
 $defaultComment = scoreLogDefaultComment($scale['name']);
 $maxScore = scoreLogMaxScoreFromUsage($scale['usage']);
@@ -366,28 +377,40 @@ foreach ($roster as $index => $student) {
     if (isset($diff['added'][$studentID])) {
         $name .= ' ('.scoreLogT('New').')';
     }
-    $row->addContent(htmlPrep($name))->wrap('<strong>', '</strong>');
+    $row->addContent(htmlPrep($name))->setClass('scoreLogStudentCell')->wrap('<strong>', '</strong>');
 
     if ($scale['numeric'] === 'N') {
         $selectedGrade = $savedValue !== '' ? $savedValue : $defaultGrade;
-        $row->addSelectGradeScaleGrade('score-'.$studentID, $gibbonScaleIDAttainment)
+        $input = $row->addSelectGradeScaleGrade('score-'.$studentID, $gibbonScaleIDAttainment)
             ->selected($selectedGrade)
-            ->setClass('textCenter gradeSelect');
+            ->setClass('textCenter gradeSelect')
+            ->setAttribute('aria-label', scoreLogT('Score'));
     } else {
         $input = $row->addNumber('score-'.$studentID)
             ->onlyInteger(false)
             ->decimalPlaces(1)
             ->step(0.5)
-            ->setValue($savedValue);
+            ->setValue($savedValue)
+            ->setAttribute('aria-label', scoreLogT('Score'));
         if ($maxScore !== null) {
             $input->minimum(0)->maximum($maxScore);
         }
     }
+    $input->addClass('scoreLogScoreCell')->wrap(
+        '<div class="scoreLogEntryField"><span class="scoreLogEntryFieldLabel">'.scoreLogT('Score').'</span>',
+        '</div>'
+    );
 
     $row->addTextArea('comment-'.$studentID)
         ->setRows(2)
         ->maxLength(1000)
-        ->setValue($savedComment);
+        ->setValue($savedComment)
+        ->setClass('scoreLogCommentCell')
+        ->setAttribute('aria-label', scoreLogT('Comment'))
+        ->wrap(
+            '<div class="scoreLogEntryField"><span class="scoreLogEntryFieldLabel">'.scoreLogT('Comment').'</span>',
+            '</div>'
+        );
 }
 
 $form->addRow()->addHeading('Publish Settings', scoreLogT('Publish Settings'));

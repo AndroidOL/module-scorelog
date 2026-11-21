@@ -193,6 +193,14 @@ msgstr "已录入"
 msgid "Existing"
 msgstr "现有值"
 
+msgid ""
+"Export the current scores, edit the XLSX file, then import it back. Import "
+"changes are previewed before they are applied."
+msgstr "导出当前成绩，编辑 XLSX 文件后再导入。导入的变更会先预览，确认后才会应用。"
+
+msgid "Export Current Scores (XLSX)"
+msgstr "导出当前成绩（XLSX）"
+
 #, php-format
 msgid "Extra unmapped columns ignored: %s."
 msgstr "已忽略的未映射额外列：%s。"
