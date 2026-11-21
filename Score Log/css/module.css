@@ -105,7 +105,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .scoreLogEditorHeader h2 {
     margin-top: 0;
-    margin-bottom: 0.35rem;
 }
 
 .scoreLogEditorTools {
@@ -124,30 +123,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 .scoreLogGridScroll {
     overflow-x: auto;
     margin: 1rem 0;
-    border: 1px solid #cbd5e1;
-    border-radius: 0.5rem;
 }
 
 .scoreLogGrid {
+    width: 100%;
     min-width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-.scoreLogGrid th,
-.scoreLogGrid td {
-    padding: 0.45rem;
-    border-right: 1px solid #e2e8f0;
-    border-bottom: 1px solid #e2e8f0;
-    text-align: left;
-    vertical-align: top;
 }
 
 .scoreLogGrid thead th {
     position: sticky;
     top: 0;
     z-index: 3;
-    background: #f8fafc;
 }
 
 .scoreLogGrid .scoreLogConfigRow th {
@@ -160,7 +146,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     z-index: 2;
     min-width: 13rem;
     max-width: 13rem;
-    background: #f8fafc;
 }
 
 .scoreLogGrid thead .scoreLogStudentColumn {
@@ -183,22 +168,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     min-width: 0;
 }
 
-.scoreLogColumnProgress {
-    color: #475569;
-    font-size: 0.76rem;
-    font-weight: 600;
-}
-
 .scoreLogColumnButtons {
     display: flex;
     flex-wrap: wrap;
     gap: 0.3rem;
     align-items: center;
-}
-
-.scoreLogColumnButtons button,
-.scoreLogColumnButtons a {
-    font-size: 0.72rem;
 }
 
 .scoreLogScoreInput {
@@ -207,15 +181,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 }
 
 .scoreLogCommentEditor summary {
-    color: #1d4ed8;
     cursor: pointer;
-    font-size: 0.76rem;
 }
 
 .scoreLogCommentEditor.hasComment summary::after {
     content: " •";
-    color: #b45309;
-    font-weight: 700;
 }
 
 .scoreLogCommentEditor textarea {
@@ -228,6 +198,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     flex-wrap: wrap;
     gap: 0.6rem;
     margin: 1rem 0;
+}
+
+@media (max-width: 767px) {
+    .scoreLogEditorHeader {
+        flex-direction: column;
+    }
+
+    .scoreLogEditorTools {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .scoreLogEditorTools select {
+        width: 100%;
+        max-width: none;
+    }
+
+    .scoreLogGrid .scoreLogStudentColumn {
+        min-width: 10rem;
+        max-width: 10rem;
+    }
 }
 
 .schoolCommunityImportSummary,

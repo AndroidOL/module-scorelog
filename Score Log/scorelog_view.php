@@ -356,65 +356,65 @@ if ($scoreLogDraftID !== '') {
     ).'</p>';
 }
 echo '</div><div class="scoreLogEditorTools">'
-    .'<select id="scoreLogToolColumn" aria-label="'.htmlPrep(scoreLogT('Assessment')).'">';
+    .'<select id="scoreLogToolColumn" class="w-full min-w-16 border py-2 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" aria-label="'.htmlPrep(scoreLogT('Assessment')).'">';
 foreach (array_slice($columnOrder, 0, $initialColumnCount) as $columnID) {
     $name = trim((string) ($payload['columns'][$columnID]['name'] ?? '')) ?: scoreLogT('Assessment');
     echo '<option value="'.htmlPrep($columnID).'">'.htmlPrep($name).'</option>';
 }
 echo '</select>'
-    .'<button type="button" id="scoreLogTopImport" class="button button-secondary">'.scoreLogT('Import Scores').'</button>'
-    .'<button type="button" id="scoreLogTopExport" class="button button-secondary">'.scoreLogT('Export Current Scores (XLSX)').'</button>'
+    .'<button type="button" id="scoreLogTopImport" class="button">'.scoreLogT('Import Scores').'</button>'
+    .'<button type="button" id="scoreLogTopExport" class="button">'.scoreLogT('Export Current Scores (XLSX)').'</button>'
     .'<button type="button" id="scoreLogAddColumn" class="button">'.scoreLogT('Add Assessment Column').'</button>'
     .'</div></div>';
 
-echo '<div class="scoreLogGridScroll"><table class="scoreLogGrid" id="scoreLogGrid"><thead>';
-echo '<tr class="scoreLogConfigRow"><th class="scoreLogStudentColumn">'.scoreLogT('Student').'</th>';
+echo '<div class="scoreLogGridScroll"><table class="smallIntBorder w-full colorOddEven noMargin noPadding noBorder scoreLogGrid" id="scoreLogGrid"><thead>';
+echo '<tr class="scoreLogConfigRow"><th class="scoreLogStudentColumn bg-gray-50">'.scoreLogT('Student').'</th>';
 foreach ($columnOrder as $index => $columnID) {
     $column = $payload['columns'][$columnID];
     $hidden = $index >= $initialColumnCount;
-    echo '<th class="scoreLogAssessmentColumn" data-column-id="'.htmlPrep($columnID).'"'.($hidden ? ' hidden' : '').'>';
+    echo '<th class="scoreLogAssessmentColumn bg-gray-50" data-column-id="'.htmlPrep($columnID).'"'.($hidden ? ' hidden' : '').'>';
     echo '<div class="scoreLogColumnConfig">';
-    echo '<input type="text" aria-label="'.htmlPrep(scoreLogT('Assessment Name')).'" class="scoreLogNameInput" name="columns['.htmlPrep($columnID).'][name]" value="'.htmlPrep((string) $column['name']).'" maxlength="30" placeholder="'.htmlPrep(scoreLogT('Assessment Name')).'"'.($hidden ? ' disabled' : '').'>';
-    echo '<input type="text" aria-label="'.htmlPrep(scoreLogT('Description')).'" name="columns['.htmlPrep($columnID).'][description]" value="'.htmlPrep((string) $column['description']).'" maxlength="1000" placeholder="'.htmlPrep(scoreLogT('Description')).'"'.($hidden ? ' disabled' : '').'>';
-    echo '<select aria-label="'.htmlPrep(scoreLogT('Type')).'" name="columns['.htmlPrep($columnID).'][type]"'.($hidden ? ' disabled' : '').'>';
+    echo '<input type="text" aria-label="'.htmlPrep(scoreLogT('Assessment Name')).'" class="scoreLogNameInput w-full rounded-md border py-2 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" name="columns['.htmlPrep($columnID).'][name]" value="'.htmlPrep((string) $column['name']).'" maxlength="30" placeholder="'.htmlPrep(scoreLogT('Assessment Name')).'"'.($hidden ? ' disabled' : '').'>';
+    echo '<input type="text" aria-label="'.htmlPrep(scoreLogT('Description')).'" class="w-full rounded-md border py-2 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" name="columns['.htmlPrep($columnID).'][description]" value="'.htmlPrep((string) $column['description']).'" maxlength="1000" placeholder="'.htmlPrep(scoreLogT('Description')).'"'.($hidden ? ' disabled' : '').'>';
+    echo '<select aria-label="'.htmlPrep(scoreLogT('Type')).'" class="w-full min-w-16 border py-2 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" name="columns['.htmlPrep($columnID).'][type]"'.($hidden ? ' disabled' : '').'>';
     foreach (($allowedTypes ?: [$defaultType]) as $typeOption) {
         echo '<option value="'.htmlPrep($typeOption).'"'.($typeOption === ($column['type'] ?? '') ? ' selected' : '').'>'.htmlPrep($typeOption).'</option>';
     }
     echo '</select>';
-    echo '<select aria-label="'.htmlPrep(scoreLogT('Assessment Scale')).'" class="scoreLogScaleSelect" name="columns['.htmlPrep($columnID).'][scaleID]"'.($hidden ? ' disabled' : '').'>';
+    echo '<select aria-label="'.htmlPrep(scoreLogT('Assessment Scale')).'" class="scoreLogScaleSelect w-full min-w-16 border py-2 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" name="columns['.htmlPrep($columnID).'][scaleID]"'.($hidden ? ' disabled' : '').'>';
     foreach ($scaleOptions as $scaleID => $scaleName) {
         echo '<option value="'.htmlPrep($scaleID).'"'.((string) $scaleID === (string) ($column['scaleID'] ?? '') ? ' selected' : '').'>'.htmlPrep($scaleName).'</option>';
     }
     echo '</select>';
-    echo '<input type="date" aria-label="'.htmlPrep(scoreLogT('Assessment Date')).'" name="columns['.htmlPrep($columnID).'][completeDate]" value="'.htmlPrep((string) ($column['completeDate'] ?? '')).'"'.($hidden ? ' disabled' : '').'>';
-    echo '<select aria-label="'.htmlPrep(scoreLogT('Viewable to Students')).'" name="columns['.htmlPrep($columnID).'][viewableStudents]"'.($hidden ? ' disabled' : '').'>';
+    echo '<input type="date" aria-label="'.htmlPrep(scoreLogT('Assessment Date')).'" class="w-full rounded-md border py-2 text-gray-900 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" name="columns['.htmlPrep($columnID).'][completeDate]" value="'.htmlPrep((string) ($column['completeDate'] ?? '')).'"'.($hidden ? ' disabled' : '').'>';
+    echo '<select aria-label="'.htmlPrep(scoreLogT('Viewable to Students')).'" class="w-full min-w-16 border py-2 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" name="columns['.htmlPrep($columnID).'][viewableStudents]"'.($hidden ? ' disabled' : '').'>';
     echo '<option value="Y"'.(($column['viewableStudents'] ?? 'Y') === 'Y' ? ' selected' : '').'>'.scoreLogT('Students Visible').'</option>';
     echo '<option value="N"'.(($column['viewableStudents'] ?? 'Y') === 'N' ? ' selected' : '').'>'.scoreLogT('Students Hidden').'</option>';
     echo '</select>';
-    echo '<select aria-label="'.htmlPrep(scoreLogT('Viewable to Parents')).'" name="columns['.htmlPrep($columnID).'][viewableParents]"'.($hidden ? ' disabled' : '').'>';
+    echo '<select aria-label="'.htmlPrep(scoreLogT('Viewable to Parents')).'" class="w-full min-w-16 border py-2 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" name="columns['.htmlPrep($columnID).'][viewableParents]"'.($hidden ? ' disabled' : '').'>';
     echo '<option value="Y"'.(($column['viewableParents'] ?? 'Y') === 'Y' ? ' selected' : '').'>'.scoreLogT('Parents Visible').'</option>';
     echo '<option value="N"'.(($column['viewableParents'] ?? 'Y') === 'N' ? ' selected' : '').'>'.scoreLogT('Parents Hidden').'</option>';
     echo '</select>';
-    echo '<div class="scoreLogColumnProgress" data-column-progress>'
+    echo '<div class="scoreLogColumnProgress text-xs font-semibold text-gray-600" data-column-progress>'
         .scoreLogT('Entered').' '.$columnCounts[$columnID]['entered'].' / '
         .scoreLogT('Missing').' '.$columnCounts[$columnID]['missing'].' / '
         .scoreLogT('Invalid').' '.$columnCounts[$columnID]['invalid']
         .'</div>';
     echo '<div class="scoreLogColumnButtons">';
-    echo '<button type="button" class="scoreLogMoveColumn" data-direction="-1"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Move Left').'</button>';
-    echo '<button type="button" class="scoreLogMoveColumn" data-direction="1"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Move Right').'</button>';
-    echo '<button type="button" class="scoreLogColumnTool" data-action-name="importColumnID" value="'.htmlPrep($columnID).'"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Import Scores').'</button>';
-    echo '<button type="button" class="scoreLogColumnTool" data-action-name="exportColumnID" value="'.htmlPrep($columnID).'"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Export Current Scores (XLSX)').'</button>';
-    echo '<button type="button" class="scoreLogRemoveColumn"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Remove Column').'</button>';
+    echo '<button type="button" class="scoreLogMoveColumn button text-xs" data-direction="-1"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Move Left').'</button>';
+    echo '<button type="button" class="scoreLogMoveColumn button text-xs" data-direction="1"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Move Right').'</button>';
+    echo '<button type="button" class="scoreLogColumnTool button text-xs" data-action-name="importColumnID" value="'.htmlPrep($columnID).'"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Import Scores').'</button>';
+    echo '<button type="button" class="scoreLogColumnTool button text-xs" data-action-name="exportColumnID" value="'.htmlPrep($columnID).'"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Export Current Scores (XLSX)').'</button>';
+    echo '<button type="button" class="scoreLogRemoveColumn button text-xs"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Remove Column').'</button>';
     echo '</div></div></th>';
 }
 echo '</tr>';
-echo '<tr class="scoreLogScoreHeader"><th class="scoreLogStudentColumn">'.scoreLogT('Student').'</th>';
+echo '<tr class="scoreLogScoreHeader"><th class="scoreLogStudentColumn bg-gray-50">'.scoreLogT('Student').'</th>';
 foreach ($columnOrder as $index => $columnID) {
     $hidden = $index >= $initialColumnCount;
     $column = $payload['columns'][$columnID];
     $scaleName = $scalesById[(string) ($column['scaleID'] ?? '')]['name'] ?? '';
-    echo '<th data-column-id="'.htmlPrep($columnID).'"'.($hidden ? ' hidden' : '').'>'
+    echo '<th class="bg-gray-50" data-column-id="'.htmlPrep($columnID).'"'.($hidden ? ' hidden' : '').'>'
         .'<span data-column-sticky-name>'.htmlPrep((string) ($column['name'] ?? '') ?: scoreLogT('Assessment')).'</span>'
         .'<br><small data-column-sticky-scale>'.htmlPrep((string) $scaleName).'</small></th>';
 }
@@ -422,7 +422,7 @@ echo '</tr></thead><tbody>';
 
 foreach ($roster as $student) {
     $studentID = (string) $student['gibbonPersonID'];
-    echo '<tr><th class="scoreLogStudentColumn">';
+    echo '<tr><th class="scoreLogStudentColumn bg-gray-50">';
     $studentName = Format::name('', $student['preferredName'], $student['surname'], 'Student', true);
     if (isset($diff['added'][$studentID])) {
         $studentName .= ' ('.scoreLogT('New').')';
@@ -441,9 +441,9 @@ foreach ($roster as $student) {
         $hasCustomComment = trim($comment) !== '' && trim($comment) !== trim($defaultComment);
         echo '<td data-column-id="'.htmlPrep($columnID).'"'.($hidden ? ' hidden' : '').'>';
         $scoreList = (($scale['numeric'] ?? 'N') === 'N') ? ' list="scoreLogGrades-'.htmlPrep((string) ($column['scaleID'] ?? '')).'"' : '';
-        echo '<input aria-label="'.htmlPrep((string) ($column['name'] ?? '')).' / '.htmlPrep($studentName).'" class="scoreLogScoreInput" type="text" inputmode="'.(($scale['numeric'] ?? 'N') === 'Y' ? 'decimal' : 'text').'" data-score="Y"'.$scoreList.' name="scores['.htmlPrep($studentID).']['.htmlPrep($columnID).'][attainmentValue]" value="'.htmlPrep((string) ($entry['attainmentValue'] ?? '')).'"'.($hidden ? ' disabled' : '').'>';
-        echo '<details class="scoreLogCommentEditor'.($hasCustomComment ? ' hasComment' : '').'"><summary>'.($hasCustomComment ? scoreLogT('Comment') : scoreLogT('Add Comment')).'</summary>';
-        echo '<textarea data-default-comment="'.htmlPrep($defaultComment).'" aria-label="'.htmlPrep(scoreLogT('Comment')).' / '.htmlPrep((string) ($column['name'] ?? '')).' / '.htmlPrep($studentName).'" name="scores['.htmlPrep($studentID).']['.htmlPrep($columnID).'][comment]" maxlength="1000" rows="4"'.($hidden ? ' disabled' : '').'>'.htmlPrep($comment).'</textarea></details>';
+        echo '<input aria-label="'.htmlPrep((string) ($column['name'] ?? '')).' / '.htmlPrep($studentName).'" class="scoreLogScoreInput w-full rounded-md border py-2 text-center text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" type="text" inputmode="'.(($scale['numeric'] ?? 'N') === 'Y' ? 'decimal' : 'text').'" data-score="Y"'.$scoreList.' name="scores['.htmlPrep($studentID).']['.htmlPrep($columnID).'][attainmentValue]" value="'.htmlPrep((string) ($entry['attainmentValue'] ?? '')).'"'.($hidden ? ' disabled' : '').'>';
+        echo '<details class="scoreLogCommentEditor'.($hasCustomComment ? ' hasComment' : '').'"><summary class="text-xs font-semibold text-blue-800">'.($hasCustomComment ? scoreLogT('Comment') : scoreLogT('Add Comment')).'</summary>';
+        echo '<textarea data-default-comment="'.htmlPrep($defaultComment).'" aria-label="'.htmlPrep(scoreLogT('Comment')).' / '.htmlPrep((string) ($column['name'] ?? '')).' / '.htmlPrep($studentName).'" class="w-full rounded-md border py-2 font-sans text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" name="scores['.htmlPrep($studentID).']['.htmlPrep($columnID).'][comment]" maxlength="1000" rows="4"'.($hidden ? ' disabled' : '').'>'.htmlPrep($comment).'</textarea></details>';
         echo '</td>';
     }
     echo '</tr>';
