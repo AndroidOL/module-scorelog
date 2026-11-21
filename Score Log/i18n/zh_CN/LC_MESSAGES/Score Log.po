@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Score Log 1.2.3\n"
+"Project-Id-Version: Score Log 1.2.4\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-11-21 13:52+0800\n"
 "PO-Revision-Date: 2026-11-21 13:53+0800\n"
@@ -595,3 +595,9 @@ msgstr "您没有权限执行该操作。"
 
 msgid "Your session expired. Refresh the page and try again."
 msgstr "会话已过期，请刷新页面后重试。"
+
+msgid "Save and Import Scores"
+msgstr "保存并导入成绩"
+
+msgid "Save and Export Current Scores"
+msgstr "保存并导出当前成绩"

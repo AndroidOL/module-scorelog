@@ -419,6 +419,10 @@ $row = $form->addRow();
 $row->addFooter();
 $row->addSubmit(scoreLogT('Save Draft'))->setName('saveDraft')->setColor('gray')
     ->setAttribute('formnovalidate', 'formnovalidate');
+$row->addSubmit(scoreLogT('Save and Import Scores'))->setName('saveThenImport')->setColor('gray')
+    ->setAttribute('formnovalidate', 'formnovalidate');
+$row->addSubmit(scoreLogT('Save and Export Current Scores'))->setName('saveThenExport')->setColor('gray')
+    ->setAttribute('formnovalidate', 'formnovalidate');
 $row->addSubmit(scoreLogT('Review and Publish'))->setName('reviewPublish')
     ->setAttribute('formnovalidate', 'formnovalidate');
 echo $form->getOutput();

@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+v1.2.4
+------
+- Add safe Save and Import Scores and Save and Export Current Scores actions to
+  the draft editor.
+
 v1.2.3
 ------
 - Align the score-entry and Saved Drafts layouts with official Gibbon controls.

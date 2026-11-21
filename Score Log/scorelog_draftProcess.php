@@ -29,7 +29,11 @@ require_once __DIR__.'/moduleFunctions.php';
 $gibbonPersonID = (string) $session->get('gibbonPersonID');
 $gibbonSchoolYearID = (string) $session->get('gibbonSchoolYearID');
 $scoreLogDraftID = is_scalar($_POST['scoreLogDraftID'] ?? null) ? trim((string) $_POST['scoreLogDraftID']) : '';
-$action = array_key_exists('reviewPublish', $_POST) ? 'review' : 'draft';
+$action = array_key_exists('reviewPublish', $_POST)
+    ? 'review'
+    : (array_key_exists('saveThenImport', $_POST)
+        ? 'import'
+        : (array_key_exists('saveThenExport', $_POST) ? 'export' : 'draft'));
 $viewURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php';
 
 $redirect = function (string $return, string $draftID = '') use ($viewURL) {
@@ -156,9 +160,15 @@ try {
     }
 
     $connection2->commit();
-    $newURL = $action === 'review'
-        ? $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_review.php&draftID='.urlencode($scoreLogDraftID).'&return=success1'
-        : $viewURL.'&draftID='.urlencode($scoreLogDraftID).'&return=success1';
+    if ($action === 'review') {
+        $newURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_review.php&draftID='.urlencode($scoreLogDraftID).'&return=success1';
+    } elseif ($action === 'import') {
+        $newURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_import.php&draftID='.urlencode($scoreLogDraftID);
+    } elseif ($action === 'export') {
+        $newURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_importTemplate.php&draftID='.urlencode($scoreLogDraftID);
+    } else {
+        $newURL = $viewURL.'&draftID='.urlencode($scoreLogDraftID).'&return=success1';
+    }
     header('Location: '.$newURL);
     exit;
 } catch (\Throwable $e) {
