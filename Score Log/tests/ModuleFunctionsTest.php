@@ -956,6 +956,14 @@ namespace Gibbon\Module\ScoreLog\Tests {
             $source = file_get_contents(dirname(__DIR__).'/'.$route);
             $this->assertIsString($source);
             $this->assertStringContainsString(
+                '/modules/Score Log/scorelog_view.php',
+                $source
+            );
+            $this->assertStringContainsString(
+                '/modules/Formal Assessment/internalAssessment_manage_add.php',
+                $source
+            );
+            $this->assertStringContainsString(
                 '/modules/Formal Assessment/internalAssessment_write_data.php',
                 $source
             );
@@ -965,6 +973,20 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertIsString($functions);
         $this->assertStringContainsString("AND role='Teacher'", $functions);
         $this->assertStringNotContainsString("role IN ('Teacher', 'Assistant', 'Technician')", $functions);
+    }
+
+    public function testRevisionBoundActionsRejectMissingOrZeroRevisions()
+    {
+        foreach ([
+            'scorelog_draftProcess.php',
+            'scorelog_publishProcess.php',
+            'scorelog_discardProcess.php',
+        ] as $route) {
+            $source = file_get_contents(dirname(__DIR__).'/'.$route);
+            $this->assertIsString($source);
+            $this->assertStringContainsString('max(0, (int) $input[\'revision\'])', $source);
+            $this->assertStringNotContainsString('max(1, (int) $input[\'revision\'])', $source);
+        }
     }
 
     public function testTeacherRowFlowUsesEditableScoresFilterAndEnterNavigation()

@@ -51,7 +51,7 @@ if (!$container->get(TokenHandler::class)->validateCsrfToken()) {
 }
 
 $input = $container->get(Validator::class)->sanitize($_POST);
-$revision = is_scalar($input['revision'] ?? null) ? max(1, (int) $input['revision']) : 0;
+$revision = is_scalar($input['revision'] ?? null) ? max(0, (int) $input['revision']) : 0;
 $reviewedRosterHash = scoreLogInputString($input, 'rosterHash');
 if ($scoreLogDraftID === '' || $revision < 1 || $reviewedRosterHash === '') {
     $redirect('error1');
