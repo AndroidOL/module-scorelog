@@ -71,7 +71,7 @@ $columnOrder = is_scalar($input['columnOrder'] ?? null)
 $columnOrder = array_values(array_unique(array_filter(array_map('trim', $columnOrder), function ($columnID) {
     return preg_match('/^[A-Za-z0-9_-]{1,32}$/D', $columnID) === 1;
 })));
-if (count($columnOrder) < 1 || count($columnOrder) > 10) {
+if (count($columnOrder) !== 1) {
     $redirect('error1', $scoreLogDraftID);
 }
 foreach ($columnOrder as $columnID) {

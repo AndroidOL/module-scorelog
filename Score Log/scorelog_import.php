@@ -20,6 +20,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 use Gibbon\Forms\Form;
+use Gibbon\Tables\DataTable;
 
 require_once __DIR__.'/moduleFunctions.php';
 
@@ -65,6 +66,9 @@ if (
 ) {
     $page->addError(scoreLogT('The specified record does not exist.'));
     return;
+}
+if ($columnID === '' && count((array) ($draft['payloadData']['columnOrder'] ?? [])) === 1) {
+    $columnID = (string) $draft['payloadData']['columnOrder'][0];
 }
 if ($columnID === '' || empty($draft['payloadData']['columns'][$columnID])) {
     if ($columnID !== '') {
@@ -230,18 +234,16 @@ $mappedColumns = array_filter([
 });
 $unusedColumns = max(0, $columnCount - count(array_unique($mappedColumns)));
 
-$output = '<div class="schoolCommunityImportSummary">'
-    . '<h2>'.htmlPrep((string) $previewMeta['sourceLabel']).'</h2>'
+$output = '<p><strong>'.scoreLogT('Source').':</strong> '.htmlPrep((string) $previewMeta['sourceLabel']).'</p>'
     . '<p><strong>'.scoreLogT('Target Assessment').':</strong> '.htmlPrep((string) ($columnConfig['name'] ?? '')).' — '.htmlPrep((string) $scale['name']).'</p>'
     . '<p>'.sprintf(scoreLogT('%s data rows detected. Extra columns: %s.'), count($preview['rows']), (int) $previewMeta['ignoredColumns']).'</p>'
     . ($mapping['headerDetected']
         ? '<p>'.scoreLogT('A recognised header row was detected and skipped.').'</p>'
         : '<p>'.scoreLogT('No header row was required; columns were detected from the data.').'</p>')
-    . '<p>'.sprintf(scoreLogT('Extra unmapped columns ignored: %s.'), $unusedColumns).'</p>'
-    . '</div>';
+    . '<p>'.sprintf(scoreLogT('Extra unmapped columns ignored: %s.'), $unusedColumns).'</p>';
 
 if (!empty($initialMapping['confidence'])) {
-    $output .= '<div class="schoolCommunityImportConfidence"><strong>'.scoreLogT('Detected mapping').':</strong><ul>';
+    $output .= '<p><strong>'.scoreLogT('Detected mapping').':</strong></p><ul>';
     foreach ($initialMapping['confidence'] as $confidence) {
         $output .= '<li>'.sprintf(
             scoreLogT('%s: %s/%s rows matched as %s.'),
@@ -251,7 +253,7 @@ if (!empty($initialMapping['confidence'])) {
             htmlPrep(scoreLogImportRoleLabel($confidence['role']))
         ).'</li>';
     }
-    $output .= '</ul></div>';
+    $output .= '</ul>';
 }
 
 $mapForm = Form::create('scoreLogImportMapping', $session->get('absoluteURL').'/index.php', 'get');
@@ -292,20 +294,18 @@ $row->addSubmit(scoreLogT('Refresh Preview'));
 $output .= $mapForm->getOutput();
 
 $counts = $preview['counts'];
-$output .= '<div class="schoolCommunityImportCounts">'
-    . '<div><span>'.scoreLogT('Rows').'</span><strong>'.$counts['total'].'</strong></div>'
-    . '<div><span>'.scoreLogT('Matched').'</span><strong>'.$counts['matched'].'</strong></div>'
-    . '<div><span>'.scoreLogT('Would Fill').'</span><strong>'.$counts['wouldFill'].'</strong></div>'
-    . '<div><span>'.scoreLogT('Would Overwrite').'</span><strong>'.$counts['wouldOverwrite'].'</strong></div>'
-    . '<div><span>'.scoreLogT('Would Clear').'</span><strong>'.$counts['wouldClear'].'</strong></div>'
-    . '<div><span>'.scoreLogT('Preserved Manual Values').'</span><strong>'.$counts['preserved'].'</strong></div>'
-    . '<div><span>'.scoreLogT('Skipped / Invalid').'</span><strong>'.$skipped.'</strong></div>'
-    . '</div>';
+$countTable = DataTable::create('scoreLogImportCounts');
+$countTable->setTitle(scoreLogT('Import Preview'));
+$countTable->addColumn('total', scoreLogT('Rows'));
+$countTable->addColumn('matched', scoreLogT('Matched'));
+$countTable->addColumn('wouldFill', scoreLogT('Would Fill'));
+$countTable->addColumn('wouldOverwrite', scoreLogT('Would Overwrite'));
+$countTable->addColumn('wouldClear', scoreLogT('Would Clear'));
+$countTable->addColumn('preserved', scoreLogT('Preserved Manual Values'));
+$countTable->addColumn('skipped', scoreLogT('Skipped / Invalid'));
+$output .= $countTable->render([$counts + ['skipped' => $skipped]]);
 
-$output .= '<table class="schoolCommunityImportTable"><thead><tr>'
-    . '<th>'.scoreLogT('Row').'</th><th>'.scoreLogT('Identifier').'</th><th>'.scoreLogT('Student').'</th>'
-    . '<th>'.scoreLogT('Imported').'</th><th>'.scoreLogT('Existing').'</th><th>'.scoreLogT('Status').'</th>'
-    . '</tr></thead><tbody>';
+$previewRows = [];
 foreach ($preview['rows'] as $row) {
     $status = [
         'wouldFill' => scoreLogT('Would fill'),
@@ -318,27 +318,44 @@ foreach ($preview['rows'] as $row) {
         'invalid' => scoreLogT('Invalid row'),
         'noChange' => scoreLogT('No change'),
     ][$row['status']] ?? $row['status'];
-    $imported = htmlPrep($row['importScore'] !== '' ? $row['importScore'] : '-');
+    $imported = (string) ($row['importScore'] !== '' ? $row['importScore'] : '-');
     if ($row['importComment'] !== '') {
-        $imported .= '<br><small>'.htmlPrep($row['importComment']).'</small>';
+        $imported .= ' — '.$row['importComment'];
     }
-    $existing = htmlPrep($row['existingScore'] !== '' ? $row['existingScore'] : '-');
+    $existing = (string) ($row['existingScore'] !== '' ? $row['existingScore'] : '-');
     if ($row['existingComment'] !== '') {
-        $existing .= '<br><small>'.htmlPrep($row['existingComment']).'</small>';
+        $existing .= ' — '.$row['existingComment'];
     }
-    $output .= '<tr>'
-        . '<td>'.$row['rowNumber'].'</td>'
-        . '<td>'.htmlPrep($row['identifier']).'</td>'
-        . '<td>'.htmlPrep($row['studentName']).'</td>'
-        . '<td>'.$imported.'</td>'
-        . '<td>'.$existing.'</td>'
-        . '<td><span class="schoolCommunityImportStatus schoolCommunityImportStatus-'.$row['status'].'">'.htmlPrep($status).'</span>'
-        . (!empty($row['overwrites']) ? '<br><small>'.sprintf(scoreLogT('Overwrites: %s'), htmlPrep(implode(', ', $row['overwrites']))).'</small>' : '')
-        . (!empty($row['clears']) ? '<br><small>'.sprintf(scoreLogT('Clears: %s'), htmlPrep(implode(', ', $row['clears']))).'</small>' : '')
-        . (!empty($row['errors']) ? '<br><small>'.htmlPrep(implode(' ', $row['errors'])).'</small>' : '')
-        . '</td></tr>';
+    $previewRows[] = [
+        'rowNumber' => $row['rowNumber'],
+        'identifier' => $row['identifier'],
+        'studentName' => $row['studentName'],
+        'imported' => $imported,
+        'existing' => $existing,
+        'status' => $status,
+        'notes' => implode(' ', array_filter([
+            !empty($row['overwrites']) ? sprintf(scoreLogT('Overwrites: %s'), implode(', ', $row['overwrites'])) : '',
+            !empty($row['clears']) ? sprintf(scoreLogT('Clears: %s'), implode(', ', $row['clears'])) : '',
+            !empty($row['errors']) ? implode(' ', $row['errors']) : '',
+        ])),
+    ];
 }
-$output .= '</tbody></table>';
+$previewTable = DataTable::create('scoreLogImportRows');
+$previewTable->setTitle(scoreLogT('Rows'));
+$previewTable->addColumn('rowNumber', scoreLogT('Row'));
+$previewTable->addColumn('identifier', scoreLogT('Identifier'));
+$previewTable->addColumn('studentName', scoreLogT('Student'));
+$previewTable->addColumn('imported', scoreLogT('Imported'))->format(function ($row) {
+    return htmlPrep($row['imported']);
+});
+$previewTable->addColumn('existing', scoreLogT('Existing'))->format(function ($row) {
+    return htmlPrep($row['existing']);
+});
+$previewTable->addColumn('status', scoreLogT('Status'));
+$previewTable->addColumn('notes', scoreLogT('Notes'))->format(function ($row) {
+    return htmlPrep($row['notes']);
+});
+$output .= $previewTable->render($previewRows);
 
 if ($mappingConflict) {
     $output .= '<div class="error">'.scoreLogT('The identifier and score must use different columns.').'</div>';

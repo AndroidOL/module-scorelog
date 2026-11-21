@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+v1.4.1
+------
+- Rebuild Score Log entry, review and import screens with standard Gibbon forms,
+  form tables, grade-scale controls and data tables.
+- Remove the custom entry-grid styling, column controls and colour palette.
+- Limit each draft to one assessment with a fixed class and attainment scale.
+
 v1.4.0
 ------
 - Add Next Missing navigation with Alt+N and Enter shortcuts, active-column

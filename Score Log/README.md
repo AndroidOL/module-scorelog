@@ -26,7 +26,8 @@ workflow that reads or changes score data.
 - Enter scores or scale grades and comments for every student in one form.
 - Resolve every numeric or grade mark to an existing grade on the selected
   official Gibbon scale.
-- Add up to ten assessment columns with independent type, scale, date and visibility.
+- Create one assessment per draft using Gibbon's standard form, form-table and
+  grade-scale controls.
 - Move through missing scores with Enter or Alt+N and optionally show only
   missing students in the selected assessment column.
 - Select students explicitly, preview affected counts, then bulk fill or clear
@@ -51,8 +52,8 @@ Assessment column exists until publication, so drafts cannot appear in Formal
 Assessment lists or be edited by other users. Draft records are accessible only
 to their creator and never appear to students, parents or reports.
 
-The class is fixed after a draft is created; assessment columns keep their own
-scales and settings. Each save carries a revision number so a stale tab cannot overwrite newer work. Reopening and
+The class and assessment scale are fixed after a draft is created. Each save
+carries a revision number so a stale tab cannot overwrite newer work. Reopening and
 publishing re-resolve the current reportable roster; added and removed students
 are shown explicitly. Publishing always goes through a review page. A creator
 can permanently discard their own draft with a CSRF-protected POST.
@@ -62,14 +63,8 @@ write a Formal Assessment until the normal Review and Publish flow succeeds.
 Undo is discarded when the draft revision changes or a bulk-affected score is
 edited manually.
 
-Bulk actions target only visible checked students. Student selections reset
-when the active assessment column changes, and rows hidden by Only Missing are
-automatically unchecked.
-
-Multi-assessment drafts share one class and roster but keep separate assessment
-names, types, scales, dates and visibility settings. Publish creates every
-selected Formal Assessment column and entry set in one transaction or leaves no
-published column behind.
+Bulk actions target only visible checked students, and rows hidden by Only
+Missing are automatically unchecked.
 
 ## Assessment dates
 
@@ -92,8 +87,7 @@ Apply to Draft updates only the private draft. Existing manual values are
 preserved unless overwrite is explicitly selected. Formula cells are rejected
 without evaluation, and rows are limited to 500 with a 2 MiB file limit.
 
-In a multi-assessment draft, every import and template download targets one
-explicitly selected assessment column.
+Every import and template download targets the draft's assessment.
 
 ## Private comment library
 
@@ -104,8 +98,8 @@ replaces hand-written text. Adding, editing and deleting comments uses
 CSRF-protected POST actions.
 
 The structure-copy action copies an existing assessment's name, description,
-type, scale, date and visibility into a new draft column. Scores and comments
-are always cleared from the copied structure.
+type, date and visibility into the current draft. Scores and comments are never
+copied.
 
 The XLSX template is prefilled with the current draft scores and comments. When
 overwrite is enabled, deliberately blank score or comment cells clear those

@@ -482,8 +482,8 @@ msgid "Choose a grade from the selected scale."
 msgstr "请从所选评分量表中选择一个等级。"
 
 #: ⁨Score Log/moduleFunctions.php⁩:538
-msgid "A draft must contain between 1 and 10 assessment columns."
-msgstr "草稿必须包含 1 至 10 个评估列。"
+msgid "A draft must contain one assessment column."
+msgstr "草稿必须仅包含一个评估列。"
 
 #: ⁨Score Log/moduleFunctions.php⁩:559
 msgid "Assessment column names must be unique within the draft."
@@ -647,9 +647,9 @@ msgstr "错误"
 
 #: ⁨Score Log/scorelog_review.php⁩:164
 msgid ""
-"This draft cannot be published until all invalid rows and incomplete "
-"assessment columns are corrected."
-msgstr "修正所有无效行和未完成的评估列后才能发布此草稿。"
+"This draft cannot be published until invalid rows and incomplete assessment "
+"details are corrected."
+msgstr "修正无效行和未填写的评估信息后才能发布此草稿。"
 
 #: ⁨Score Log/scorelog_review.php⁩:172
 msgid "Confirm Publication"
@@ -1158,3 +1158,58 @@ msgstr "确定清除 %s 个已有成绩吗？"
 #, php-format
 msgid "Overwrite %s existing scores?"
 msgstr "确定覆盖 %s 个已有成绩吗？"
+
+msgid ""
+"This draft was created with more than one assessment. It has not been "
+"changed."
+msgstr "此草稿包含多个评估，当前版本无法编辑；草稿未被修改。"
+
+msgid "Start from Previous Assessment"
+msgstr "从已有评估开始"
+
+msgid "Copy Structure"
+msgstr "复制评估结构"
+
+msgid "Assessment details copied without scores or comments."
+msgstr "已复制评估信息，不包含成绩或评语。"
+
+msgid "Choose a score before filling."
+msgstr "请选择要填充的成绩。"
+
+msgid "No more missing scores."
+msgstr "没有其他未填成绩。"
+
+msgid "Save and Export Current Scores (XLSX)"
+msgstr "保存并导出当前成绩（XLSX）"
+
+#, php-format
+msgid "%s score for %s"
+msgstr "%2$s 的 %1$s 成绩"
+
+#, php-format
+msgid "%s comment for %s"
+msgstr "%2$s 的 %1$s 评语"
+
+msgid "Only the current roster will be published."
+msgstr "仅当前名册会发布。"
+
+msgid "Assessment Summary"
+msgstr "评估摘要"
+
+msgid "Review the assessment details and entry totals before publishing."
+msgstr "发布前请复核评估信息和录入统计。"
+
+msgid "Source"
+msgstr "来源"
+
+msgid "Notes"
+msgstr "备注"
+
+msgid "Assessment Details"
+msgstr "评估信息"
+
+msgid "Import Preview"
+msgstr "导入预览"
+
+msgid "Quick Entry"
+msgstr "快捷录入"

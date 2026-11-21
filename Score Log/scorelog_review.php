@@ -22,6 +22,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 use Gibbon\Domain\System\SettingGateway;
 use Gibbon\Forms\Form;
 use Gibbon\Services\Format;
+use Gibbon\Tables\DataTable;
 
 require_once __DIR__.'/moduleFunctions.php';
 
@@ -30,7 +31,7 @@ $page->breadcrumbs
     ->add(scoreLogT('Review and Publish'));
 
 $page->return->addReturns([
-    'success0' => scoreLogT('Assessments published.'),
+    'success0' => scoreLogT('Assessment published.'),
     'success1' => scoreLogT('Draft saved. Review the current roster and scores before publishing.'),
     'error0'   => scoreLogT('You do not have permission to perform this action.'),
     'error1'   => scoreLogT('The draft is no longer available or its data is invalid.'),
@@ -65,6 +66,10 @@ if (
 }
 
 $payload = $draft['payloadData'];
+if (count((array) ($payload['columnOrder'] ?? [])) !== 1) {
+    $page->addError(scoreLogT('This draft was created with more than one assessment. It has not been changed.'));
+    return;
+}
 $roster = scoreLogCurrentRoster($pdo, $draft['gibbonCourseClassID']);
 $diff = scoreLogRosterDiff($payload, $roster);
 $scaleRows = $pdo->select(
@@ -93,38 +98,33 @@ if (empty($allowedTypes)) {
     return;
 }
 $evaluation = scoreLogEvaluateMultiAssessmentPayload($payload, $roster, $scales, $gradesByScale, $allowedTypes);
-$editURL = $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php&draftID='.urlencode($scoreLogDraftID);
 
-$output = '<div class="scoreLogReviewSummary">'
-    . '<h2>'.htmlPrep((string) $draft['className']).'</h2>'
-    . '<p>'.sprintf(scoreLogT('%s assessment columns'), count($evaluation['columns'])).'</p>'
-    . '<p><a class="button" href="'.htmlPrep($editURL).'#scoreLogStudents">'.scoreLogT('Back to Draft').'</a></p>'
-    . '</div>';
+$page->navigator->addHeaderAction('back', scoreLogT('Back to Draft'))
+    ->setURL('/modules/Score Log/scorelog_view.php')
+    ->addParam('draftID', $scoreLogDraftID)
+    ->setIcon('back')
+    ->displayLabel();
 
 if ($diff['changed']) {
-    $output .= '<div class="warning"><p><strong>'.scoreLogT('The class roster changed since this draft was saved.').'</strong></p>';
+    echo '<div class="warning"><p><strong>'.scoreLogT('The class roster changed since this draft was saved.').'</strong></p>';
     if (!empty($diff['added'])) {
-        $output .= '<p>'.sprintf(scoreLogT('New students: %s'), htmlPrep(implode(', ', $diff['added']))).'</p>';
+        echo '<p>'.sprintf(scoreLogT('New students: %s'), htmlPrep(implode(', ', $diff['added']))).'</p>';
     }
     if (!empty($diff['removed'])) {
-        $output .= '<p>'.sprintf(scoreLogT('Removed students: %s'), htmlPrep(implode(', ', $diff['removed']))).'</p>';
+        echo '<p>'.sprintf(scoreLogT('Removed students: %s'), htmlPrep(implode(', ', $diff['removed']))).'</p>';
     }
-    $output .= '<p>'.scoreLogT('Only the current roster will be published. Review every assessment column before continuing.').'</p></div>';
+    echo '<p>'.scoreLogT('Only the current roster will be published.').'</p></div>';
 }
 
 if (!empty($evaluation['errors'])) {
-    $output .= '<div class="error"><ul>';
+    echo '<div class="error"><ul>';
     foreach ($evaluation['errors'] as $error) {
-        $output .= '<li>'.htmlPrep($error).'</li>';
+        echo '<li>'.htmlPrep($error).'</li>';
     }
-    $output .= '</ul></div>';
+    echo '</ul></div>';
 }
 
-$output .= '<table class="scoreLogReviewTable"><thead><tr>'
-    . '<th>'.scoreLogT('Assessment').'</th><th>'.scoreLogT('Type').'</th><th>'.scoreLogT('Assessment Scale').'</th>'
-    . '<th>'.scoreLogT('Assessment Date').'</th><th>'.scoreLogT('Visibility').'</th>'
-    . '<th>'.scoreLogT('Entered').'</th><th>'.scoreLogT('Missing').'</th><th>'.scoreLogT('Invalid').'</th>'
-    . '</tr></thead><tbody>';
+$summaryRows = [];
 foreach ($evaluation['columns'] as $column) {
     $config = $column['config'];
     $visibility = sprintf(
@@ -132,16 +132,33 @@ foreach ($evaluation['columns'] as $column) {
         $config['viewableStudents'] === 'Y' ? scoreLogT('Yes') : scoreLogT('No'),
         $config['viewableParents'] === 'Y' ? scoreLogT('Yes') : scoreLogT('No')
     );
-    $output .= '<tr>'
-        . '<td>'.htmlPrep($config['name']).(!empty($column['errors']) ? '<br><small class="text-red-700">'.htmlPrep(implode(' ', $column['errors'])).'</small>' : '').'</td>'
-        . '<td>'.htmlPrep($config['type']).'</td>'
-        . '<td>'.htmlPrep($config['scaleName']).'</td>'
-        . '<td>'.htmlPrep(scoreLogIsValidDate($config['completeDate']) ? Format::date($config['completeDate']) : '-').'</td>'
-        . '<td>'.htmlPrep($visibility).'</td>'
-        . '<td>'.$column['entered'].'</td><td>'.$column['missing'].'</td><td>'.$column['invalid'].'</td>'
-        . '</tr>';
+    $summaryRows[] = [
+        'className' => $draft['className'],
+        'name' => $config['name'],
+        'type' => $config['type'],
+        'scaleName' => $config['scaleName'],
+        'completeDate' => scoreLogIsValidDate($config['completeDate']) ? $config['completeDate'] : '',
+        'visibility' => $visibility,
+        'entered' => $column['entered'],
+        'missing' => $column['missing'],
+        'invalid' => $column['invalid'],
+    ];
 }
-$output .= '</tbody></table>';
+$table = DataTable::create('scoreLogReviewAssessment');
+$table->setTitle(scoreLogT('Assessment Summary'));
+$table->setDescription(scoreLogT('Review the assessment details and entry totals before publishing.'));
+$table->addColumn('className', scoreLogT('Class'));
+$table->addColumn('name', scoreLogT('Assessment'));
+$table->addColumn('type', scoreLogT('Type'));
+$table->addColumn('scaleName', scoreLogT('Assessment Scale'));
+$table->addColumn('completeDate', scoreLogT('Assessment Date'))->format(function ($assessment) {
+    return !empty($assessment['completeDate']) ? Format::date($assessment['completeDate']) : '-';
+});
+$table->addColumn('visibility', scoreLogT('Visibility'));
+$table->addColumn('entered', scoreLogT('Entered'));
+$table->addColumn('missing', scoreLogT('Missing'));
+$table->addColumn('invalid', scoreLogT('Invalid'));
+echo $table->render($summaryRows);
 
 $invalidRows = [];
 foreach ($evaluation['columns'] as $column) {
@@ -156,19 +173,18 @@ foreach ($evaluation['columns'] as $column) {
     }
 }
 if (!empty($invalidRows)) {
-    $output .= '<h3>'.scoreLogT('Rows Requiring Correction').'</h3><table class="scoreLogReviewTable"><thead><tr>'
-        . '<th>'.scoreLogT('Assessment').'</th><th>'.scoreLogT('Student').'</th><th>'.scoreLogT('Errors').'</th>'
-        . '</tr></thead><tbody>';
-    foreach ($invalidRows as $row) {
-        $output .= '<tr><td>'.htmlPrep($row['column']).'</td><td>'.htmlPrep($row['student']).'</td><td>'.htmlPrep($row['errors']).'</td></tr>';
-    }
-    $output .= '</tbody></table>';
+    $invalidTable = DataTable::create('scoreLogReviewInvalidRows');
+    $invalidTable->setTitle(scoreLogT('Rows Requiring Correction'));
+    $invalidTable->addColumn('column', scoreLogT('Assessment'));
+    $invalidTable->addColumn('student', scoreLogT('Student'));
+    $invalidTable->addColumn('errors', scoreLogT('Errors'));
+    echo $invalidTable->render($invalidRows);
 }
 
 if (!$evaluation['valid']) {
-    $output .= '<div class="error">'.scoreLogT('This draft cannot be published until all invalid rows and incomplete assessment columns are corrected.').'</div>';
+    echo '<div class="error">'.scoreLogT('This draft cannot be published until invalid rows and incomplete assessment details are corrected.').'</div>';
 } else {
-    $output .= '<a id="scoreLogPublish"></a>';
+    echo '<a id="scoreLogPublish"></a>';
     $form = Form::create(
         'scoreLogPublish',
         $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_publishProcess.php',
@@ -194,15 +210,9 @@ if (!$evaluation['valid']) {
     }
 
     $row = $form->addRow();
-    $row->addContent(sprintf(
-        scoreLogT('Publish all %s assessment columns to the current roster of %s students?'),
-        count($evaluation['columns']),
-        count($roster)
-    ));
+    $row->addContent(sprintf(scoreLogT('Publish this assessment to the current roster of %s students?'), count($roster)));
     $row = $form->addRow();
     $row->addFooter();
-    $row->addSubmit(scoreLogT('Publish Assessments'));
-    $output .= $form->getOutput();
+    $row->addSubmit(scoreLogT('Publish Assessment'));
+    echo $form->getOutput();
 }
-
-$page->write($output);

@@ -597,8 +597,8 @@ function scoreLogEvaluateMultiAssessmentPayload(array $payload, array $roster, a
     $columnResults = [];
     $totals = ['entered' => 0, 'missing' => 0, 'invalid' => 0];
 
-    if (count($columnOrder) < 1 || count($columnOrder) > 10) {
-        $errors[] = scoreLogT('A draft must contain between 1 and 10 assessment columns.');
+    if (count($columnOrder) !== 1) {
+        $errors[] = scoreLogT('A draft must contain one assessment column.');
     }
 
     foreach ($columnOrder as $columnID) {

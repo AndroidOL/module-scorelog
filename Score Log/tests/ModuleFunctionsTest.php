@@ -983,7 +983,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
         ] as $controlID) {
             $this->assertStringContainsString($controlID, $view);
         }
-        $this->assertStringContainsString('name="revision"', $view);
+        $this->assertStringContainsString("addHiddenValue('revision'", $view);
         $this->assertStringContainsString('focusNextMissing', $script);
         $this->assertStringContainsString('checkedScoreRows', $script);
         $this->assertStringContainsString('!row.hidden && checkbox && checkbox.checked', $script);
@@ -1006,9 +1006,9 @@ namespace Gibbon\Module\ScoreLog\Tests {
         foreach ([$manifest, $changedb, $process, $view, $script, $version] as $source) {
             $this->assertIsString($source);
         }
-        $this->assertStringContainsString("\$version     = '1.4.0'", $manifest);
-        $this->assertStringContainsString('"1.4.0"', $changedb);
-        $this->assertStringContainsString("\$moduleVersion = '1.4.0'", $version);
+        $this->assertStringContainsString("\$version     = '1.4.1'", $manifest);
+        $this->assertStringContainsString('CREATE TABLE IF NOT EXISTS `score_log_draft`', $changedb);
+        $this->assertStringContainsString("\$moduleVersion = '1.4.1'", $version);
         $this->assertStringContainsString('CREATE TABLE `score_log_comment`', $manifest);
         $this->assertStringContainsString('CREATE TABLE IF NOT EXISTS `score_log_comment`', $changedb);
         $this->assertStringContainsString('scorelog_comments.php', $manifest);
@@ -1019,11 +1019,17 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringContainsString('window.scoreLogCommentLibrary', $view);
         $this->assertStringContainsString('scoreLogCommentLibraryInsert', $view);
         $this->assertStringContainsString('Append comment', $view);
-        $this->assertStringContainsString("existing + separator + option.dataset.comment", $script);
+        $this->assertStringContainsString('existing + separator + comment.comment', $script);
         $this->assertStringContainsString('scoreLogStructureSource', $view);
-        $this->assertStringContainsString('data-name=', $view);
-        $this->assertStringContainsString('.scoreLogScoreInput, .scoreLogCommentEditor textarea', $script);
-        $this->assertStringContainsString('Assessment structure copied without scores or comments.', $view);
+        $this->assertStringContainsString('window.scoreLogReusableAssessments', $view);
+        $this->assertStringContainsString('copyStructure', $script);
+        $this->assertStringContainsString('Assessment details copied without scores or comments.', $view);
+
+        $this->assertStringContainsString("addSelectGradeScaleGrade(", $view);
+        $this->assertStringContainsString("addTable()", $view);
+        $this->assertStringNotContainsString('Add Assessment Column', $view);
+        $this->assertStringContainsString('count($savedColumnOrder) > 1', $view);
+        $this->assertStringContainsString('count($columnOrder) !== 1', file_get_contents(dirname(__DIR__).'/scorelog_draftProcess.php'));
     }
 
     public function testPrivateCommentValidationRequiresLabelAndCommentLimits()

@@ -20,7 +20,7 @@ to module-owned `score_log_draft` and `score_log_comment` tables.
 | `effort` / `gibbonScaleIDEffort` | May be enabled or disabled | `N` / `NULL`; Score Log does not capture effort |
 | `comment` / `uploadedResponse` | Independent yes/no switches | `Y` / `N`; comments are supported, file responses are not |
 | `complete` / `completeDate` | A date sets `complete=Y`; an empty date sets `complete=N` | The required assessment date produces `Y` and the same ISO date |
-| `viewableStudents` / `viewableParents` | Required `Y/N` values | Required per-column `Y/N` values |
+| `viewableStudents` / `viewableParents` | Required `Y/N` values | Required assessment `Y/N` values |
 | creator / last editor IDs | Current teacher IDs | Current teacher ID for both fields |
 
 ## Core entry mapping
@@ -71,12 +71,11 @@ parents and reports until that date.
 
 ## Forms and gateway use
 
-Class selection, draft discard, import, review and publish confirmation use
-Gibbon's `Form` API. Class selection also uses `DatabaseFormFactory`. The
-multi-column entry grid is rendered directly because it composes several
-independent assessment columns in one responsive table; its controls use the
-official Gibbon form classes, the server uses Gibbon's `Validator` and CSRF
-tokens, and its persistence follows the same SQL shape as the official
+Class selection, draft entry, discard, import, review and publish confirmation
+use Gibbon's `Form` API. Class and grade selection also use
+`DatabaseFormFactory`. The draft form uses Gibbon's standard form-table and
+grade-scale controls for one assessment, the server uses Gibbon's `Validator`
+and CSRF tokens, and persistence follows the same SQL shape as the official
 Formal Assessment processes.
 
 The private draft and comment library remain entirely module-owned. Reusing an
