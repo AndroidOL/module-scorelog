@@ -7,8 +7,12 @@ v1.4.0
   selection and an Only Missing row filter.
 - Add selected-student bulk fill and clear with live affected-count preview,
   manual-edit invalidation and revision-bound undo.
+- Fill changes blank scores only unless Overwrite existing scores is explicitly
+  checked and confirmed; Clear requires its own confirmation.
+- Bulk actions operate only on visible checked students and selections reset
+  when the active assessment column changes.
 - Add a private reusable comment library with creator-bound add, edit and
-  delete actions plus in-drawer comment insertion.
+  delete actions plus non-destructive in-drawer comment appending.
 - Reuse a previous assessment's structure without copying scores or comments.
 
 v1.3.0

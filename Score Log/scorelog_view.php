@@ -431,6 +431,9 @@ echo '<div class="scoreLogQuickEntry" role="group" aria-label="'.htmlPrep(scoreL
     .'</div>'
     .'<div class="scoreLogQuickEntryRow">'
     .'<input type="text" id="scoreLogBulkValue" list="scoreLogBulkGrades" autocomplete="off" aria-label="'.htmlPrep(scoreLogT('Bulk score or grade')).'" class="w-full min-w-16 rounded-md border py-2 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" placeholder="'.htmlPrep(scoreLogT('Bulk score or grade')).'">'
+    .'<label class="flex items-center gap-2 text-sm font-semibold text-gray-700">'
+    .'<input type="checkbox" id="scoreLogBulkOverwrite" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">'
+    .scoreLogT('Overwrite existing scores').'</label>'
     .'<button type="button" id="scoreLogBulkFill" class="button">'.scoreLogT('Fill checked').'</button>'
     .'<button type="button" id="scoreLogBulkClear" class="button button-secondary">'.scoreLogT('Clear checked').'</button>'
     .'<span id="scoreLogBulkPreview" class="text-sm text-gray-600" aria-live="polite"></span>'
@@ -528,7 +531,7 @@ foreach ($roster as $student) {
         echo '<div class="scoreLogCommentLibraryRow">'
             .'<select class="scoreLogCommentLibrarySelect w-full min-w-16 rounded-md border py-2 text-gray-900 focus:ring-1 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-5" aria-label="'.htmlPrep(scoreLogT('Choose from comment library')).'"'.($hidden ? ' disabled' : '').'>'
             .'<option value="">'.scoreLogT('Choose from comment library...').'</option></select>'
-            .'<button type="button" class="scoreLogCommentLibraryInsert button button-secondary text-xs"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Use comment').'</button>'
+            .'<button type="button" class="scoreLogCommentLibraryInsert button button-secondary text-xs"'.($hidden ? ' disabled' : '').'>'.scoreLogT('Append comment').'</button>'
             .'<a class="text-xs font-semibold" href="'.htmlPrep($session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_comments.php').'">'.scoreLogT('Manage library').'</a>'
             .'</div></details>';
         echo '</td>';
@@ -613,7 +616,8 @@ echo '<script>window.scoreLogCommentLibrary='.json_encode(array_values($commentL
         'bulkScore'          => scoreLogT('Bulk score'),
         'bulkGrade'          => scoreLogT('Bulk grade'),
         'selected'           => scoreLogT('Selected'),
-        'fillWillChange'     => scoreLogT('Fill will change'),
+        'fillBlanks'         => scoreLogT('Fill blanks'),
+        'overwriteWillChange'=> scoreLogT('Overwrite will change'),
         'clearWillChange'    => scoreLogT('Clear will change'),
         'selectStudentsFirst'=> scoreLogT('Select students to fill or clear.'),
         'bulkValueInvalid'   => scoreLogT('Bulk value is not in the selected scale.'),
@@ -624,6 +628,9 @@ echo '<script>window.scoreLogCommentLibrary='.json_encode(array_values($commentL
         'undoComplete'       => scoreLogT('Bulk change undone.'),
         'undoInvalidated'    => scoreLogT('A score changed after the bulk action; undo was cleared.'),
         'noMissing'          => scoreLogT('No more missing scores in this assessment column.'),
+        'columnSelectionReset'=> scoreLogT('Student selections were cleared after changing the assessment column.'),
+        'confirmBulkClear'   => scoreLogT('Clear %s existing scores?'),
+        'confirmBulkOverwrite'=> scoreLogT('Overwrite %s existing scores?'),
         'copySuffix'         => scoreLogT('Copy'),
         'structureRequired'  => scoreLogT('Choose an assessment structure to reuse.'),
         'structureAdded'     => scoreLogT('Assessment structure copied without scores or comments.'),

@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     const nextMissingButton = document.getElementById('scoreLogNextMissing');
     const focusStatus = document.getElementById('scoreLogFocusStatus');
     const bulkValueInput = document.getElementById('scoreLogBulkValue');
+    const bulkOverwriteInput = document.getElementById('scoreLogBulkOverwrite');
     const bulkFillButton = document.getElementById('scoreLogBulkFill');
     const bulkClearButton = document.getElementById('scoreLogBulkClear');
     const bulkPreview = document.getElementById('scoreLogBulkPreview');
@@ -77,8 +78,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     const checkedScoreRows = () => scoreRows().filter((row) => {
         const checkbox = row.querySelector('.scoreLogStudentSelect');
-        return checkbox && checkbox.checked;
+        return !row.hidden && checkbox && checkbox.checked;
     });
+
+    const clearStudentSelections = (message) => {
+        scoreRows().forEach((row) => {
+            const checkbox = row.querySelector('.scoreLogStudentSelect');
+            if (checkbox) checkbox.checked = false;
+        });
+        updateBulkPreview();
+        if (message) setFocusStatus(message);
+    };
 
     const scoreIsValid = (value, scaleID) => {
         value = String(value || '').trim();
@@ -124,6 +134,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         scoreRows().forEach((row) => {
             const input = scoreInputFor(row, columnID);
             row.hidden = onlyMissing && input && scoreIsValid(input.value, scaleID);
+            if (row.hidden) {
+                const checkbox = row.querySelector('.scoreLogStudentSelect');
+                if (checkbox) checkbox.checked = false;
+            }
         });
         updateBulkPreview();
     };
@@ -160,15 +174,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         const selectedRows = checkedScoreRows();
         const value = bulkValueInput ? bulkValueInput.value.trim() : '';
         const valueValid = value === '' || scoreIsValid(value, scaleID);
-        let fillChanges = 0;
+        const overwrite = !!(bulkOverwriteInput && bulkOverwriteInput.checked);
+        let blankFillChanges = 0;
+        let overwriteChanges = 0;
         let clearChanges = 0;
 
         selectedRows.forEach((row) => {
             const input = scoreInputFor(row, columnID);
             const current = input ? input.value.trim() : '';
-            if (valueValid && value !== '' && current !== value) fillChanges++;
+            if (valueValid && value !== '' && current === '') blankFillChanges++;
+            if (valueValid && value !== '' && current !== '' && current !== value) overwriteChanges++;
             if (current !== '') clearChanges++;
         });
+        const fillChanges = blankFillChanges + (overwrite ? overwriteChanges : 0);
 
         bulkFillButton.disabled = selectedRows.length === 0 || value === '' || !valueValid || fillChanges === 0;
         bulkClearButton.disabled = selectedRows.length === 0 || clearChanges === 0;
@@ -179,7 +197,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
         const parts = [
             (labels.selected || 'Selected') + ' ' + selectedRows.length,
-            (labels.fillWillChange || 'Fill will change') + ' ' + fillChanges,
+            (labels.fillBlanks || 'Fill blanks') + ' ' + blankFillChanges,
+            (labels.overwriteWillChange || 'Overwrite will change') + ' ' + overwriteChanges,
             (labels.clearWillChange || 'Clear will change') + ' ' + clearChanges,
         ];
         if (!valueValid) parts.push(labels.bulkValueInvalid || 'Bulk value is not in the selected scale.');
@@ -229,6 +248,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         const columnID = activeColumnID();
         const scaleID = selectedScaleID(columnID);
         const fillValue = bulkValueInput ? bulkValueInput.value.trim() : '';
+        const overwrite = !!(bulkOverwriteInput && bulkOverwriteInput.checked);
         if (mode === 'fill' && !scoreIsValid(fillValue, scaleID)) {
             setFocusStatus(labels.bulkValueInvalid || 'Bulk value is not in the selected scale.');
             updateBulkPreview();
@@ -241,12 +261,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             if (!input) return;
             const previous = input.value;
             const next = mode === 'fill' ? fillValue : '';
+            if (mode === 'fill' && previous.trim() !== '' && !overwrite) return;
             if (previous === next) return;
             changes.push({
                 studentID: row.getAttribute('data-student-id'),
                 previous,
+                next,
+                overwritten: mode === 'fill' && previous.trim() !== '',
             });
-            input.value = next;
         });
 
         if (changes.length === 0) {
@@ -255,6 +277,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             return;
         }
 
+        if (mode === 'clear' && !window.confirm(
+            (labels.confirmBulkClear || 'Clear %s existing scores?').replace('%s', changes.length)
+        )) {
+            return;
+        }
+        const overwritten = changes.filter((change) => change.overwritten).length;
+        if (mode === 'fill' && overwritten > 0 && !window.confirm(
+            (labels.confirmBulkOverwrite || 'Overwrite %s existing scores?').replace('%s', overwritten)
+        )) {
+            return;
+        }
+
+        changes.forEach((change) => {
+            const row = scoreRows().find((candidate) => candidate.getAttribute('data-student-id') === change.studentID);
+            const input = row ? scoreInputFor(row, columnID) : null;
+            if (input) input.value = change.next;
+        });
         bulkUndo = {
             revision: revisionInput ? String(revisionInput.value) : '',
             columnID,
@@ -525,9 +564,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             populateCommentLibrary(select);
             const option = select && select.selectedIndex >= 0 ? select.options[select.selectedIndex] : null;
             if (textarea && option && option.dataset.comment !== undefined && option.dataset.comment !== '') {
-                textarea.value = option.dataset.comment;
+                let existing = textarea.value;
+                if (existing.trim() === '') existing = '';
+                const separator = existing !== '' && !existing.endsWith('\n') ? '\n' : '';
+                textarea.value = existing + separator + option.dataset.comment;
+                const cursor = textarea.value.length;
                 textarea.dispatchEvent(new Event('input', {bubbles: true}));
                 textarea.focus();
+                textarea.setSelectionRange(cursor, cursor);
             }
             return;
         }
@@ -587,6 +631,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             updateBulkPreview();
             return;
         }
+        if (event.target === bulkOverwriteInput) {
+            updateBulkPreview();
+            return;
+        }
 
         dirty = true;
         if (event.target.classList.contains('scoreLogNameInput')) {
@@ -624,12 +672,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             return;
         }
         if (event.target === toolColumnSelect) {
+            clearStudentSelections(labels.columnSelectionReset || 'Student selections were cleared after changing the assessment column.');
             updateBulkInput();
             applyOnlyMissingView();
             updateBulkPreview();
             return;
         }
         if (event.target === bulkValueInput) {
+            updateBulkPreview();
+            return;
+        }
+        if (event.target === bulkOverwriteInput) {
             updateBulkPreview();
             return;
         }
@@ -641,6 +694,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 const columnID = column.getAttribute('data-column-id');
                 updateStickyHeader(columnID);
                 updateColumnProgress(columnID);
+                applyOnlyMissingView();
                 updateBulkInput();
                 updateBulkPreview();
             }
@@ -653,6 +707,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         const cell = scoreInput.closest('[data-column-id]');
         const columnID = cell ? cell.getAttribute('data-column-id') : '';
         if (toolColumnSelect && columnID && columnOrder.includes(columnID)) {
+            if (toolColumnSelect.value !== columnID) {
+                clearStudentSelections(labels.columnSelectionReset || 'Student selections were cleared after changing the assessment column.');
+            }
             toolColumnSelect.value = columnID;
             updateBulkInput();
             updateBulkPreview();

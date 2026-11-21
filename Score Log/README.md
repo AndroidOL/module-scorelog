@@ -31,6 +31,8 @@ workflow that reads or changes score data.
   missing students in the selected assessment column.
 - Select students explicitly, preview affected counts, then bulk fill or clear
   their score in the selected column with revision-bound undo.
+- Fill only blank scores by default; overwriting existing scores requires an
+  explicit checkbox and confirmation. Clear always asks for confirmation.
 - Reuse a previous assessment's structure without copying scores or comments.
 - Save a private draft and resume it later without losing whole-class input.
 - Insert private reusable comments from a per-teacher comment library.
@@ -59,6 +61,10 @@ Bulk fill, clear and undo operate only on the live draft form. They do not
 write a Formal Assessment until the normal Review and Publish flow succeeds.
 Undo is discarded when the draft revision changes or a bulk-affected score is
 edited manually.
+
+Bulk actions target only visible checked students. Student selections reset
+when the active assessment column changes, and rows hidden by Only Missing are
+automatically unchecked.
 
 Multi-assessment drafts share one class and roster but keep separate assessment
 names, types, scales, dates and visibility settings. Publish creates every
@@ -93,8 +99,9 @@ explicitly selected assessment column.
 
 Each teacher can maintain private reusable comments from the Score Log header.
 Library records are creator-bound and can be inserted into any comment drawer
-in a draft. Adding, editing and deleting comments uses CSRF-protected POST
-actions.
+in a draft. Inserting a library comment appends it with a line break and never
+replaces hand-written text. Adding, editing and deleting comments uses
+CSRF-protected POST actions.
 
 The structure-copy action copies an existing assessment's name, description,
 type, scale, date and visibility into a new draft column. Scores and comments

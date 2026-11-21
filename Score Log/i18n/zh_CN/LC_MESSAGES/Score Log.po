@@ -1112,8 +1112,8 @@ msgstr "从评语库选择"
 msgid "Choose from comment library..."
 msgstr "从评语库选择..."
 
-msgid "Use comment"
-msgstr "使用评语"
+msgid "Append comment"
+msgstr "追加评语"
 
 msgid "Manage library"
 msgstr "管理评语库"
@@ -1138,3 +1138,23 @@ msgstr "已复制评估结构，不包含成绩或评语。"
 
 msgid "No unused assessment column is available."
 msgstr "没有可用的空白评估列。"
+
+msgid "Overwrite existing scores"
+msgstr "覆盖已有成绩"
+
+msgid "Fill blanks"
+msgstr "填充空白"
+
+msgid "Overwrite will change"
+msgstr "覆盖将修改"
+
+msgid "Student selections were cleared after changing the assessment column."
+msgstr "切换评估列后，已清除学生勾选。"
+
+#, php-format
+msgid "Clear %s existing scores?"
+msgstr "确定清除 %s 个已有成绩吗？"
+
+#, php-format
+msgid "Overwrite %s existing scores?"
+msgstr "确定覆盖 %s 个已有成绩吗？"

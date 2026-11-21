@@ -974,6 +974,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
             'scoreLogOnlyMissing',
             'scoreLogNextMissing',
             'scoreLogBulkValue',
+            'scoreLogBulkOverwrite',
             'scoreLogBulkFill',
             'scoreLogBulkClear',
             'scoreLogBulkPreview',
@@ -985,6 +986,9 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringContainsString('name="revision"', $view);
         $this->assertStringContainsString('focusNextMissing', $script);
         $this->assertStringContainsString('checkedScoreRows', $script);
+        $this->assertStringContainsString('!row.hidden && checkbox && checkbox.checked', $script);
+        $this->assertStringContainsString('bulkOverwriteInput', $script);
+        $this->assertStringContainsString("labels.confirmBulkClear", $script);
         $this->assertStringContainsString('revisionInput.value', $script);
         $this->assertStringContainsString("event.key.toLowerCase() === 'n'", $script);
         $this->assertStringContainsString('invalidateUndoForRow', $script);
@@ -1014,6 +1018,8 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringContainsString('gibbonPersonIDCreator=:gibbonPersonID', $process);
         $this->assertStringContainsString('window.scoreLogCommentLibrary', $view);
         $this->assertStringContainsString('scoreLogCommentLibraryInsert', $view);
+        $this->assertStringContainsString('Append comment', $view);
+        $this->assertStringContainsString("existing + separator + option.dataset.comment", $script);
         $this->assertStringContainsString('scoreLogStructureSource', $view);
         $this->assertStringContainsString('data-name=', $view);
         $this->assertStringContainsString('.scoreLogScoreInput, .scoreLogCommentEditor textarea', $script);
