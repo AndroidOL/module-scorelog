@@ -1324,7 +1324,6 @@ function scoreLogBuildImportPreview(array $matrix, array $mapping, array $payloa
         'ambiguous' => 0,
         'duplicate' => 0,
         'invalid' => 0,
-        'noChange' => 0,
     ];
     $updates = [];
 
@@ -1379,8 +1378,8 @@ function scoreLogBuildImportPreview(array $matrix, array $mapping, array $payloa
             $row['status'] = 'preserved';
             $counts['preserved']++;
         } else {
-            $row['status'] = 'noChange';
-            $counts['noChange']++;
+            $row['status'] = 'preserved';
+            $counts['preserved']++;
         }
 
         $row['clears'] = [];
@@ -1623,7 +1622,9 @@ function scoreLogBuildAssessmentSpreadsheet(
     $metadata->setCellValueExplicit('B1', (string) ($column['name'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
     $metadata->setCellValueExplicit('A2', scoreLogT('Description'), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
     $metadata->setCellValueExplicit('B2', (string) ($column['description'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-    $metadata->getStyle('A1:A2')->getFont()->setBold(true);
+    $metadata->setCellValueExplicit('A3', scoreLogT('Assessment Date'), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    $metadata->setCellValueExplicit('B3', (string) ($column['completeDate'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    $metadata->getStyle('A1:A3')->getFont()->setBold(true);
     $metadata->getStyle('B2')->getAlignment()->setWrapText(true);
     $metadata->getColumnDimension('A')->setWidth(24);
     $metadata->getColumnDimension('B')->setWidth(72);

@@ -447,12 +447,14 @@ $topActions->addSubmit(scoreLogT('Import Scores'))
     ->setName('importScores')
     ->setSize('sm')
     ->setColor('gray')
-    ->setIcon('solid', 'upload');
+    ->setIcon('solid', 'upload')
+    ->setAttribute('formnovalidate', 'formnovalidate');
 $topActions->addSubmit(scoreLogT('Export Template'))
     ->setName('exportTemplate')
     ->setSize('sm')
     ->setColor('gray')
-    ->setIcon('solid', 'download');
+    ->setIcon('solid', 'download')
+    ->setAttribute('formnovalidate', 'formnovalidate');
 
 $form->addRow()->addHeading('assessmentDetails', scoreLogT('Assessment Details'));
 
@@ -641,7 +643,8 @@ $row->addSubmit(scoreLogT('Export Scores (XLSX)'))
     ->setName('exportScores')
     ->setSize('sm')
     ->setColor('gray')
-    ->setIcon('solid', 'download');
+    ->setIcon('solid', 'download')
+    ->setAttribute('formnovalidate', 'formnovalidate');
 $row->addSubmit(scoreLogT('Review and Publish'))
     ->setName('reviewPublish')
     ->setSize('sm');

@@ -8,8 +8,8 @@ v1.5.2
 - Split top-level Import Scores / Export Template from bottom Export Scores.
 - Let teachers explicitly overwrite a conflicting draft with this tab, while
   retaining Reload latest as the safe secondary action.
-- Include assessment name and description in exported workbooks as metadata
-  without adding either field to the import mapping.
+- Include assessment name, description and date in exported workbooks as
+  metadata without adding those fields to the import mapping.
 - Skip blank imported score/comment cells and overwrite every nonblank imported
   value without an additional overwrite-mode choice.
 - Restore descriptor-based default comments without replacing teacher-edited

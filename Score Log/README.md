@@ -113,11 +113,11 @@ type, date and visibility into the current draft. Scores and comments are never
 copied.
 
 The XLSX template contains the current roster plus a separate Assessment sheet
-with the assessment name and description, while the score and comment columns
-are blank for editing. Export Scores contains the same roster and metadata with
-the current draft values. The import path reads only the first Scores sheet and
-does not require assessment configuration fields. Blank cells never clear a
-saved score or comment.
+with the assessment name, description and date, while the score and comment
+columns are blank for editing. Export Scores contains the same roster and
+metadata with the current draft values. The import path reads only the first
+Scores sheet and does not require assessment configuration fields. Blank cells
+never clear a saved score or comment.
 
 ## Formal Assessment compatibility
 

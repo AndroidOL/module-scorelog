@@ -309,7 +309,6 @@ foreach ($preview['rows'] as $row) {
         'ambiguous' => scoreLogT('Ambiguous student'),
         'duplicate' => scoreLogT('Duplicate student'),
         'invalid' => scoreLogT('Invalid row'),
-        'noChange' => scoreLogT('No change'),
     ][$row['status']] ?? $row['status'];
     $imported = (string) ($row['importScore'] !== '' ? $row['importScore'] : '-');
     if ($row['importComment'] !== '') {

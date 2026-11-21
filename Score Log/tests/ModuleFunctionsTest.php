@@ -403,9 +403,10 @@ namespace Gibbon\Module\ScoreLog\Tests {
             $this->numericGrades()
         );
 
-        $this->assertSame('noChange', $preview['rows'][0]['status']);
+        $this->assertSame('preserved', $preview['rows'][0]['status']);
         $this->assertSame([], $preview['rows'][0]['clears']);
         $this->assertEmpty($preview['updates']);
+        $this->assertSame(1, $preview['counts']['preserved']);
     }
 
     public function testPreviewHashChangesWhenSkippedRowOutcomeChanges()
@@ -1025,6 +1026,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertStringContainsString("setName('importScores')", $view);
         $this->assertStringContainsString("setName('exportTemplate')", $view);
         $this->assertStringContainsString("setName('exportScores')", $view);
+        $this->assertSame(4, substr_count($view, "->setAttribute('formnovalidate'"));
         $this->assertLessThan(
             strpos($view, "addHeading('assessmentDetails'"),
             strpos($view, "Export Template")
@@ -1191,6 +1193,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
                 'c1' => [
                     'name' => 'Forces and Motion',
                     'description' => 'End-of-unit assessment',
+                    'completeDate' => '2026-11-21',
                 ],
             ],
             'students' => [
@@ -1207,6 +1210,8 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertSame('Forces and Motion', $spreadsheet->getSheetByName('Assessment')->getCell('B1')->getValue());
         $this->assertSame('Description', $spreadsheet->getSheetByName('Assessment')->getCell('A2')->getValue());
         $this->assertSame('End-of-unit assessment', $spreadsheet->getSheetByName('Assessment')->getCell('B2')->getValue());
+        $this->assertSame('Assessment Date', $spreadsheet->getSheetByName('Assessment')->getCell('A3')->getValue());
+        $this->assertSame('2026-11-21', $spreadsheet->getSheetByName('Assessment')->getCell('B3')->getValue());
         $this->assertSame('', $spreadsheet->getSheetByName('Scores')->getCell('D2')->getValue());
         $this->assertSame('', $spreadsheet->getSheetByName('Scores')->getCell('E2')->getValue());
         $this->assertSame('88', $scoresSpreadsheet->getSheetByName('Scores')->getCell('D2')->getValue());
@@ -1240,6 +1245,7 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertSame('Comment', $matrix[0][4]);
         $this->assertNotContains('Assessment Name', array_merge(...$matrix));
         $this->assertNotContains('Description', array_merge(...$matrix));
+        $this->assertNotContains('Assessment Date', array_merge(...$matrix));
     }
 
     private function importRoster(): array
