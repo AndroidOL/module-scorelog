@@ -59,6 +59,65 @@ if (
     return;
 }
 
+// Class-context import: no draft yet, so provision one from the chosen class + scale and continue.
+if ($scoreLogDraftID === '' && $columnID === '') {
+    $ctxClassID = is_scalar($_GET['gibbonCourseClassID'] ?? null) ? trim((string) $_GET['gibbonCourseClassID']) : '';
+    $ctxScaleID = is_scalar($_GET['gibbonScaleIDAttainment'] ?? null) ? trim((string) $_GET['gibbonScaleIDAttainment']) : '';
+    if ($ctxClassID !== '' && $ctxScaleID !== '') {
+        if (!scoreLogCanEditClass($pdo, $gibbonPersonID, $ctxClassID, $gibbonSchoolYearID)) {
+            $page->addError(scoreLogT('You do not have access to this page.'));
+            return;
+        }
+        $scale = $pdo->selectOne(
+            "SELECT gibbonScaleID FROM gibbonScale WHERE gibbonScaleID=:gibbonScaleID AND active='Y'",
+            ['gibbonScaleID' => $ctxScaleID]
+        );
+        $roster = $scale ? scoreLogCurrentRoster($pdo, $ctxClassID) : [];
+        if (empty($scale) || empty($roster)) {
+            $page->addError(scoreLogT('There are no records to display.'));
+            return;
+        }
+        $settingGateway = $container->get(\Gibbon\Domain\System\SettingGateway::class);
+        $allowedTypes = scoreLogAllowedTypes($settingGateway->getSettingByScope('Formal Assessment', 'internalAssessmentTypes'));
+        $payload = [
+            'version'      => 2,
+            'columns'      => [
+                'c1' => [
+                    'name'             => '',
+                    'description'      => '',
+                    'type'             => (string) ($allowedTypes[0] ?? ''),
+                    'scaleID'          => $ctxScaleID,
+                    'completeDate'     => date('Y-m-d'),
+                    'viewableStudents' => 'Y',
+                    'viewableParents'  => 'Y',
+                ],
+            ],
+            'columnOrder'  => ['c1'],
+            'students'     => [],
+            'studentNames' => [],
+            'rosterIDs'    => [],
+        ];
+        $inserted = $pdo->insert(
+            "INSERT INTO score_log_draft
+             SET gibbonPersonIDCreator=:gibbonPersonID, gibbonCourseClassID=:gibbonCourseClassID,
+                 gibbonScaleIDAttainment=:gibbonScaleIDAttainment, revision=1, payload=:payload",
+            [
+                'gibbonPersonID'          => $gibbonPersonID,
+                'gibbonCourseClassID'     => $ctxClassID,
+                'gibbonScaleIDAttainment' => $ctxScaleID,
+                'payload'                 => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ]
+        );
+        if (empty($inserted)) {
+            $page->addError(scoreLogT('Unable to save the draft.'));
+            return;
+        }
+        header('Location: '.$session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_import.php'
+            .'&draftID='.urlencode((string) $inserted).'&columnID=c1&return=success1');
+        exit;
+    }
+}
+
 $draft = $scoreLogDraftID !== '' ? scoreLogLoadDraft($pdo, $scoreLogDraftID, $gibbonPersonID) : null;
 if (
     empty($draft)

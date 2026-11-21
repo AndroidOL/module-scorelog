@@ -39,6 +39,58 @@ if (
     return;
 }
 
+// Class-context template export: no draft yet, so build a one-column template from the class + scale.
+$ctxClassID = is_scalar($_GET['gibbonCourseClassID'] ?? null) ? trim((string) $_GET['gibbonCourseClassID']) : '';
+$ctxScaleID = is_scalar($_GET['gibbonScaleIDAttainment'] ?? null) ? trim((string) $_GET['gibbonScaleIDAttainment']) : '';
+if ($scoreLogDraftID === '' && $ctxClassID !== '' && $ctxScaleID !== '') {
+    $class = $pdo->selectOne(
+        "SELECT cc.gibbonCourseClassID
+         FROM gibbonCourseClass cc
+         JOIN gibbonCourse c ON c.gibbonCourseID=cc.gibbonCourseID
+         WHERE cc.gibbonCourseClassID=:gibbonCourseClassID AND c.gibbonSchoolYearID=:gibbonSchoolYearID",
+        ['gibbonCourseClassID' => $ctxClassID, 'gibbonSchoolYearID' => $gibbonSchoolYearID]
+    );
+    $scale = $pdo->selectOne(
+        "SELECT gibbonScaleID FROM gibbonScale WHERE gibbonScaleID=:gibbonScaleID AND active='Y'",
+        ['gibbonScaleID' => $ctxScaleID]
+    );
+    if (empty($class) || empty($scale) || !scoreLogCanEditClass($pdo, $gibbonPersonID, $ctxClassID, $gibbonSchoolYearID)) {
+        $page->addError(scoreLogT('The specified record does not exist.'));
+        return;
+    }
+    $roster = scoreLogCurrentRoster($pdo, $ctxClassID);
+    if (empty($roster)) {
+        $page->addError(scoreLogT('There are no records to display.'));
+        return;
+    }
+    $payload = [
+        'version'      => 2,
+        'columns'      => [
+            'c1' => [
+                'name'             => '',
+                'description'      => '',
+                'type'             => '',
+                'scaleID'          => $ctxScaleID,
+                'completeDate'     => date('Y-m-d'),
+                'viewableStudents' => 'Y',
+                'viewableParents'  => 'Y',
+            ],
+        ],
+        'columnOrder'  => ['c1'],
+        'students'     => [],
+        'studentNames' => [],
+        'rosterIDs'    => [],
+    ];
+    $spreadsheet = scoreLogBuildAssessmentSpreadsheet($payload, $roster, 'c1', 'template');
+    $filename = 'score-log-template-'.date('Ymd').'.xlsx';
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment; filename="'.$filename.'"');
+    header('Cache-Control: no-store, no-cache, must-revalidate');
+    (new Xlsx($spreadsheet))->save('php://output');
+    $spreadsheet->disconnectWorksheets();
+    exit;
+}
+
 $draft = $scoreLogDraftID !== '' ? scoreLogLoadDraft($pdo, $scoreLogDraftID, $gibbonPersonID) : null;
 if (
     empty($draft)

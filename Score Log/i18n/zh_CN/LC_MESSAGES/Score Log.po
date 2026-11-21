@@ -1150,3 +1150,9 @@ msgid ""
 "Every worksheet must use the same assessment metadata and import column "
 "headers."
 msgstr "每个工作表必须使用相同的评估信息与导入列标题。"
+
+msgid "Unable to save the draft."
+msgstr "无法保存草稿。"
+
+msgid "The selected class has no records to display. Please choose another class."
+msgstr "所选班级没有可显示的记录，请选择其他班级。"
