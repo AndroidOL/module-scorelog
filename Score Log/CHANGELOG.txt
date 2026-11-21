@@ -1,6 +1,20 @@
 CHANGELOG
 =========
 
+v1.5.5
+------
+- Cache class-edit permissions per request and load a teacher's editable
+  classes once, removing repeated permission queries from draft listings.
+- Build the import roster name index once instead of scanning the roster for
+  every preview row.
+- Use the detected workbook column count for import mapping validation instead
+  of relying on the first row width.
+- Normalize worksheet metadata comparison so blank rows and header position do
+  not reject otherwise matching multi-sheet imports.
+- Stop treating positive numeric scores such as +5 as spreadsheet formulas and
+  escape translated confirmation prompts safely.
+- Cap retained import previews per user to reduce session payload.
+
 v1.5.4
 ------
 - Validate every worksheet in an uploaded workbook and merge data rows only

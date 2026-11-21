@@ -200,36 +200,35 @@ function scoreLogCanEditClass($pdo, $gibbonPersonID, $gibbonCourseClassID, $gibb
         return false;
     }
 
-    $class = $pdo->selectOne(
-        "SELECT cc.gibbonCourseClassID
-         FROM gibbonCourseClass cc
-         JOIN gibbonCourse c ON c.gibbonCourseID=cc.gibbonCourseID
-         WHERE cc.gibbonCourseClassID=:gibbonCourseClassID
-           AND c.gibbonSchoolYearID=:gibbonSchoolYearID",
-        [
-            'gibbonCourseClassID' => $gibbonCourseClassID,
-            'gibbonSchoolYearID'  => $gibbonSchoolYearID,
-        ]
-    );
-    if (empty($class)) {
-        return false;
+    static $viewAllCache = [];
+    if (!array_key_exists($gibbonPersonID, $viewAllCache)) {
+        $viewAllCache[$gibbonPersonID] = scoreLogCanViewAllClasses($gibbonPersonID);
     }
-
-    if (scoreLogCanViewAllClasses($gibbonPersonID)) {
+    if ($viewAllCache[$gibbonPersonID]) {
         return true;
     }
 
-    return !empty($pdo->selectOne(
-        "SELECT 1 FROM gibbonCourseClassPerson
-         WHERE gibbonCourseClassID=:gibbonCourseClassID
-           AND gibbonPersonID=:gibbonPersonID
-           AND role='Teacher'
-         LIMIT 1",
-        [
-            'gibbonCourseClassID' => $gibbonCourseClassID,
-            'gibbonPersonID'      => $gibbonPersonID,
-        ]
-    ));
+    static $teacherClassCache = [];
+    $cacheKey = $gibbonPersonID.'|'.$gibbonSchoolYearID;
+    if (!array_key_exists($cacheKey, $teacherClassCache)) {
+        $classIDs = $pdo->select(
+            "SELECT cc.gibbonCourseClassID
+             FROM gibbonCourseClassPerson ccp
+             JOIN gibbonCourseClass cc ON cc.gibbonCourseClassID=ccp.gibbonCourseClassID
+             JOIN gibbonCourse c ON c.gibbonCourseID=cc.gibbonCourseID
+             WHERE ccp.gibbonPersonID=:gibbonPersonID
+               AND ccp.role='Teacher'
+               AND c.gibbonSchoolYearID=:gibbonSchoolYearID",
+            [
+                'gibbonPersonID'   => $gibbonPersonID,
+                'gibbonSchoolYearID' => $gibbonSchoolYearID,
+            ]
+        )->fetchAll(PDO::FETCH_COLUMN);
+
+        $teacherClassCache[$cacheKey] = array_fill_keys(array_map('strval', $classIDs), true);
+    }
+
+    return isset($teacherClassCache[$cacheKey][(string) $gibbonCourseClassID]);
 }
 
 function scoreLogCurrentRoster($pdo, $gibbonCourseClassID): array
@@ -1233,6 +1232,13 @@ function scoreLogDetectImportMapping(array $matrix, array $roster, array $scale,
 function scoreLogBuildImportPreview(array $matrix, array $mapping, array $payload, array $roster, array $scale, array $gradeDescriptors, array $formulaCells = []): array
 {
     $indexes = scoreLogImportRosterIndexes($roster);
+    $rosterNames = [];
+    foreach ($roster as $student) {
+        $studentID = (string) ($student['gibbonPersonID'] ?? '');
+        if ($studentID !== '') {
+            $rosterNames[$studentID] = trim((string) ($student['preferredName'] ?? '').' '.($student['surname'] ?? ''));
+        }
+    }
     $headerRow = $mapping['headerRow'] ?? null;
     $identifierColumn = isset($mapping['identifierColumn']) ? (int) $mapping['identifierColumn'] : null;
     $identifierType = in_array($mapping['identifierType'] ?? '', ['id', 'username', 'name'], true)
@@ -1310,7 +1316,7 @@ function scoreLogBuildImportPreview(array $matrix, array $mapping, array $payloa
             'rowNumber'      => $rowIndex + 1,
             'identifier'     => $identifier,
             'studentID'      => $studentID,
-            'studentName'    => $studentID !== null ? scoreLogImportStudentName($roster, $studentID) : '',
+            'studentName'    => $studentID !== null ? ($rosterNames[$studentID] ?? '') : '',
             'importScore'    => $scoreValue,
             'normalizedScore'=> $score['normalized'],
             'importComment'  => $comment,
@@ -1407,19 +1413,6 @@ function scoreLogBuildImportPreview(array $matrix, array $mapping, array $payloa
     ];
 }
 
-function scoreLogImportStudentName(array $roster, $studentID): string
-{
-    foreach ($roster as $student) {
-        $left = (string) ($student['gibbonPersonID'] ?? '');
-        $right = (string) $studentID;
-        if (ctype_digit($left) && ctype_digit($right) && (int) $left === (int) $right) {
-            return trim((string) ($student['preferredName'] ?? '').' '.$student['surname']);
-        }
-    }
-
-    return '';
-}
-
 function scoreLogImportPreviewHash(array $mapping, array $preview, $revision): string
 {
     return hash('sha256', json_encode([
@@ -1505,7 +1498,7 @@ function scoreLogImportWorksheetToMatrix($sheet): array
                 $value = $value->getPlainText();
             }
             $value = is_scalar($value) ? (string) $value : '';
-            if (preg_match('/^\s*[=+@]/u', $value)) {
+            if (preg_match('/^\s*=/u', $value)) {
                 $formulaCells[($row - 1).':'.($column - 1)] = true;
             }
             $values[] = $value;
@@ -1547,9 +1540,21 @@ function scoreLogCombineImportWorksheets(array $worksheets): array
         }
 
         $header = array_map('scoreLogNormalizeImportKey', $matrix[$headerRow]);
-        $metadata = array_map(function ($row) {
-            return array_map('scoreLogNormalizeImportKey', $row);
-        }, array_slice($matrix, 0, $headerRow));
+        $normalizeMetadata = function (array $rows): array {
+            $metadata = [];
+            foreach ($rows as $row) {
+                $values = array_map('scoreLogNormalizeImportKey', $row);
+                while ($values !== [] && end($values) === '') {
+                    array_pop($values);
+                }
+                if ($values !== []) {
+                    $metadata[] = $values;
+                }
+            }
+
+            return $metadata;
+        };
+        $metadata = $normalizeMetadata(array_slice($matrix, 0, $headerRow));
         if ($headerSignature === null) {
             $headerSignature = $header;
             $metadataSignature = $metadata;

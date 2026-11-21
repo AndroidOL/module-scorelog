@@ -711,7 +711,7 @@ if ($scoreLogDraftID !== '') {
     $formRow = $discardForm->addRow();
     $formRow->addSubmit(scoreLogT('Discard Draft'))
         ->setColor('red')
-        ->onClick("return confirm('".scoreLogT('Discard this draft? This cannot be undone.')."');");
+        ->onClick('return confirm('.json_encode(scoreLogT('Discard this draft? This cannot be undone.')).');');
     echo $discardForm->getOutput();
 }
 

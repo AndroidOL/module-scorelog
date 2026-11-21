@@ -174,7 +174,7 @@ foreach ($grades as $grade) {
 }
 
 $initialMapping = is_array($previewMeta['mapping'] ?? null) ? $previewMeta['mapping'] : [];
-$columnCount = max(1, count($previewMeta['matrix'][0] ?? []));
+$columnCount = max(1, (int) ($previewMeta['mapping']['columnCount'] ?? count($previewMeta['matrix'][0] ?? [])));
 $validColumn = function ($value) use ($columnCount) {
     return $value !== '' && is_numeric($value) && (int) $value >= 0 && (int) $value < $columnCount;
 };

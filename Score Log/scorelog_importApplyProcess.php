@@ -110,7 +110,7 @@ $scoreColumn = is_scalar($input['scoreColumn'] ?? null) && is_numeric($input['sc
 $commentColumn = is_scalar($input['commentColumn'] ?? null) && is_numeric($input['commentColumn'])
     ? (int) $input['commentColumn']
     : null;
-$columnCount = max(1, count($previewMeta['matrix'][0] ?? []));
+$columnCount = max(1, (int) ($previewMeta['mapping']['columnCount'] ?? count($previewMeta['matrix'][0] ?? [])));
 if (
     $identifierColumn < 0 || $identifierColumn >= $columnCount
     || $scoreColumn < 0 || $scoreColumn >= $columnCount

@@ -143,6 +143,12 @@ foreach ($previews as $token => $preview) {
         unset($previews[$token]);
     }
 }
+if (count($previews) > 2) {
+    uasort($previews, function ($left, $right) {
+        return ($right['createdAt'] ?? 0) <=> ($left['createdAt'] ?? 0);
+    });
+    $previews = array_slice($previews, 0, 2, true);
+}
 
 $previewToken = bin2hex(random_bytes(24));
 $previews[$previewToken] = [

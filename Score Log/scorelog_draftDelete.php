@@ -78,6 +78,6 @@ $row = $form->addRow();
 $row->addFooter();
 $row->addSubmit(scoreLogT('Discard Draft'))
     ->setColor('red')
-    ->onClick("return confirm('".scoreLogT('Discard this draft? This cannot be undone.')."');");
+    ->onClick('return confirm('.json_encode(scoreLogT('Discard this draft? This cannot be undone.')).');');
 
 $page->write($form->getOutput());
