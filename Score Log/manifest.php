@@ -21,11 +21,11 @@ along with this program.  If not, see <http:// www.gnu.org/licenses/>.
 
 // Basic variables
 $name        = 'Score Log';            // The name of the module as it appears to users. Needs to be unique to installation. Also the name of the folder that holds the unit.
-$description = 'A module for quickly creating and inserting grades.';            // Short text description
+$description = 'Quickly create internal assessments and enter student scores.';            // Short text description
 $entryURL    = "scorelog_view.php";   // The landing page for the unit, used in the main menu
 $type        = "Additional";  // Do not change.
 $category    = 'Other';            // The main menu area to place the module in
-$version     = '0.0.00';            // Version number
+$version     = '1.0.0';            // Version number
 $author      = 'Tianhao Wu';            // Your name
 $url         = 'https://gibbonedu.org';            // Your URL
 
@@ -36,10 +36,10 @@ $url         = 'https://gibbonedu.org';            // Your URL
 
 // Action rows 
 $actionRows[] = [
-    'name'                      => 'Create Internal Assessment', // The name of the action (appears to user in the right hand side module menu)
+    'name'                      => 'Create Assessment', // The name of the action (appears to user in the right hand side module menu)
     'precedence'                => '0',// If it is a grouped action, the precedence controls which is highest action in group
-    'category'                  => '操作', // Optional: subgroups for the right hand side module menu
-    'description'               => 'Allows you to create new Internal Assessment for your assigned classes.', // Text description
+    'category'                  => 'Assessment', // Optional: subgroups for the right hand side module menu
+    'description'               => 'Create an internal assessment and enter scores for a class.', // Text description
     'URLList'                   => 'scorelog_view.php', // List of pages included in this action
     'entryURL'                  => 'scorelog_view.php', // The landing action for the page.
     'entrySidebar'              => 'Y', // Whether or not there's a sidebar on entry to the action

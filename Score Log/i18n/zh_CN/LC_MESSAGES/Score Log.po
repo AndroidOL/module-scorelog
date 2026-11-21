@@ -1,0 +1,140 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Score Log 1.0.0\n"
+"Language: zh_CN\n"
+"PO-Revision-Date: 2026-11-21 11:00+0800\n"
+"Last-Translator: AndroidOL\n"
+"Language-Team: Gibbon zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "All Classes"
+msgstr "所有课程"
+
+msgid "Assessment Complete?"
+msgstr "评价是否完成？"
+
+msgid "Assessment created."
+msgstr "小测已创建。"
+
+msgid "Assessment Date"
+msgstr "布置作业小测日期"
+
+msgid "Assessment Scale"
+msgstr "小测评分"
+
+msgid "Choose Class"
+msgstr "选择课程"
+
+msgid "Class Name"
+msgstr "课程名称"
+
+msgid "Com"
+msgstr "评语"
+
+msgid "Comment"
+msgstr "评语"
+
+msgid "Completed"
+msgstr "已完成"
+
+msgid "Confirm Class"
+msgstr "确认课程"
+
+msgid "Create Assessment"
+msgstr "创建小测"
+
+msgid "Created by Score Log"
+msgstr "由快速成绩录入创建"
+
+msgid "Create Internal Assessment"
+msgstr "创建内部评价"
+
+msgid "Create New Internal Assessment"
+msgstr "创建新的内部评价"
+
+msgid "Date"
+msgstr "日期"
+
+msgid "Draft"
+msgstr "草稿"
+
+msgid "Enter Scores"
+msgstr "填写成绩单"
+
+msgid "Grading scale:"
+msgstr "评分标准："
+
+msgid "Maximum 30 characters."
+msgstr "最多 30 个字符。"
+
+msgid "Maximum 1000 characters."
+msgstr "最多 1000 个字符。"
+
+msgid "My Classes"
+msgstr "我的课程"
+
+msgid "Name"
+msgstr "名称"
+
+msgid "No submitted data was received."
+msgstr "没有收到提交的数据。"
+
+msgid "Recent Assessments"
+msgstr "最近评价"
+
+msgid "Score"
+msgstr "分值"
+
+msgid "Status"
+msgstr "状态"
+
+msgid "Student"
+msgstr "学生"
+
+msgid "Students"
+msgstr "学生"
+
+msgid "The 10 most recent internal assessments, ordered by completion date."
+msgstr "最近创建的 10 条内部评价，按完成日期倒序排列。"
+
+msgid "The assessment is hidden from students, parents and reports until this date."
+msgstr "在这个日期之前，学生、家长和报表看不到该评价。"
+
+msgid "There are no records to display."
+msgstr "没有可显示的记录。"
+
+msgid "The specified record does not exist."
+msgstr "指定的记录不存在。"
+
+msgid "The submitted data is invalid. Check the class, scale and scores."
+msgstr "提交的数据无效，请检查课程、评分标准和成绩。"
+
+msgid "Type"
+msgstr "类型"
+
+msgid "Unable to save. Another assessment may be in progress; try again shortly."
+msgstr "保存失败，可能另一个小测正在创建，请稍后重试。"
+
+msgid "View / Enter Marks"
+msgstr "查看/录入成绩"
+
+msgid "Viewable to Parents"
+msgstr "家长可见"
+
+msgid "Viewable to Students"
+msgstr "学生可见"
+
+msgid "View Marks"
+msgstr "查看成绩"
+
+msgid "You do not have access to this page."
+msgstr "您没有权限访问该页面。"
+
+msgid "You do not have permission to perform this action."
+msgstr "您没有权限执行该操作。"
+
+msgid "Your session expired. Refresh the page and try again."
+msgstr "会话已过期，请刷新页面后重试。"
+

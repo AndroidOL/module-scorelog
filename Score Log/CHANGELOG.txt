@@ -1,6 +1,20 @@
 CHANGELOG
 =========
 
+v1.0.0
+------
+- Added strict POST, CSRF, permission, assessment type and completion-date validation.
+- Added finite-score normalisation and configurable maximum-score parsing.
+- Added English source strings and Simplified Chinese translations.
+- Added regression tests for score and assessment-type helpers.
+
+v0.0.01
+-------
+- Refactored the module for readability and safer database writes.
+- Fixed the blank page after creating an assessment.
+- Default and require the complete date so new grades are visible to students, parents and reports.
+- Validate class access, students, scales and scores on the server.
+
 v0.0.00
 -------
 Version details here...
