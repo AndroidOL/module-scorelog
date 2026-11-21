@@ -47,22 +47,67 @@ namespace Gibbon\Module\ScoreLog\Tests {
 
     public function testNumericMarksRequireAndPreserveAnOfficialScaleGradeRow()
     {
+        $numeric = \scoreLogValidateImportScore(
+            '100',
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            ['100%' => 'Excellent']
+        );
+        $percent = \scoreLogValidateImportScore(
+            '100%',
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            ['100%' => 'Excellent']
+        );
+        $decimal = \scoreLogValidateImportScore(
+            '87.5%',
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            ['87.5%' => 'Very good']
+        );
         $score = \scoreLogValidateImportScore(
             '88.0',
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
             ['88%' => '88%']
         );
         $missing = \scoreLogValidateImportScore(
-            '88.5',
+            '99%',
             ['numeric' => 'Y', 'usage' => 'Out of 100'],
-            ['88%' => '88%', '89%' => '89%']
+            ['100%' => 'Excellent']
         );
 
+        $this->assertTrue($numeric['valid']);
+        $this->assertSame('100%', $numeric['normalized']);
+        $this->assertSame('Excellent', $numeric['descriptor']);
+        $this->assertTrue($percent['valid']);
+        $this->assertSame('100%', $percent['normalized']);
+        $this->assertTrue($decimal['valid']);
+        $this->assertSame('87.5%', $decimal['normalized']);
+        $this->assertSame('Very good', $decimal['descriptor']);
         $this->assertTrue($score['valid']);
         $this->assertSame('88%', $score['normalized']);
         $this->assertSame('88%', $score['descriptor']);
         $this->assertFalse($missing['valid']);
         $this->assertSame('Choose a score from the selected scale.', $missing['error']);
+    }
+
+    public function testImportPreviewUsesPercentValuedScaleGrades()
+    {
+        $preview = \scoreLogBuildImportPreview(
+            [['Ada Lovelace', '100%']],
+            [
+                'headerRow' => null,
+                'identifierColumn' => 0,
+                'identifierType' => 'name',
+                'scoreColumn' => 1,
+                'commentColumn' => null,
+            ],
+            ['students' => []],
+            $this->importRoster(),
+            ['numeric' => 'Y', 'usage' => 'Out of 100'],
+            ['100%' => 'Excellent']
+        );
+
+        $this->assertSame('wouldFill', $preview['rows'][0]['status']);
+        $this->assertSame('100%', $preview['rows'][0]['normalizedScore']);
+        $this->assertSame('100%', $preview['updates']['0000000001']['attainmentValue']);
     }
 
     public function testAssessmentDatesAreStrictlyValidated()
