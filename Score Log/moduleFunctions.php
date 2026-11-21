@@ -458,7 +458,7 @@ function scoreLogBuildMultiAssessmentPayload(array $input, array $roster): array
         }
     }
 
-    return [
+    $payload = [
         'version'     => 2,
         'columns'     => $columns,
         'columnOrder' => $columnOrder,
@@ -466,6 +466,18 @@ function scoreLogBuildMultiAssessmentPayload(array $input, array $roster): array
         'studentNames'=> $studentNames,
         'rosterIDs'   => array_keys($students),
     ];
+    $autosaveKey = scoreLogInputString($input, 'autosaveKey');
+    $autosaveSequence = is_scalar($input['autosaveSequence'] ?? null)
+        ? max(0, (int) $input['autosaveSequence'])
+        : 0;
+    if (preg_match('/^[a-f0-9]{32}$/D', $autosaveKey)) {
+        $payload['autosaveKey'] = $autosaveKey;
+        if ($autosaveSequence > 0) {
+            $payload['autosaveSequence'] = $autosaveSequence;
+        }
+    }
+
+    return $payload;
 }
 
 /**

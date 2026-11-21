@@ -989,6 +989,43 @@ msgstr "保存并导入成绩"
 msgid "Save and Export Current Scores"
 msgstr "保存并导出当前成绩"
 
+#, php-format
+msgid "Saved · revision %s"
+msgstr "已保存 · 修订版本 %s"
+
+msgid "Not saved yet"
+msgstr "尚未保存"
+
+msgid "Reload latest draft"
+msgstr "重新载入最新草稿"
+
+msgid "Unsaved changes"
+msgstr "有未保存的更改"
+
+msgid "Saving..."
+msgstr "正在保存..."
+
+msgid "Saved"
+msgstr "已保存"
+
+msgid "revision"
+msgstr "修订版本"
+
+msgid "Offline — changes are not saved."
+msgstr "离线 — 更改尚未保存。"
+
+msgid "Conflict — another tab saved a newer revision. Reload the latest draft."
+msgstr "冲突 — 另一个页面已保存较新的修订版本。请重新载入最新草稿。"
+
+msgid "Autosave failed. Your changes remain unsaved."
+msgstr "自动保存失败。您的更改仍未保存。"
+
+msgid "Session expired. Reload the page and sign in again."
+msgstr "会话已过期。请重新载入页面并再次登录。"
+
+msgid "Autosave stopped: permission denied."
+msgstr "自动保存已停止：权限不足。"
+
 #: ⁨Score Log/scorelog_view.php⁩
 msgid "Quick score entry"
 msgstr "快捷录入"

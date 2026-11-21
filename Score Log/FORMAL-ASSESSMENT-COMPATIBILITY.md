@@ -80,8 +80,9 @@ Formal Assessment processes.
 
 The private draft and comment library remain entirely module-owned. Reusing an
 assessment structure copies only configuration fields and never copies scores
-or comments. No draft is visible to Formal Assessment, reports, students or
-parents until an atomic publication succeeds.
+or comments. Autosave updates only `score_log_draft` and cannot create or modify
+Formal Assessment columns. No draft is visible to Formal Assessment, reports,
+students or parents until an atomic publication succeeds.
 
 ## Verification status
 

@@ -29,13 +29,15 @@ workflow that reads or changes score data.
 - Create one assessment per draft using Gibbon's standard form, form-table and
   grade-scale controls.
 - Move through missing scores with Enter or Alt+N and optionally show only
-  missing students in the selected assessment column.
+  missing students in the current assessment.
 - Select students explicitly, preview affected counts, then bulk fill or clear
-  their score in the selected column with revision-bound undo.
+  their score with revision-bound undo.
 - Fill only blank scores by default; overwriting existing scores requires an
   explicit checkbox and confirmation. Clear always asks for confirmation.
 - Reuse a previous assessment's structure without copying scores or comments.
 - Save a private draft and resume it later without losing whole-class input.
+- Autosave private drafts on the server with visible saving, offline and
+  revision-conflict states.
 - Insert private reusable comments from a per-teacher comment library.
 - Open the dedicated Saved Drafts page to resume or discard private work.
 - Import scores from CSV, XLSX or a spreadsheet paste with mapping preview.
@@ -65,6 +67,23 @@ edited manually.
 
 Bulk actions target only visible checked students, and rows hidden by Only
 Missing are automatically unchecked.
+
+## Autosave and recovery
+
+The standard single-assessment form debounces changes and saves them to the
+private server-side draft using the current revision. The editor displays
+Unsaved, Saving, Saved, Offline, authentication and Conflict states. A stale
+tab receives a conflict instead of overwriting a newer revision.
+
+New drafts are protected by a per-editor key, an advisory database lock and a
+monotonic sequence so duplicate requests cannot create or overwrite another
+draft. After the first autosave, the draft ID is added to the browser URL.
+Reconnect retries pending changes, while authentication, validation and server
+errors remain distinct from network loss.
+
+Manual Save, Review, Import and Export flush any pending autosave first.
+Autosave never triggers Review or Publish, and browser storage is not used as an
+authoritative score store.
 
 ## Assessment dates
 

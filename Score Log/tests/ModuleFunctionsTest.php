@@ -653,6 +653,8 @@ namespace Gibbon\Module\ScoreLog\Tests {
     {
         $payload = \scoreLogBuildMultiAssessmentPayload([
             'columnOrder' => 'c2,c1',
+            'autosaveKey' => '0123456789abcdef0123456789abcdef',
+            'autosaveSequence' => '2',
             'columns' => [
                 'c1' => [
                     'name' => 'Quiz', 'description' => '', 'type' => 'Quiz',
@@ -678,6 +680,8 @@ namespace Gibbon\Module\ScoreLog\Tests {
         ]]);
 
         $this->assertSame(['c2', 'c1'], $payload['columnOrder']);
+        $this->assertSame('0123456789abcdef0123456789abcdef', $payload['autosaveKey']);
+        $this->assertSame(2, $payload['autosaveSequence']);
         $this->assertSame('A', $payload['students']['0000000001']['scores']['c2']['attainmentValue']);
         $this->assertSame('88', $payload['students']['0000000001']['scores']['c1']['attainmentValue']);
 
@@ -1006,9 +1010,9 @@ namespace Gibbon\Module\ScoreLog\Tests {
         foreach ([$manifest, $changedb, $process, $view, $script, $version] as $source) {
             $this->assertIsString($source);
         }
-        $this->assertStringContainsString("\$version     = '1.4.1'", $manifest);
+        $this->assertStringContainsString("\$version     = '1.5.0'", $manifest);
         $this->assertStringContainsString('CREATE TABLE IF NOT EXISTS `score_log_draft`', $changedb);
-        $this->assertStringContainsString("\$moduleVersion = '1.4.1'", $version);
+        $this->assertStringContainsString("\$moduleVersion = '1.5.0'", $version);
         $this->assertStringContainsString('CREATE TABLE `score_log_comment`', $manifest);
         $this->assertStringContainsString('CREATE TABLE IF NOT EXISTS `score_log_comment`', $changedb);
         $this->assertStringContainsString('scorelog_comments.php', $manifest);
@@ -1062,6 +1066,38 @@ namespace Gibbon\Module\ScoreLog\Tests {
         $this->assertFalse($longLabel['valid']);
         $this->assertFalse($missingComment['valid']);
         $this->assertFalse($longComment['valid']);
+    }
+
+    public function testSingleAssessmentAutosaveUsesRevisionAndRecoveryStates()
+    {
+        $manifest = file_get_contents(dirname(__DIR__).'/manifest.php');
+        $version = file_get_contents(dirname(__DIR__).'/version.php');
+        $endpoint = file_get_contents(dirname(__DIR__).'/scorelog_autosaveProcess.php');
+        $view = file_get_contents(dirname(__DIR__).'/scorelog_view.php');
+        $script = file_get_contents(dirname(__DIR__).'/js/module.js');
+
+        foreach ([$manifest, $version, $endpoint, $view, $script] as $source) {
+            $this->assertIsString($source);
+        }
+        $this->assertStringContainsString('scorelog_autosaveProcess.php', $manifest);
+        $this->assertStringContainsString('validateCsrfToken', $endpoint);
+        $this->assertStringContainsString('count($columnOrder) !== 1', $endpoint);
+        $this->assertStringContainsString('GET_LOCK(?, 5)', $endpoint);
+        $this->assertStringContainsString('$autosaveSequence > $lockedSequence', $endpoint);
+        $this->assertStringContainsString("'status' => 'conflict'", $endpoint);
+        $this->assertStringContainsString('data-autosave-url', $view);
+        $this->assertStringContainsString("addHiddenValue('autosaveSequence'", $view);
+        $this->assertStringContainsString('scoreLogAutosaveStatus', $view);
+        $this->assertStringContainsString('scoreLogAutosaveReload', $view);
+        $this->assertStringContainsString('flushAutosave', $script);
+        $this->assertStringContainsString('autosaveSequenceInput.value = String(changeVersion)', $script);
+        $this->assertStringContainsString("setAutosaveState('offline'", $script);
+        $this->assertStringContainsString("setAutosaveState('auth'", $script);
+        $this->assertStringContainsString("setAutosaveState('failed'", $script);
+        $this->assertStringNotContainsString('localStorage', $script);
+        $this->assertStringNotContainsString('scoreLogColumnOrder', $script);
+        $this->assertStringNotContainsString('scorelog_review.php', $endpoint);
+        $this->assertStringNotContainsString('scorelog_publishProcess.php', $endpoint);
     }
 
     public function testImportAndTemplateAreBoundToOneExplicitAssessmentColumn()

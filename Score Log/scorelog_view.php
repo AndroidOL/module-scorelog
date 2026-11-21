@@ -390,15 +390,34 @@ $form = Form::create(
     $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_draftProcess.php',
     'post'
 );
+$form->setAttribute(
+    'data-autosave-url',
+    $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_autosaveProcess.php'
+);
 $form->setFactory(DatabaseFormFactory::create($pdo));
 $form->setTitle($assessmentTitle);
 $form->setDescription($assessmentDescription);
 $form->addHiddenValue('scoreLogDraftID', $scoreLogDraftID);
 $form->addHiddenValue('revision', (string) $revision);
+$form->addHiddenValue('autosaveKey', bin2hex(random_bytes(16)));
+$form->addHiddenValue('autosaveSequence', '0');
 $form->addHiddenValue('gibbonCourseClassID', $gibbonCourseClassID);
 $form->addHiddenValue('gibbonScaleIDAttainment', $gibbonScaleIDAttainment);
 $form->addHiddenValue('columnOrder', $columnID);
 $form->addHiddenValue("columns[$columnID][scaleID]", $gibbonScaleIDAttainment);
+
+$row = $form->addRow();
+$row->addContent(
+    '<span id="scoreLogAutosaveStatus" class="text-sm font-semibold text-gray-600" data-state="'
+    .($scoreLogDraftID !== '' ? 'saved' : 'unsaved').'" aria-live="polite">'
+    .($scoreLogDraftID !== ''
+        ? sprintf(scoreLogT('Saved · revision %s'), (string) $revision)
+        : scoreLogT('Not saved yet'))
+    .'</span>'
+    .' <a id="scoreLogAutosaveReload" class="button button-secondary text-xs" href="'
+    .htmlPrep($session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_view.php'.($scoreLogDraftID !== '' ? '&draftID='.urlencode($scoreLogDraftID) : ''))
+    .'" hidden>'.scoreLogT('Reload latest draft').'</a>'
+);
 
 $form->addRow()->addHeading('assessmentDetails', scoreLogT('Assessment Details'));
 
@@ -669,4 +688,13 @@ echo '<script>window.scoreLogCommentLibrary='.json_encode(array_values($commentL
         'confirmBulkOverwrite'=> scoreLogT('Overwrite %s existing scores?'),
         'structureRequired'  => scoreLogT('Choose an assessment structure to reuse.'),
         'structureAdded'     => scoreLogT('Assessment details copied without scores or comments.'),
+        'autosaveUnsaved'    => scoreLogT('Unsaved changes'),
+        'autosaveSaving'     => scoreLogT('Saving...'),
+        'autosaveSaved'      => scoreLogT('Saved'),
+        'autosaveRevision'   => scoreLogT('revision'),
+        'autosaveOffline'    => scoreLogT('Offline — changes are not saved.'),
+        'autosaveConflict'   => scoreLogT('Conflict — another tab saved a newer revision. Reload the latest draft.'),
+        'autosaveFailed'     => scoreLogT('Autosave failed. Your changes remain unsaved.'),
+        'autosaveSessionExpired' => scoreLogT('Session expired. Reload the page and sign in again.'),
+        'autosaveForbidden'  => scoreLogT('Autosave stopped: permission denied.'),
     ], $jsonFlags).';</script>';

@@ -1,6 +1,16 @@
 CHANGELOG
 =========
 
+v1.5.0
+------
+- Add debounced server-side autosave for the standard single-assessment draft.
+- Show explicit Unsaved, Saving, Saved, Offline, authentication and Conflict
+  states while preserving manual Save, Review, Import and Export behavior.
+- Bind autosave to the existing private draft revision; new drafts also use an
+  advisory lock, random key and monotonic sequence for idempotent recovery.
+- Flush pending autosave before manual submission and never trigger Review or
+  Publish automatically. Browser storage is not used as a score source.
+
 v1.4.1
 ------
 - Rebuild Score Log entry, review and import screens with standard Gibbon forms,

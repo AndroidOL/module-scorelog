@@ -33,12 +33,202 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         const structureSource = document.getElementById('scoreLogStructureSource');
         const reuseStructureButton = document.getElementById('scoreLogReuseStructure');
         const selectAll = document.getElementById('scoreLogSelectAll');
+        const autosaveStatus = document.getElementById('scoreLogAutosaveStatus');
+        const autosaveReload = document.getElementById('scoreLogAutosaveReload');
+        const draftIDInput = form.querySelector('input[name="scoreLogDraftID"]');
         const revisionInput = form.querySelector('input[name="revision"]');
+        const autosaveSequenceInput = form.querySelector('input[name="autosaveSequence"]');
+        const autosaveURL = form.dataset.autosaveUrl || '';
         const commentLibraryData = window.scoreLogCommentLibrary || [];
         const reusableAssessments = window.scoreLogReusableAssessments || {};
         const labels = window.scoreLogImportLabels || {};
         let dirty = false;
         let bulkUndo = null;
+        let changeVersion = 0;
+        let autosaveTimer = null;
+        let autosaveInFlight = null;
+        let autosaveConflict = false;
+        let autosaveOffline = false;
+        let autosaveAuthBlocked = false;
+        let autosaveAuthMessage = '';
+        let allowManualSubmit = false;
+        let submissionPending = false;
+
+        const setAutosaveState = (state, message) => {
+            if (!autosaveStatus) return;
+            autosaveStatus.dataset.state = state;
+            autosaveStatus.textContent = message;
+            autosaveStatus.classList.remove('text-gray-600', 'text-blue-700', 'text-amber-700', 'text-red-700');
+            const classes = {
+                saved: 'text-gray-600',
+                unsaved: 'text-gray-600',
+                saving: 'text-blue-700',
+                offline: 'text-amber-700',
+                conflict: 'text-red-700',
+                auth: 'text-red-700',
+                failed: 'text-red-700',
+            };
+            autosaveStatus.classList.add(classes[state] || 'text-gray-600');
+            if (autosaveReload) autosaveReload.hidden = !['conflict', 'auth'].includes(state);
+        };
+
+        const updateReloadLink = () => {
+            if (!autosaveReload) return;
+            const draftID = draftIDInput ? draftIDInput.value : '';
+            if (draftID === '') {
+                autosaveReload.href = '#';
+                return;
+            }
+            const url = new URL(window.location.href);
+            url.searchParams.set('draftID', draftID);
+            autosaveReload.href = url.toString();
+        };
+
+        const setDraftIdentity = (draftID, revision) => {
+            if (draftIDInput && draftID !== '') draftIDInput.value = String(draftID);
+            if (revisionInput && revision !== undefined && revision !== null) revisionInput.value = String(revision);
+            updateReloadLink();
+            if (draftIDInput && draftIDInput.value !== '' && window.history && window.history.replaceState) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('draftID', draftIDInput.value);
+                window.history.replaceState(window.history.state, '', url.toString());
+            }
+        };
+
+        const scheduleAutosave = (delay = 1800) => {
+            if (autosaveConflict || autosaveURL === '') return;
+            if (autosaveOffline) {
+                setAutosaveState('offline', labels.autosaveOffline || 'Offline — changes are not saved.');
+                return;
+            }
+            if (autosaveAuthBlocked) {
+                setAutosaveState('auth', autosaveAuthMessage);
+                return;
+            }
+            if (window.navigator && window.navigator.onLine === false) {
+                autosaveOffline = true;
+                setAutosaveState('offline', labels.autosaveOffline || 'Offline — changes are not saved.');
+                return;
+            }
+            if (autosaveTimer) window.clearTimeout(autosaveTimer);
+            autosaveTimer = window.setTimeout(() => {
+                autosaveTimer = null;
+                flushAutosave();
+            }, delay);
+        };
+
+        const markDirty = () => {
+            dirty = true;
+            changeVersion++;
+            if (autosaveSequenceInput) autosaveSequenceInput.value = String(changeVersion);
+            if (autosaveConflict) {
+                setAutosaveState('conflict', labels.autosaveConflict || 'Conflict — another tab saved a newer revision. Reload the latest draft.');
+                return;
+            }
+            if (autosaveOffline) {
+                setAutosaveState('offline', labels.autosaveOffline || 'Offline — changes are not saved.');
+                return;
+            }
+            if (autosaveAuthBlocked) {
+                setAutosaveState('auth', autosaveAuthMessage);
+                return;
+            }
+            setAutosaveState('unsaved', labels.autosaveUnsaved || 'Unsaved changes');
+            scheduleAutosave();
+        };
+
+        const performAutosave = async () => {
+            if (autosaveConflict || autosaveURL === '') return false;
+            if (autosaveTimer) {
+                window.clearTimeout(autosaveTimer);
+                autosaveTimer = null;
+            }
+
+            const savedVersion = changeVersion;
+            setAutosaveState('saving', labels.autosaveSaving || 'Saving...');
+            const body = new FormData(form);
+            body.delete('saveDraft');
+            body.delete('reviewPublish');
+
+            let response;
+            try {
+                response = await fetch(autosaveURL, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+                    body,
+                });
+            } catch (error) {
+                autosaveOffline = true;
+                setAutosaveState('offline', labels.autosaveOffline || 'Offline — changes are not saved.');
+                return false;
+            }
+
+            autosaveOffline = false;
+            let data = {};
+            try {
+                data = await response.json();
+            } catch (error) {
+                data = {};
+            }
+            if (response.status === 409 || data.status === 'conflict') {
+                autosaveConflict = true;
+                if (autosaveTimer) {
+                    window.clearTimeout(autosaveTimer);
+                    autosaveTimer = null;
+                }
+                updateReloadLink();
+                setAutosaveState('conflict', labels.autosaveConflict || 'Conflict — another tab saved a newer revision. Reload the latest draft.');
+                return false;
+            }
+            if (response.status === 401 || response.status === 419) {
+                autosaveAuthBlocked = true;
+                autosaveAuthMessage = labels.autosaveSessionExpired || 'Session expired. Reload the page and sign in again.';
+                updateReloadLink();
+                setAutosaveState('auth', autosaveAuthMessage);
+                return false;
+            }
+            if (response.status === 403) {
+                autosaveAuthBlocked = true;
+                autosaveAuthMessage = labels.autosaveForbidden || 'Autosave stopped: permission denied.';
+                updateReloadLink();
+                setAutosaveState('auth', autosaveAuthMessage);
+                return false;
+            }
+            if (!response.ok || data.status !== 'saved') {
+                setAutosaveState('failed', labels.autosaveFailed || 'Autosave failed. Your changes remain unsaved.');
+                if (dirty && !autosaveConflict && !autosaveAuthBlocked) scheduleAutosave(5000);
+                return false;
+            }
+
+            setDraftIdentity(data.draftID || '', data.revision);
+            if (changeVersion === savedVersion) dirty = false;
+            if (dirty) {
+                setAutosaveState('unsaved', labels.autosaveUnsaved || 'Unsaved changes');
+                scheduleAutosave(0);
+            } else {
+                setAutosaveState(
+                    'saved',
+                    (labels.autosaveSaved || 'Saved') + ' · ' + (labels.autosaveRevision || 'revision') + ' ' + data.revision
+                );
+            }
+            return true;
+        };
+
+        const flushAutosave = async () => {
+            if (autosaveConflict || autosaveAuthBlocked) return false;
+            if (autosaveInFlight) {
+                const priorResult = await autosaveInFlight;
+                if (!priorResult) return false;
+            }
+            if (!dirty) return true;
+            autosaveInFlight = performAutosave();
+            try {
+                return await autosaveInFlight;
+            } finally {
+                autosaveInFlight = null;
+            }
+        };
 
         const scoreRows = () => Array.from(form.querySelectorAll('tr[data-student-id]'));
         const scoreSelectFor = (row) => row ? row.querySelector('.scoreLogScoreSelect') : null;
@@ -223,7 +413,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                 revision: revisionInput ? String(revisionInput.value) : '',
                 changes,
             };
-            dirty = true;
+            markDirty();
             updateCounts();
             applyOnlyMissingView();
             updateUndoButton();
@@ -246,7 +436,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                 if (select) select.value = change.previous;
             });
             bulkUndo = null;
-            dirty = true;
+            markDirty();
             updateCounts();
             applyOnlyMissingView();
             updateUndoButton();
@@ -298,7 +488,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             setFieldValue('[completeDate]', assessment.completeDate || '');
             setToggleValue('[viewableStudents]', assessment.viewableStudents || 'Y');
             setToggleValue('[viewableParents]', assessment.viewableParents || 'Y');
-            dirty = true;
+            markDirty();
             setFocusStatus(labels.structureAdded || 'Assessment details copied.');
         };
 
@@ -311,7 +501,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
         form.addEventListener('input', (event) => {
             if (!isPersistedField(event.target)) return;
-            dirty = true;
+            markDirty();
             if (event.target.classList.contains('scoreLogScoreSelect')) {
                 const row = event.target.closest('tr[data-student-id]');
                 if (row) invalidateUndoForRow(row.getAttribute('data-student-id'));
@@ -343,14 +533,14 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                 return;
             }
             if (event.target.classList.contains('scoreLogScoreSelect')) {
-                dirty = true;
+                markDirty();
                 const row = event.target.closest('tr[data-student-id]');
                 if (row) invalidateUndoForRow(row.getAttribute('data-student-id'));
                 updateCounts();
                 updateBulkPreview();
                 if (onlyMissingToggle && onlyMissingToggle.checked) applyOnlyMissingView();
             }
-            if (isPersistedField(event.target)) dirty = true;
+            if (isPersistedField(event.target)) markDirty();
         });
 
         form.addEventListener('keydown', (event) => {
@@ -366,8 +556,41 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         if (bulkUndoButton) bulkUndoButton.addEventListener('click', undoBulkChange);
         if (reuseStructureButton) reuseStructureButton.addEventListener('click', copyStructure);
 
-        form.addEventListener('submit', () => {
+        form.addEventListener('submit', async (event) => {
+            if (allowManualSubmit) {
+                allowManualSubmit = false;
+                submissionPending = false;
+                dirty = false;
+                return;
+            }
+
+            event.preventDefault();
+            if (submissionPending) return;
+            submissionPending = true;
+            const submitter = event.submitter || null;
+            if (!await flushAutosave()) {
+                submissionPending = false;
+                return;
+            }
+            allowManualSubmit = true;
             dirty = false;
+            if (submitter && typeof form.requestSubmit === 'function') {
+                form.requestSubmit(submitter);
+            } else {
+                form.submit();
+            }
+        });
+        window.addEventListener('online', () => {
+            autosaveOffline = false;
+            if (dirty && !autosaveConflict) scheduleAutosave(0);
+        });
+        window.addEventListener('offline', () => {
+            autosaveOffline = true;
+            if (autosaveTimer) {
+                window.clearTimeout(autosaveTimer);
+                autosaveTimer = null;
+            }
+            setAutosaveState('offline', labels.autosaveOffline || 'Offline — changes are not saved.');
         });
         window.addEventListener('beforeunload', (event) => {
             if (!dirty) return;
@@ -378,6 +601,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         updateCounts();
         applyOnlyMissingView();
         updateBulkPreview();
+        updateReloadLink();
     };
 
     if (document.readyState === 'loading') {
