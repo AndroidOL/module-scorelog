@@ -25,11 +25,24 @@ $description = 'Quickly create internal assessments and enter student scores.'; 
 $entryURL    = "scorelog_view.php";   // The landing page for the unit, used in the main menu
 $type        = "Additional";  // Do not change.
 $category    = 'Other';            // The main menu area to place the module in
-$version     = '1.0.1';            // Version number
+$version     = '1.1.0';            // Version number
 $author      = 'Tianhao Wu';            // Your name
 $url         = 'https://gibbonedu.org';            // Your URL
 
 // Module tables & gibbonSettings entries
+$moduleTables[] = 'CREATE TABLE `score_log_draft` (
+    `scoreLogDraftID` INT(10) UNSIGNED ZEROFILL NOT NULL AUTO_INCREMENT,
+    `gibbonPersonIDCreator` INT(10) UNSIGNED ZEROFILL NOT NULL,
+    `gibbonCourseClassID` INT(10) UNSIGNED ZEROFILL NOT NULL,
+    `gibbonScaleIDAttainment` INT(3) UNSIGNED ZEROFILL NOT NULL,
+    `revision` INT(10) UNSIGNED NOT NULL DEFAULT 1,
+    `payload` MEDIUMTEXT NOT NULL,
+    `createTimestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updateTimestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`scoreLogDraftID`),
+    KEY `creator` (`gibbonPersonIDCreator`),
+    KEY `class` (`gibbonCourseClassID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;';
 
 // Add gibbonSettings entries
 // $gibbonSetting[] = "";
@@ -40,7 +53,7 @@ $actionRows[] = [
     'precedence'                => '0',// If it is a grouped action, the precedence controls which is highest action in group
     'category'                  => 'Assessment', // Optional: subgroups for the right hand side module menu
     'description'               => 'Create an internal assessment and enter scores for a class.', // Text description
-    'URLList'                   => 'scorelog_view.php', // List of pages included in this action
+    'URLList'                   => 'scorelog_view.php, scorelog_createProcess.php, scorelog_draftProcess.php, scorelog_discardProcess.php, scorelog_review.php, scorelog_publishProcess.php', // List of pages included in this action
     'entryURL'                  => 'scorelog_view.php', // The landing action for the page.
     'entrySidebar'              => 'Y', // Whether or not there's a sidebar on entry to the action
     'menuShow'                  => 'Y', // Whether or not this action shows up in menus or if it's hidden

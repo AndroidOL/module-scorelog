@@ -19,23 +19,27 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+use Gibbon\Domain\System\SettingGateway;
 use Gibbon\Forms\DatabaseFormFactory;
 use Gibbon\Forms\Form;
 use Gibbon\Services\Format;
-use Gibbon\Domain\System\SettingGateway;
 use Gibbon\Tables\DataTable;
 
-require_once __DIR__ . '/moduleFunctions.php';
+require_once __DIR__.'/moduleFunctions.php';
 
 $page->breadcrumbs->add(scoreLogT('Create Internal Assessment'));
 
 $page->return->addReturns([
-    'success0' => scoreLogT('Assessment created.'),
-    'error0' => scoreLogT('You do not have permission to perform this action.'),
-    'error1' => scoreLogT('The submitted data is invalid. Check the class, scale and scores.'),
-    'error2' => scoreLogT('Unable to save. Another assessment may be in progress; try again shortly.'),
-    'error3' => scoreLogT('No submitted data was received.'),
-    'error9' => scoreLogT('Your session expired. Refresh the page and try again.'),
+    'success0' => scoreLogT('Assessment published.'),
+    'success1' => scoreLogT('Draft saved.'),
+    'success2' => scoreLogT('Draft discarded.'),
+    'error0'   => scoreLogT('You do not have permission to perform this action.'),
+    'error1'   => scoreLogT('The submitted data is invalid. Check the class, scale and scores.'),
+    'error2'   => scoreLogT('Unable to save. Another assessment may be in progress; try again shortly.'),
+    'error3'   => scoreLogT('No submitted data was received.'),
+    'error4'   => scoreLogT('This draft changed in another tab. Reopen it before continuing.'),
+    'error9'   => scoreLogT('Your session expired. Refresh the page and try again.'),
+    'error10'  => scoreLogT('This legacy action is no longer available. Start or resume a draft.'),
 ]);
 
 if (
@@ -43,305 +47,398 @@ if (
     || !isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_manage_add.php')
 ) {
     $page->addError(scoreLogT('You do not have access to this page.'));
-} else {
-    $gibbonPersonID = $session->get('gibbonPersonID');
-    $gibbonSchoolYearID = $session->get('gibbonSchoolYearID');
-    $gibbonCourseClassID = is_scalar($_GET['gibbonCourseClassID'] ?? null) ? trim((string) $_GET['gibbonCourseClassID']) : '';
-    $gibbonScaleIDAttainment = is_scalar($_GET['gibbonScaleIDAttainment'] ?? null) ? trim((string) $_GET['gibbonScaleIDAttainment']) : '';
+    return;
+}
 
-    // Step 1: choose a class and scale. A class-only URL is also handled here,
-    // which fixes the blank page after creating an assessment.
-    if (empty($gibbonCourseClassID) || empty($gibbonScaleIDAttainment)) {
-        $form = Form::create('scoreLogClassChooser', $session->get('absoluteURL').'/index.php', 'get');
-        $form->setFactory(DatabaseFormFactory::create($pdo));
-        $form->addHiddenValue('q', '/modules/'.$session->get('module').'/scorelog_view.php');
-        $form->setTitle(scoreLogT('Choose Class'));
+$gibbonPersonID = (string) $session->get('gibbonPersonID');
+$gibbonSchoolYearID = (string) $session->get('gibbonSchoolYearID');
+$scoreLogDraftID = is_scalar($_GET['draftID'] ?? null) ? trim((string) $_GET['draftID']) : '';
+$gibbonCourseClassID = is_scalar($_GET['gibbonCourseClassID'] ?? null) ? trim((string) $_GET['gibbonCourseClassID']) : '';
+$gibbonScaleIDAttainment = is_scalar($_GET['gibbonScaleIDAttainment'] ?? null) ? trim((string) $_GET['gibbonScaleIDAttainment']) : '';
+$settingGateway = $container->get(SettingGateway::class);
+$allowedTypes = scoreLogAllowedTypes($settingGateway->getSettingByScope('Formal Assessment', 'internalAssessmentTypes'));
+$defaultType = $allowedTypes[0] ?? 'Assessment';
 
-        $classes = [];
+// Select an existing private draft or start a new one.
+if ($scoreLogDraftID === '' && ($gibbonCourseClassID === '' || $gibbonScaleIDAttainment === '')) {
+    $draftRows = [];
+    $drafts = $pdo->select(
+        "SELECT d.scoreLogDraftID, d.gibbonCourseClassID, d.revision, d.payload, d.updateTimestamp,
+                CONCAT(course.nameShort, '.', cc.nameShort) AS className,
+                scale.name AS scaleName
+         FROM score_log_draft d
+         JOIN gibbonCourseClass cc ON cc.gibbonCourseClassID=d.gibbonCourseClassID
+         JOIN gibbonCourse course ON course.gibbonCourseID=cc.gibbonCourseID
+         JOIN gibbonScale scale ON scale.gibbonScaleID=d.gibbonScaleIDAttainment
+         WHERE d.gibbonPersonIDCreator=:gibbonPersonID
+           AND course.gibbonSchoolYearID=:gibbonSchoolYearID
+           AND scale.active='Y'
+         ORDER BY d.updateTimestamp DESC",
+        ['gibbonPersonID' => $gibbonPersonID, 'gibbonSchoolYearID' => $gibbonSchoolYearID]
+    )->fetchAll();
 
-        $myClasses = $pdo->select(
-            "SELECT gibbonCourseClass.gibbonCourseClassID AS value, CONCAT(gibbonCourse.nameShort, '.', gibbonCourseClass.nameShort) AS name
-             FROM gibbonCourseClass
-             JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID)
-             JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID)
-             WHERE gibbonCourse.gibbonSchoolYearID=:gibbonSchoolYearID
-             AND gibbonCourseClassPerson.gibbonPersonID=:gibbonPersonID
-             AND gibbonCourseClassPerson.role IN ('Teacher', 'Assistant', 'Technician')
-             ORDER BY name",
-            ['gibbonSchoolYearID' => $gibbonSchoolYearID, 'gibbonPersonID' => $gibbonPersonID]
-        )->fetchKeyPair();
-
-        if (!empty($myClasses)) {
-            $classes['--'.scoreLogT('My Classes').'--'] = $myClasses;
+    foreach ($drafts as $draft) {
+        if (!scoreLogCanEditClass($pdo, $gibbonPersonID, $draft['gibbonCourseClassID'] ?? 0, $gibbonSchoolYearID)) {
+            continue;
         }
-
-        if (scoreLogCanViewAllClasses($gibbonPersonID)) {
-            $allClasses = $pdo->select(
-                "SELECT gibbonCourseClass.gibbonCourseClassID AS value, CONCAT(gibbonCourse.nameShort, '.', gibbonCourseClass.nameShort) AS name
-                 FROM gibbonCourseClass
-                 JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID)
-                 WHERE gibbonCourse.gibbonSchoolYearID=:gibbonSchoolYearID
-                 ORDER BY name",
-                ['gibbonSchoolYearID' => $gibbonSchoolYearID]
-            )->fetchKeyPair();
-
-            if (!empty($allClasses)) {
-                $classes['--'.scoreLogT('All Classes').'--'] = $allClasses;
+        $payload = json_decode((string) $draft['payload'], true);
+        $students = is_array($payload['students'] ?? null) ? $payload['students'] : [];
+        $entered = 0;
+        foreach ($students as $student) {
+            if (is_array($student) && trim((string) ($student['attainmentValue'] ?? '')) !== '') {
+                $entered++;
             }
         }
+        $draft['title'] = trim((string) ($payload['meta']['name'] ?? '')) ?: scoreLogT('Untitled draft');
+        $draft['entered'] = $entered.' / '.count($students);
+        $draftRows[] = $draft;
+    }
 
-        $scales = $pdo->select(
-            "SELECT gibbonScaleID AS value, name FROM gibbonScale WHERE active='Y' ORDER BY name"
-        )->fetchKeyPair();
-
-        if (empty($classes)) {
-            $page->addError(scoreLogT('There are no records to display.'));
-        } else {
-            $row = $form->addRow();
-                $row->addLabel('gibbonCourseClassID', scoreLogT('Class Name'));
-                $row->addSelect('gibbonCourseClassID')
-                    ->fromArray($classes)
-                    ->selected($gibbonCourseClassID)
-                    ->required()
-                    ->placeholder(scoreLogT('Please select...'));
-
-            $row = $form->addRow();
-                $row->addLabel('gibbonScaleIDAttainment', scoreLogT('Assessment Scale'));
-                $row->addSelect('gibbonScaleIDAttainment')
-                    ->fromArray($scales)
-                    ->selected($gibbonScaleIDAttainment ?: scoreLogDefaultScaleID($session))
-                    ->required()
-                    ->placeholder(scoreLogT('Please select...'));
-
-            $row = $form->addRow();
-                $row->addSubmit(scoreLogT('Confirm Class'));
-
-            echo $form->getOutput();
-        }
-    } else {
-        // Step 2: create an assessment for the selected class and scale.
-        $class = $pdo->selectOne(
-            "SELECT gibbonCourseClass.gibbonCourseClassID, CONCAT(gibbonCourse.nameShort, '.', gibbonCourseClass.nameShort) AS name
-             FROM gibbonCourseClass
-             JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID)
-             WHERE gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID
-             AND gibbonCourse.gibbonSchoolYearID=:gibbonSchoolYearID",
-            ['gibbonCourseClassID' => $gibbonCourseClassID, 'gibbonSchoolYearID' => $gibbonSchoolYearID]
-        );
-
-        $isTeacherOfClass = $pdo->selectOne(
-            "SELECT 1 FROM gibbonCourseClassPerson
-             WHERE gibbonCourseClassID=:gibbonCourseClassID
-             AND gibbonPersonID=:gibbonPersonID
-             AND role IN ('Teacher', 'Assistant', 'Technician')
-             LIMIT 1",
-            ['gibbonCourseClassID' => $gibbonCourseClassID, 'gibbonPersonID' => $gibbonPersonID]
-        );
-
-        $scale = $pdo->selectOne(
-            "SELECT gibbonScaleID, name, `usage`, `numeric`
-             FROM gibbonScale WHERE gibbonScaleID=:gibbonScaleID AND active='Y'",
-            ['gibbonScaleID' => $gibbonScaleIDAttainment]
-        );
-
-        if (empty($class)) {
-            $page->addError(scoreLogT('The specified record does not exist.'));
-        } elseif (!scoreLogCanViewAllClasses($gibbonPersonID) && empty($isTeacherOfClass)) {
-            $page->addError(scoreLogT('You do not have access to this page.'));
-        } elseif (empty($scale)) {
-            $page->addError(scoreLogT('The specified record does not exist.'));
-        } else {
-            $students = $pdo->select(
-                "SELECT gibbonPerson.gibbonPersonID, gibbonPerson.surname, gibbonPerson.preferredName
-                 FROM gibbonCourseClassPerson
-                 JOIN gibbonPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID)
-                 WHERE gibbonCourseClassPerson.gibbonCourseClassID=:gibbonCourseClassID
-                 AND gibbonCourseClassPerson.reportable='Y'
-                 AND gibbonCourseClassPerson.role='Student'
-                 AND gibbonPerson.status='Full'
-                 ORDER BY gibbonPerson.surname, gibbonPerson.preferredName",
-                ['gibbonCourseClassID' => $gibbonCourseClassID]
-            )->fetchAll();
-
-            $grades = $pdo->select(
-                "SELECT value, descriptor, isDefault
-                 FROM gibbonScaleGrade
-                 WHERE gibbonScaleID=:gibbonScaleID
-                 ORDER BY sequenceNumber",
-                ['gibbonScaleID' => $gibbonScaleIDAttainment]
-            )->fetchAll();
-
-            $defaultGrade = '';
-            foreach ($grades as $grade) {
-                if ($grade['isDefault'] === 'Y') {
-                    $defaultGrade = $grade['value'];
-                    break;
-                }
-            }
-
-            $form = Form::create('scoreLogAssessment', $session->get('absoluteURL').'/index.php?q=/modules/'.$session->get('module').'/scorelog_createProcess.php');
-            $form->setFactory(DatabaseFormFactory::create($pdo));
-            $form->setTitle(scoreLogT('Enter Scores'));
-
-            if (isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write.php')) {
-                $form->addHeaderAction('viewMarks', scoreLogT('View Marks'))
-                    ->setURL('/modules/Formal Assessment/internalAssessment_write.php')
-                    ->addParam('gibbonCourseClassID', $gibbonCourseClassID)
+    if (!empty($draftRows)) {
+        $table = DataTable::create('scoreLogDrafts');
+        $table->setTitle(scoreLogT('My Score Log Drafts'));
+        $table->setDescription(scoreLogT('Drafts are private to their creator and are hidden from students, parents and reports.'));
+        $table->addColumn('title', scoreLogT('Name'));
+        $table->addColumn('className', scoreLogT('Class'));
+        $table->addColumn('scaleName', scoreLogT('Assessment Scale'));
+        $table->addColumn('entered', scoreLogT('Entered'));
+        $table->addColumn('updateTimestamp', scoreLogT('Last Saved'))->format(function ($draft) {
+            return Format::dateTime($draft['updateTimestamp']);
+        });
+        $table->addActionColumn()
+            ->addParam('draftID')
+            ->format(function ($draft, $actions) {
+                $actions->addAction('resume', scoreLogT('Resume Draft'))
                     ->setIcon('markbook')
-                    ->displayLabel()
-                    ->prepend(' | ');
-            }
+                    ->setURL('/modules/Score Log/scorelog_view.php');
+            });
+        echo $table->render($draftRows);
+    }
 
-            $form->addRow()->addHeading('createAssessment', scoreLogT('Create New Internal Assessment'));
+    $form = Form::create('scoreLogClassChooser', $session->get('absoluteURL').'/index.php', 'get');
+    $form->setFactory(DatabaseFormFactory::create($pdo));
+    $form->addHiddenValue('q', '/modules/'.$session->get('module').'/scorelog_view.php');
+    $form->setTitle(scoreLogT('Start New Assessment'));
 
-            $form->addHiddenValue('gibbonCourseClassID', $gibbonCourseClassID);
-            $form->addHiddenValue('gibbonScaleIDAttainment', $gibbonScaleIDAttainment);
+    $classes = [];
+    $myClasses = $pdo->select(
+        "SELECT gibbonCourseClass.gibbonCourseClassID AS value,
+                CONCAT(gibbonCourse.nameShort, '.', gibbonCourseClass.nameShort) AS name
+         FROM gibbonCourseClass
+         JOIN gibbonCourse ON gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID
+         JOIN gibbonCourseClassPerson
+           ON gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID
+         WHERE gibbonCourse.gibbonSchoolYearID=:gibbonSchoolYearID
+           AND gibbonCourseClassPerson.gibbonPersonID=:gibbonPersonID
+           AND gibbonCourseClassPerson.role IN ('Teacher', 'Assistant', 'Technician')
+         ORDER BY name",
+        ['gibbonSchoolYearID' => $gibbonSchoolYearID, 'gibbonPersonID' => $gibbonPersonID]
+    )->fetchKeyPair();
+    if (!empty($myClasses)) {
+        $classes['--'.scoreLogT('My Classes').'--'] = $myClasses;
+    }
 
-            $row = $form->addRow();
-                $row->addLabel('gibbonCourseClassIDName', scoreLogT('Class Name'));
-                $row->addTextField('gibbonCourseClassIDName')->setValue($class['name'])->readonly();
-
-            $row = $form->addRow();
-                $row->addLabel('gibbonScaleIDAttainmentName', scoreLogT('Assessment Scale'));
-                $row->addTextField('gibbonScaleIDAttainmentName')->setValue($scale['name'])->readonly();
-
-            $row = $form->addRow();
-                $row->addLabel('name', scoreLogT('Name'))->description(scoreLogT('Maximum 30 characters.'));
-                $row->addTextField('name')->required()->maxLength(30);
-
-            $row = $form->addRow();
-                $row->addLabel('description', scoreLogT('Description'))->description(scoreLogT('Maximum 1000 characters.'));
-                $row->addTextField('description')->maxLength(1000);
-
-            $settingGateway = $container->get(SettingGateway::class);
-            $types = $settingGateway->getSettingByScope('Formal Assessment', 'internalAssessmentTypes');
-            if (!empty($types)) {
-                $row = $form->addRow();
-                    $row->addLabel('type', scoreLogT('Type'));
-                    $row->addSelect('type')->fromString($types)->required()->placeholder(scoreLogT('Please select...'));
-            } else {
-                $form->addHiddenValue('type', 'Assessment');
-            }
-
-            $form->addRow()->addHeading('Students', scoreLogT('Students'));
-
-            if (empty($students)) {
-                $form->addRow()->addAlert(scoreLogT('There are no records to display.'), 'error');
-            } else {
-                $table = $form->addRow()->addTable()->setClass('smallIntBorder w-full colorOddEven noMargin noPadding noBorder');
-                $header = $table->addHeaderRow();
-                    $header->addTableCell(scoreLogT('Student'))->rowSpan(2);
-                    $header->addTableCell($scale['name'])
-                        ->setTitle($scale['usage'])
-                        ->setClass('textCenter')
-                        ->colSpan(3);
-
-                $header = $table->addHeaderRow();
-                    $header->addContent(scoreLogT('Score'))
-                        ->setTitle(scoreLogT('Score').' - '.$scale['name'].($scale['usage'] ? ': '.$scale['usage'] : ''))
-                        ->setClass('textCenter');
-                    $header->addContent(scoreLogT('Com'))->setTitle(scoreLogT('Comment'))->setClass('textCenter');
-
-                $form->addHiddenValue('count', count($students));
-                $defaultComment = scoreLogDefaultComment($scale['name']);
-                $maxScore = scoreLogMaxScoreFromUsage($scale['usage']);
-
-                foreach ($students as $index => $student) {
-                    $number = $index + 1;
-                    $row = $table->addRow();
-
-                    $row->addWebLink(Format::name('', $student['preferredName'], $student['surname'], 'Student', true))
-                        ->setURL($session->get('absoluteURL').'/index.php?q=/modules/Students/student_view_details.php')
-                        ->addParam('gibbonPersonID', $student['gibbonPersonID'])
-                        ->addParam('subpage', 'Internal Assessment')
-                        ->wrap('<strong>', '</strong>')
-                        ->prepend($number.') ');
-
-                    if ($scale['numeric'] === 'N') {
-                        $attainment = $row->addSelectGradeScaleGrade($number.'-attainmentValue', $gibbonScaleIDAttainment)
-                            ->setClass('textCenter gradeSelect');
-                        if ($defaultGrade !== '') {
-                            $attainment->selected($defaultGrade);
-                        }
-                    } else {
-                        $attainment = $row->addNumber($number.'-attainmentValue')
-                            ->onlyInteger(false)
-                            ->decimalPlaces(1)
-                            ->step(0.5);
-                        if ($maxScore !== null) {
-                            $attainment->minimum(0)->maximum($maxScore);
-                        }
-                    }
-
-                    $row->addTextArea('comment'.$number)
-                        ->setRows(2)
-                        ->maxLength(1000)
-                        ->setValue($defaultComment);
-
-                    $form->addHiddenValue($number.'-gibbonPersonID', $student['gibbonPersonID']);
-                }
-            }
-
-            $form->addRow()->addHeading('Assessment Complete?', scoreLogT('Assessment Complete?'));
-
-            $row = $form->addRow();
-                $row->addLabel('viewableStudents', scoreLogT('Viewable to Students'));
-                $row->addYesNo('viewableStudents')->required()->selected('Y');
-
-            $row = $form->addRow();
-                $row->addLabel('viewableParents', scoreLogT('Viewable to Parents'));
-                $row->addYesNo('viewableParents')->required()->selected('Y');
-
-            $row = $form->addRow();
-                $row->addLabel('completeDate', scoreLogT('Assessment Date'))
-                    ->description(scoreLogT('The assessment is hidden from students, parents and reports until this date.'));
-                $row->addDate('completeDate')->required()->setValue(date('Y-m-d'));
-
-            $row = $form->addRow();
-                $row->addSubmit(scoreLogT('Create Assessment'));
-
-            echo $form->getOutput();
-
-            $recentAssessments = $pdo->select(
-                "SELECT gibbonInternalAssessmentColumnID, name, type, complete, completeDate
-                 FROM gibbonInternalAssessmentColumn
-                 WHERE gibbonCourseClassID=:gibbonCourseClassID
-                 ORDER BY completeDate DESC, gibbonInternalAssessmentColumnID DESC
-                 LIMIT 10",
-                ['gibbonCourseClassID' => $gibbonCourseClassID]
-            )->fetchAll();
-
-            if (!empty($recentAssessments)) {
-                $canEnterData = isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write_data.php');
-
-                $table = DataTable::create('scoreLogRecentAssessments');
-                $table->setTitle(scoreLogT('Recent Assessments'));
-                $table->setDescription(scoreLogT('The 10 most recent internal assessments, ordered by completion date.'));
-
-                $table->addColumn('name', scoreLogT('Name'));
-                $table->addColumn('type', scoreLogT('Type'));
-                $table->addColumn('completeDate', scoreLogT('Date'))
-                    ->format(function ($assessment) {
-                        return !empty($assessment['completeDate']) ? Format::date($assessment['completeDate']) : '-';
-                    });
-                $table->addColumn('complete', scoreLogT('Status'))
-                    ->format(function ($assessment) {
-                        return $assessment['complete'] === 'Y' ? scoreLogT('Completed') : scoreLogT('Draft');
-                    });
-
-                if ($canEnterData) {
-                    $table->addActionColumn()
-                        ->addParam('gibbonCourseClassID', $gibbonCourseClassID)
-                        ->addParam('gibbonInternalAssessmentColumnID')
-                        ->format(function ($assessment, $actions) {
-                            $actions->addAction('viewMarks', scoreLogT('View / Enter Marks'))
-                                ->setIcon('markbook')
-                                ->setURL('/modules/Formal Assessment/internalAssessment_write_data.php');
-                        });
-                }
-
-                echo $table->render($recentAssessments);
-            }
+    if (scoreLogCanViewAllClasses($gibbonPersonID)) {
+        $allClasses = $pdo->select(
+            "SELECT gibbonCourseClass.gibbonCourseClassID AS value,
+                    CONCAT(gibbonCourse.nameShort, '.', gibbonCourseClass.nameShort) AS name
+             FROM gibbonCourseClass
+             JOIN gibbonCourse ON gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID
+             WHERE gibbonCourse.gibbonSchoolYearID=:gibbonSchoolYearID
+             ORDER BY name",
+            ['gibbonSchoolYearID' => $gibbonSchoolYearID]
+        )->fetchKeyPair();
+        if (!empty($allClasses)) {
+            $classes['--'.scoreLogT('All Classes').'--'] = $allClasses;
         }
     }
+
+    $scales = $pdo->select(
+        "SELECT gibbonScaleID AS value, name FROM gibbonScale WHERE active='Y' ORDER BY name"
+    )->fetchKeyPair();
+
+    if (empty($classes)) {
+        $page->addError(scoreLogT('There are no records to display.'));
+    } else {
+        $row = $form->addRow();
+        $row->addLabel('gibbonCourseClassID', scoreLogT('Class Name'));
+        $row->addSelect('gibbonCourseClassID')->fromArray($classes)->required()->placeholder(scoreLogT('Please select...'));
+        $row = $form->addRow();
+        $row->addLabel('gibbonScaleIDAttainment', scoreLogT('Assessment Scale'));
+        $row->addSelect('gibbonScaleIDAttainment')
+            ->fromArray($scales)
+            ->selected(scoreLogDefaultScaleID($session))
+            ->required()
+            ->placeholder(scoreLogT('Please select...'));
+        $row = $form->addRow();
+        $row->addFooter();
+        $row->addSubmit(scoreLogT('Continue'));
+        echo $form->getOutput();
+    }
+    return;
+}
+
+if ($scoreLogDraftID !== '') {
+    $draft = scoreLogLoadDraft($pdo, $scoreLogDraftID, $gibbonPersonID);
+    if (
+        empty($draft)
+        || (string) $draft['gibbonSchoolYearID'] !== $gibbonSchoolYearID
+        || !scoreLogCanEditClass($pdo, $gibbonPersonID, $draft['gibbonCourseClassID'], $gibbonSchoolYearID)
+    ) {
+        $page->addError(scoreLogT('The specified record does not exist.'));
+        return;
+    }
+    $gibbonCourseClassID = (string) $draft['gibbonCourseClassID'];
+    $gibbonScaleIDAttainment = (string) $draft['gibbonScaleIDAttainment'];
+    $payload = $draft['payloadData'];
+    $class = ['gibbonCourseClassID' => $gibbonCourseClassID, 'name' => $draft['className']];
+    $scale = [
+        'gibbonScaleID' => $gibbonScaleIDAttainment,
+        'name'          => $draft['scaleName'],
+        'usage'         => $draft['scaleUsage'],
+        'numeric'       => $draft['scaleNumeric'],
+    ];
+    $revision = (int) $draft['revision'];
+} else {
+    if (!scoreLogCanEditClass($pdo, $gibbonPersonID, $gibbonCourseClassID, $gibbonSchoolYearID)) {
+        $page->addError(scoreLogT('You do not have access to this page.'));
+        return;
+    }
+    $class = $pdo->selectOne(
+        "SELECT cc.gibbonCourseClassID, CONCAT(c.nameShort, '.', cc.nameShort) AS name
+         FROM gibbonCourseClass cc
+         JOIN gibbonCourse c ON c.gibbonCourseID=cc.gibbonCourseID
+         WHERE cc.gibbonCourseClassID=:gibbonCourseClassID
+           AND c.gibbonSchoolYearID=:gibbonSchoolYearID",
+        ['gibbonCourseClassID' => $gibbonCourseClassID, 'gibbonSchoolYearID' => $gibbonSchoolYearID]
+    );
+    $scale = $pdo->selectOne(
+        "SELECT gibbonScaleID, name, `usage`, numeric
+         FROM gibbonScale WHERE gibbonScaleID=:gibbonScaleID AND active='Y'",
+        ['gibbonScaleID' => $gibbonScaleIDAttainment]
+    );
+    if (empty($class) || empty($scale)) {
+        $page->addError(scoreLogT('The specified record does not exist.'));
+        return;
+    }
+    $payload = [
+        'meta' => [
+            'name'             => '',
+            'description'      => '',
+            'type'             => $defaultType,
+            'viewableStudents' => 'Y',
+            'viewableParents'  => 'Y',
+            'completeDate'     => date('Y-m-d'),
+        ],
+        'students'     => [],
+        'studentNames' => [],
+        'rosterIDs'    => [],
+    ];
+    $revision = 0;
+}
+
+$roster = scoreLogCurrentRoster($pdo, $gibbonCourseClassID);
+if (empty($roster)) {
+    $page->addError(scoreLogT('There are no records to display.'));
+    return;
+}
+$diff = $scoreLogDraftID !== ''
+    ? scoreLogRosterDiff($payload, $roster)
+    : ['added' => [], 'removed' => [], 'changed' => false];
+$meta = is_array($payload['meta'] ?? null) ? $payload['meta'] : [];
+$savedStudents = is_array($payload['students'] ?? null) ? $payload['students'] : [];
+$grades = $pdo->select(
+    "SELECT value, descriptor, isDefault
+     FROM gibbonScaleGrade
+     WHERE gibbonScaleID=:gibbonScaleID
+     ORDER BY sequenceNumber",
+    ['gibbonScaleID' => $gibbonScaleIDAttainment]
+)->fetchAll();
+$defaultGrade = '';
+foreach ($grades as $grade) {
+    if ($grade['isDefault'] === 'Y') {
+        $defaultGrade = (string) $grade['value'];
+        break;
+    }
+}
+
+if ($diff['changed']) {
+    echo '<div class="warning"><p><strong>'.scoreLogT('The class roster changed since this draft was saved.').'</strong></p>';
+    if (!empty($diff['added'])) {
+        echo '<p>'.sprintf(scoreLogT('New students: %s'), htmlPrep(implode(', ', $diff['added']))).'</p>';
+    }
+    if (!empty($diff['removed'])) {
+        echo '<p>'.sprintf(scoreLogT('Removed students: %s'), htmlPrep(implode(', ', $diff['removed']))).'</p>';
+    }
+    echo '<p>'.scoreLogT('Only current students appear in the publish review.').'</p></div>';
+}
+
+echo '<a id="scoreLogStudents"></a>';
+$form = Form::create(
+    'scoreLogAssessment',
+    $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_draftProcess.php',
+    'post'
+);
+$form->setFactory(DatabaseFormFactory::create($pdo));
+$form->setTitle($scoreLogDraftID !== '' ? scoreLogT('Edit Draft') : scoreLogT('Create Internal Assessment'));
+$form->addHiddenValue('scoreLogDraftID', $scoreLogDraftID);
+$form->addHiddenValue('revision', (string) $revision);
+$form->addHiddenValue('gibbonCourseClassID', $gibbonCourseClassID);
+$form->addHiddenValue('gibbonScaleIDAttainment', $gibbonScaleIDAttainment);
+
+if ($scoreLogDraftID !== '') {
+    $form->addRow()->addContent(sprintf(
+        scoreLogT('Last saved %s · revision %s'),
+        Format::dateTime($draft['updateTimestamp']),
+        $draft['revision']
+    ))->wrap('<div class="text-sm text-gray-600">', '</div>');
+}
+
+if (isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write.php')) {
+    $form->addHeaderAction('viewMarks', scoreLogT('View Marks'))
+        ->setURL('/modules/Formal Assessment/internalAssessment_write.php')
+        ->addParam('gibbonCourseClassID', $gibbonCourseClassID)
+        ->setIcon('markbook')
+        ->displayLabel()
+        ->prepend(' | ');
+}
+
+$row = $form->addRow();
+$row->addLabel('gibbonCourseClassIDName', scoreLogT('Class Name'));
+$row->addTextField('gibbonCourseClassIDName')->setValue($class['name'])->readonly();
+$row = $form->addRow();
+$row->addLabel('gibbonScaleIDAttainmentName', scoreLogT('Assessment Scale'));
+$row->addTextField('gibbonScaleIDAttainmentName')->setValue($scale['name'])->readonly();
+$row = $form->addRow();
+$row->addLabel('name', scoreLogT('Name'))->description(scoreLogT('Maximum 30 characters.'));
+$row->addTextField('name')->required()->maxLength(30)->setValue((string) ($meta['name'] ?? ''));
+$row = $form->addRow();
+$row->addLabel('description', scoreLogT('Description'))->description(scoreLogT('Maximum 1000 characters.'));
+$row->addTextField('description')->maxLength(1000)->setValue((string) ($meta['description'] ?? ''));
+
+$type = (string) ($meta['type'] ?? $defaultType);
+if (!empty($allowedTypes)) {
+    $row = $form->addRow();
+    $row->addLabel('type', scoreLogT('Type'));
+    $row->addSelect('type')->fromString(implode(',', $allowedTypes))->required()->selected($type)->placeholder(scoreLogT('Please select...'));
+} else {
+    $form->addHiddenValue('type', $defaultType);
+}
+
+$form->addRow()->addHeading('Students', scoreLogT('Students'));
+$table = $form->addRow()->addTable()->setClass('smallIntBorder w-full colorOddEven noMargin noPadding noBorder');
+$header = $table->addHeaderRow();
+$header->addTableCell(scoreLogT('Student'))->rowSpan(2);
+$header->addTableCell($scale['name'])->setTitle($scale['usage'])->setClass('textCenter')->colSpan(2);
+$header = $table->addHeaderRow();
+$header->addContent(scoreLogT('Score'))->setClass('textCenter');
+$header->addContent(scoreLogT('Comment'))->setClass('textCenter');
+
+$defaultComment = scoreLogDefaultComment($scale['name']);
+$maxScore = scoreLogMaxScoreFromUsage($scale['usage']);
+foreach ($roster as $index => $student) {
+    $studentID = (string) $student['gibbonPersonID'];
+    $saved = is_array($savedStudents[$studentID] ?? null) ? $savedStudents[$studentID] : [];
+    $savedValue = (string) ($saved['attainmentValue'] ?? '');
+    $savedComment = array_key_exists('comment', $saved) ? (string) $saved['comment'] : $defaultComment;
+
+    $row = $table->addRow();
+    $name = Format::name('', $student['preferredName'], $student['surname'], 'Student', true);
+    if (isset($diff['added'][$studentID])) {
+        $name .= ' ('.scoreLogT('New').')';
+    }
+    $row->addContent(htmlPrep($name))->wrap('<strong>', '</strong>');
+
+    if ($scale['numeric'] === 'N') {
+        $selectedGrade = $savedValue !== '' ? $savedValue : $defaultGrade;
+        $row->addSelectGradeScaleGrade('score-'.$studentID, $gibbonScaleIDAttainment)
+            ->selected($selectedGrade)
+            ->setClass('textCenter gradeSelect');
+    } else {
+        $input = $row->addNumber('score-'.$studentID)
+            ->onlyInteger(false)
+            ->decimalPlaces(1)
+            ->step(0.5)
+            ->setValue($savedValue);
+        if ($maxScore !== null) {
+            $input->minimum(0)->maximum($maxScore);
+        }
+    }
+
+    $row->addTextArea('comment-'.$studentID)
+        ->setRows(2)
+        ->maxLength(1000)
+        ->setValue($savedComment);
+}
+
+$form->addRow()->addHeading('Publish Settings', scoreLogT('Publish Settings'));
+$row = $form->addRow();
+$row->addLabel('viewableStudents', scoreLogT('Viewable to Students'));
+$row->addYesNo('viewableStudents')->required()->selected((string) ($meta['viewableStudents'] ?? 'Y'));
+$row = $form->addRow();
+$row->addLabel('viewableParents', scoreLogT('Viewable to Parents'));
+$row->addYesNo('viewableParents')->required()->selected((string) ($meta['viewableParents'] ?? 'Y'));
+$row = $form->addRow();
+$row->addLabel('completeDate', scoreLogT('Assessment Date'))
+    ->description(scoreLogT('The assessment is hidden from students, parents and reports until this date.'));
+$storedDate = (string) ($meta['completeDate'] ?? '');
+$row->addDate('completeDate')->required()->setValue(
+    scoreLogIsValidDate($storedDate) ? Format::date($storedDate) : ''
+);
+$row = $form->addRow();
+$row->addFooter();
+$row->addSubmit(scoreLogT('Save Draft'))->setName('saveDraft')->setColor('gray')
+    ->setAttribute('formnovalidate', 'formnovalidate');
+$row->addSubmit(scoreLogT('Review and Publish'))->setName('reviewPublish')
+    ->setAttribute('formnovalidate', 'formnovalidate');
+echo $form->getOutput();
+
+if ($scoreLogDraftID !== '') {
+    $discardForm = Form::create(
+        'scoreLogDiscardDraft',
+        $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_discardProcess.php',
+        'post'
+    );
+    $discardForm->setTitle(scoreLogT('Discard Draft'));
+    $discardForm->setDescription(scoreLogT('Discard this private draft and return to the draft list.'));
+    $discardForm->addHiddenValue('scoreLogDraftID', $scoreLogDraftID);
+    $discardForm->addHiddenValue('revision', (string) $revision);
+    $row = $discardForm->addRow();
+    $row->addSubmit(scoreLogT('Discard Draft'))
+        ->setColor('red')
+        ->onClick("return confirm('".scoreLogT('Discard this draft? This cannot be undone.')."');");
+    echo $discardForm->getOutput();
+}
+
+$recentAssessments = $pdo->select(
+    "SELECT gibbonInternalAssessmentColumnID, name, type, completeDate
+     FROM gibbonInternalAssessmentColumn
+     WHERE gibbonCourseClassID=:gibbonCourseClassID
+       AND complete='Y'
+     ORDER BY completeDate DESC, gibbonInternalAssessmentColumnID DESC
+     LIMIT 10",
+    ['gibbonCourseClassID' => $gibbonCourseClassID]
+)->fetchAll();
+
+if (!empty($recentAssessments)) {
+    $canEnterData = isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write_data.php');
+    $table = DataTable::create('scoreLogRecentAssessments');
+    $table->setTitle(scoreLogT('Recent Assessments'));
+    $table->setDescription(scoreLogT('The 10 most recent published internal assessments for this class.'));
+    $table->addColumn('name', scoreLogT('Name'));
+    $table->addColumn('type', scoreLogT('Type'));
+    $table->addColumn('completeDate', scoreLogT('Date'))->format(function ($assessment) {
+        return !empty($assessment['completeDate']) ? Format::date($assessment['completeDate']) : '-';
+    });
+    if ($canEnterData) {
+        $table->addActionColumn()
+            ->addParam('gibbonCourseClassID', $gibbonCourseClassID)
+            ->addParam('gibbonInternalAssessmentColumnID')
+            ->format(function ($assessment, $actions) {
+                $actions->addAction('viewMarks', scoreLogT('View / Enter Marks'))
+                    ->setIcon('markbook')
+                    ->setURL('/modules/Formal Assessment/internalAssessment_write_data.php');
+            });
+    }
+    echo $table->render($recentAssessments);
 }

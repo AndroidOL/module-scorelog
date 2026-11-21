@@ -1,6 +1,16 @@
 CHANGELOG
 =========
 
+v1.1.0
+------
+- Add private, resumable whole-class drafts with revision checks; core Formal
+  Assessment columns are created only at publication.
+- Allow creators to discard a private draft with a CSRF-protected action.
+- Re-resolve the current roster on reopen and publish, with visible roster changes.
+- Add a review-and-publish gate with entered, missing and invalid row counts.
+- Require explicit confirmation before publishing students without scores.
+- Preserve draft values across validation and class-roster changes.
+
 v1.0.1
 ------
 - Add strict assessment-date validation.

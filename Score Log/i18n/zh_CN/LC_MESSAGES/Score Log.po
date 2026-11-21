@@ -1,10 +1,12 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Score Log 1.0.0\n"
-"Language: zh_CN\n"
-"PO-Revision-Date: 2026-11-21 11:00+0800\n"
+"Project-Id-Version: Score Log 1.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-21 13:04+0800\n"
+"PO-Revision-Date: 2026-11-21 13:06+0800\n"
 "Last-Translator: AndroidOL\n"
 "Language-Team: Gibbon zh_CN\n"
+"Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -12,80 +14,203 @@ msgstr ""
 msgid "All Classes"
 msgstr "所有课程"
 
-msgid "Assessment Complete?"
-msgstr "评估是否完成？"
-
-msgid "Assessment created."
-msgstr "评估已创建。"
-
 msgid "Assessment Date"
 msgstr "评估日期"
 
 msgid "Assessment Scale"
 msgstr "评估评分标准"
 
-msgid "Choose Class"
-msgstr "选择课程"
+msgid "Assessment published."
+msgstr "评估已发布。"
+
+msgid "Back to Draft"
+msgstr "返回草稿"
+
+msgid "Choose a grade from the selected scale."
+msgstr "请从所选评分量表中选择一个等级。"
+
+msgid "Choose a valid assessment date."
+msgstr "请选择有效的评估日期。"
+
+msgid "Choose a valid assessment type."
+msgstr "请选择有效的评估类型。"
+
+msgid "Choose a valid parent visibility setting."
+msgstr "请选择有效的家长可见设置。"
+
+msgid "Choose a valid student visibility setting."
+msgstr "请选择有效的学生可见设置。"
+
+msgid "Class"
+msgstr "课程班"
 
 msgid "Class Name"
 msgstr "课程名称"
 
-msgid "Com"
-msgstr "评语"
-
 msgid "Comment"
 msgstr "评语"
 
-msgid "Completed"
-msgstr "已完成"
+msgid "Confirm Publication"
+msgstr "确认发布"
 
-msgid "Confirm Class"
-msgstr "确认课程"
+msgid "Confirm the students who will be published without a score."
+msgstr "请确认将无成绩发布的学生。"
 
-msgid "Create Assessment"
-msgstr "创建评估"
+msgid "Continue"
+msgstr "继续"
 
-msgid "Created by Score Log"
-msgstr "由快速成绩录入创建"
+msgid "Correct these assessment details before publishing:"
+msgstr "发布前请修正以下评估信息："
 
 msgid "Create Internal Assessment"
 msgstr "创建内部评估"
 
-msgid "Create New Internal Assessment"
-msgstr "创建新的内部评估"
-
 msgid "Date"
 msgstr "日期"
 
-msgid "Draft"
-msgstr "草稿"
+msgid "Description"
+msgstr "说明"
 
-msgid "Enter Scores"
-msgstr "录入成绩"
+msgid "Discard Draft"
+msgstr "丢弃草稿"
+
+msgid "Discard this draft? This cannot be undone."
+msgstr "确定丢弃此草稿吗？此操作无法撤销。"
+
+msgid "Discard this private draft and return to the draft list."
+msgstr "丢弃此私有草稿并返回草稿列表。"
+
+msgid "Draft discarded."
+msgstr "草稿已丢弃。"
+
+msgid "Draft saved."
+msgstr "草稿已保存。"
+
+msgid "Draft saved. Review the current roster and scores before publishing."
+msgstr "草稿已保存。发布前请复核当前名册和成绩。"
+
+msgid ""
+"Drafts are private to their creator and are hidden from students, parents "
+"and reports."
+msgstr "草稿仅创建人可见，不会出现在学生、家长和报表中。"
+
+msgid "Edit Draft"
+msgstr "编辑草稿"
+
+#, php-format
+msgid "Enter a score from 0 to %s."
+msgstr "请输入 0 到 %s 之间的成绩。"
+
+msgid "Enter a score of 0 or greater."
+msgstr "请输入大于或等于 0 的成绩。"
+
+msgid "Enter a valid finite number."
+msgstr "请输入有效的有限数值。"
+
+msgid "Enter an assessment name."
+msgstr "请输入评估名称。"
+
+msgid "Entered"
+msgstr "已录入"
 
 msgid "Grading scale:"
 msgstr "评分标准："
 
-msgid "Maximum 30 characters."
-msgstr "最多 30 个字符。"
+#, php-format
+msgid "I confirm that %s students will be published without a score."
+msgstr "我确认有 %s 名学生将在无成绩的情况下发布。"
+
+msgid ""
+"I reviewed the current roster and understand that only current students will "
+"be published."
+msgstr "我已复核当前名册，并了解仅当前学生会发布。"
+
+msgid "Invalid"
+msgstr "无效"
+
+msgid "Last Saved"
+msgstr "最后保存"
+
+#, php-format
+msgid "Last saved %s · revision %s"
+msgstr "最后保存于 %s · 修订版本 %s"
 
 msgid "Maximum 1000 characters."
 msgstr "最多 1000 个字符。"
 
+msgid "Maximum 30 characters."
+msgstr "最多 30 个字符。"
+
+msgid "Missing"
+msgstr "未填"
+
 msgid "My Classes"
 msgstr "我的课程"
+
+msgid "My Score Log Drafts"
+msgstr "我的成绩录入草稿"
 
 msgid "Name"
 msgstr "名称"
 
+msgid "New"
+msgstr "新增"
+
+#, php-format
+msgid "New students: %s"
+msgstr "新增学生：%s"
+
+msgid "No"
+msgstr "否"
+
 msgid "No submitted data was received."
 msgstr "没有收到提交的数据。"
+
+msgid "Only current students appear in the publish review."
+msgstr "发布复核仅显示当前学生。"
+
+msgid ""
+"Only the current roster will be published. Review all missing scores before "
+"continuing."
+msgstr "仅当前名册会发布。继续前请复核所有未填成绩。"
+
+msgid "Please select..."
+msgstr "请选择……"
+
+msgid "Publish Assessment"
+msgstr "发布评估"
+
+msgid "Publish Preview"
+msgstr "发布预览"
+
+msgid "Publish Settings"
+msgstr "发布设置"
+
+#, php-format
+msgid "Publish this assessment to the current roster of %s students?"
+msgstr "确定向当前名册中的 %s 名学生发布此评估吗？"
 
 msgid "Recent Assessments"
 msgstr "最近评估"
 
+#, php-format
+msgid "Removed students: %s"
+msgstr "移除学生：%s"
+
+msgid "Resume Draft"
+msgstr "继续编辑草稿"
+
+msgid "Review and Publish"
+msgstr "复核并发布"
+
+msgid "Save Draft"
+msgstr "保存草稿"
+
 msgid "Score"
 msgstr "分值"
+
+msgid "Start New Assessment"
+msgstr "开始新评估"
 
 msgid "Status"
 msgstr "状态"
@@ -96,14 +221,30 @@ msgstr "学生"
 msgid "Students"
 msgstr "学生"
 
-msgid "The 10 most recent internal assessments, ordered by completion date."
+msgid "The 10 most recent published internal assessments for this class."
 msgstr "最近创建的 10 条内部评估，按完成日期倒序排列。"
 
-msgid "The assessment is hidden from students, parents and reports until this date."
+msgid ""
+"The assessment is hidden from students, parents and reports until this date."
 msgstr "在这个日期之前，学生、家长和报表看不到该评估。"
 
-msgid "There are no records to display."
-msgstr "没有可显示的记录。"
+msgid "The assessment name must be 30 characters or fewer."
+msgstr "评估名称不得超过 30 个字符。"
+
+msgid "The class roster changed after review. Review the current roster again."
+msgstr "复核后课程班名册发生变化，请重新复核当前名册。"
+
+msgid "The class roster changed since this draft was saved."
+msgstr "保存草稿后课程班名册发生变化。"
+
+msgid "The comment must be 1000 characters or fewer."
+msgstr "评语不得超过 1000 个字符。"
+
+msgid "The description must be 1000 characters or fewer."
+msgstr "说明不得超过 1000 个字符。"
+
+msgid "The draft is no longer available or its data is invalid."
+msgstr "草稿已不可用或数据无效。"
 
 msgid "The specified record does not exist."
 msgstr "指定的记录不存在。"
@@ -111,14 +252,38 @@ msgstr "指定的记录不存在。"
 msgid "The submitted data is invalid. Check the class, scale and scores."
 msgstr "提交的数据无效，请检查课程、评分标准和成绩。"
 
+msgid "There are no records to display."
+msgstr "没有可显示的记录。"
+
+msgid ""
+"This draft cannot be published until all invalid rows and assessment details "
+"are corrected."
+msgstr "修正所有无效行和评估信息后才能发布此草稿。"
+
+msgid "This draft changed in another tab. Reopen it before continuing."
+msgstr "草稿已在另一个标签页中更改，请重新打开后再继续。"
+
+msgid "This draft changed in another tab. Reopen it before publishing."
+msgstr "草稿已在另一个标签页中更改，请重新打开后再发布。"
+
+msgid "This legacy action is no longer available. Start or resume a draft."
+msgstr "此旧版操作已不可用。请新建或继续编辑草稿。"
+
 msgid "Type"
 msgstr "类型"
 
-msgid "Unable to save. Another assessment may be in progress; try again shortly."
+msgid ""
+"Unable to save. Another assessment may be in progress; try again shortly."
 msgstr "保存失败，可能另一个评估正在创建，请稍后重试。"
+
+msgid "Untitled draft"
+msgstr "未命名草稿"
 
 msgid "View / Enter Marks"
 msgstr "查看/录入成绩"
+
+msgid "View Marks"
+msgstr "查看成绩"
 
 msgid "Viewable to Parents"
 msgstr "家长可见"
@@ -126,8 +291,14 @@ msgstr "家长可见"
 msgid "Viewable to Students"
 msgstr "学生可见"
 
-msgid "View Marks"
-msgstr "查看成绩"
+msgid "Visible to Parents"
+msgstr "家长可见"
+
+msgid "Visible to Students"
+msgstr "学生可见"
+
+msgid "Yes"
+msgstr "是"
 
 msgid "You do not have access to this page."
 msgstr "您没有权限访问该页面。"
