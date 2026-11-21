@@ -295,7 +295,7 @@ $form = Form::create(
 $form->setFactory(DatabaseFormFactory::create($pdo));
 $form->setTitle($scoreLogDraftID !== '' ? scoreLogT('Edit Draft') : scoreLogT('Create Internal Assessment'));
 if ($scoreLogDraftID !== '') {
-    $form->setDescription(scoreLogT('Export the current scores, edit the XLSX file, then import it back. Import changes are previewed before they are applied.'));
+    $form->setDescription(scoreLogT('Save this draft before using score import or export from Saved Drafts. Import changes are previewed before they are applied.'));
 }
 $form->addHiddenValue('scoreLogDraftID', $scoreLogDraftID);
 $form->addHiddenValue('revision', (string) $revision);
@@ -310,19 +310,6 @@ if ($scoreLogDraftID !== '') {
     ))->wrap('<div class="text-sm text-gray-600">', '</div>');
 }
 
-if ($scoreLogDraftID !== '') {
-    $page->navigator->addHeaderAction('importScores', scoreLogT('Import Scores'))
-        ->setURL('/modules/Score Log/scorelog_import.php')
-        ->addParam('draftID', $scoreLogDraftID)
-        ->setIcon('upload')
-        ->displayLabel();
-    $page->navigator->addHeaderAction('exportCurrentScores', scoreLogT('Export Current Scores (XLSX)'))
-        ->setURL('/modules/Score Log/scorelog_importTemplate.php')
-        ->addParam('draftID', $scoreLogDraftID)
-        ->setIcon('download')
-        ->directLink()
-        ->displayLabel();
-}
 if (isActionAccessible($guid, $connection2, '/modules/Formal Assessment/internalAssessment_write.php')) {
     $page->navigator->addHeaderAction('viewMarks', scoreLogT('View Marks'))
         ->setURL('/modules/Formal Assessment/internalAssessment_write.php')

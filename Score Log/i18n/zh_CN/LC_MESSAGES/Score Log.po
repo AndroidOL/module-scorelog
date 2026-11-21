@@ -393,6 +393,11 @@ msgstr "数据行"
 msgid "Save Draft"
 msgstr "保存草稿"
 
+msgid ""
+"Save this draft before using score import or export from Saved Drafts. "
+"Import changes are previewed before they are applied."
+msgstr "请先保存此草稿，再从“已保存草稿”使用成绩导入或导出。导入的变更会先预览，确认后才会应用。"
+
 msgid "Saved Drafts"
 msgstr "已保存草稿"
 
