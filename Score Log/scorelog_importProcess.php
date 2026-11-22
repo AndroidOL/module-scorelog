@@ -135,6 +135,7 @@ foreach ($grades as $grade) {
 }
 $scale = ['usage' => $scale['usage'], 'numeric' => $scale['numeric']];
 $mapping = scoreLogDetectImportMapping($parsed['matrix'], $roster, $scale, $gradeDescriptors);
+$metadata = scoreLogExtractImportMetadata($parsed['matrix'], $mapping['headerRow'] ?? null);
 
 $previews = $session->get('scoreLogImportPreviews', []);
 $now = time();
@@ -163,6 +164,7 @@ $previews[$previewToken] = [
     'formulaCells'  => $parsed['formulaCells'],
     'ignoredColumns'=> (int) ($parsed['ignoredColumns'] ?? 0),
     'mapping'       => $mapping,
+    'metadata'      => $metadata,
 ];
 $session->set('scoreLogImportPreviews', $previews);
 

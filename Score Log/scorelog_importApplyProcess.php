@@ -206,6 +206,23 @@ foreach ($preview['updates'] as $studentID => $changes) {
     }
 }
 
+$detectedMetadata = is_array($previewMeta['metadata'] ?? null) ? $previewMeta['metadata'] : [];
+if (!empty($detectedMetadata['name'])) {
+    $payload['columns'][$columnID]['name'] = mb_substr(trim((string) $detectedMetadata['name']), 0, 30);
+}
+if (!empty($detectedMetadata['description'])) {
+    $payload['columns'][$columnID]['description'] = mb_substr(trim((string) $detectedMetadata['description']), 0, 1000);
+}
+if (!empty($detectedMetadata['completeDate'])) {
+    $importDate = trim((string) $detectedMetadata['completeDate']);
+    if (!scoreLogIsValidDate($importDate)) {
+        $importDate = (string) \Gibbon\Services\Format::dateConvert($importDate);
+    }
+    if (scoreLogIsValidDate($importDate)) {
+        $payload['columns'][$columnID]['completeDate'] = $importDate;
+    }
+}
+
 $payloadJson = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 if ($payloadJson === false || strlen($payloadJson) > 1048576) {
     $previewRedirect('error1');

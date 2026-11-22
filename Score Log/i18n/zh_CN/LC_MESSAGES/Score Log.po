@@ -1156,3 +1156,6 @@ msgstr "无法保存草稿。"
 
 msgid "The selected class has no records to display. Please choose another class."
 msgstr "所选班级没有可显示的记录，请选择其他班级。"
+
+msgid "Detected assessment details"
+msgstr "识别到的评估信息"

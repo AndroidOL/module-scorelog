@@ -315,6 +315,23 @@ if (!empty($initialMapping['confidence'])) {
     $output .= '</ul>';
 }
 
+$detectedMetadata = is_array($previewMeta['metadata'] ?? null) ? $previewMeta['metadata'] : [];
+if (!empty($detectedMetadata)) {
+    $metadataParts = [];
+    if (!empty($detectedMetadata['name'])) {
+        $metadataParts[] = scoreLogT('Assessment Name').': '.htmlPrep((string) $detectedMetadata['name']);
+    }
+    if (!empty($detectedMetadata['description'])) {
+        $metadataParts[] = scoreLogT('Description').': '.htmlPrep((string) $detectedMetadata['description']);
+    }
+    if (!empty($detectedMetadata['completeDate'])) {
+        $metadataParts[] = scoreLogT('Assessment Date').': '.htmlPrep((string) $detectedMetadata['completeDate']);
+    }
+    if (!empty($metadataParts)) {
+        $output .= '<p><strong>'.scoreLogT('Detected assessment details').':</strong> '.implode(' · ', $metadataParts).'</p>';
+    }
+}
+
 $mapForm = Form::create('scoreLogImportMapping', $session->get('absoluteURL').'/index.php', 'get');
 $mapForm->setTitle(scoreLogT('Confirm Import Mapping'));
 $mapForm->setDescription(scoreLogT('Correct the detected columns before applying imported values. The preview updates only after Refresh Preview.'));
@@ -323,13 +340,13 @@ $mapForm->addHiddenValue('draftID', $scoreLogDraftID);
 $mapForm->addHiddenValue('columnID', $columnID);
 $mapForm->addHiddenValue('previewToken', $previewToken);
 
-$columnOptions = [];
+$columnOptionRows = [];
 for ($column = 0; $column < $columnCount; $column++) {
-    $columnOptions[(string) $column] = scoreLogImportColumnLabel($column);
+    $columnOptionRows[] = ['value' => (string) $column, 'name' => scoreLogImportColumnLabel($column)];
 }
 $row = $mapForm->addRow();
 $row->addLabel('identifierColumn', scoreLogT('Identifier Column'));
-$row->addSelect('identifierColumn')->fromArray($columnOptions)->selected($identifierColumn === null ? '' : (string) $identifierColumn)->placeholder();
+$row->addSelect('identifierColumn')->fromArray($columnOptionRows, 'value', 'name')->selected($identifierColumn === null ? '' : (string) $identifierColumn)->placeholder();
 $row = $mapForm->addRow();
 $row->addLabel('identifierType', scoreLogT('Identifier Type'));
 $row->addSelect('identifierType')->fromArray([
@@ -339,10 +356,10 @@ $row->addSelect('identifierType')->fromArray([
 ])->selected($identifierType)->placeholder();
 $row = $mapForm->addRow();
 $row->addLabel('scoreColumn', scoreLogT('Score Column'));
-$row->addSelect('scoreColumn')->fromArray($columnOptions)->selected($scoreColumn === null ? '' : (string) $scoreColumn)->placeholder();
+$row->addSelect('scoreColumn')->fromArray($columnOptionRows, 'value', 'name')->selected($scoreColumn === null ? '' : (string) $scoreColumn)->placeholder();
 $row = $mapForm->addRow();
 $row->addLabel('commentColumn', scoreLogT('Comment Column'))->description(scoreLogT('Optional. Extra columns are ignored.'));
-$row->addSelect('commentColumn')->fromArray($columnOptions)->selected($commentColumn === null ? '' : (string) $commentColumn)->placeholder();
+$row->addSelect('commentColumn')->fromArray($columnOptionRows, 'value', 'name')->selected($commentColumn === null ? '' : (string) $commentColumn)->placeholder();
 $row = $mapForm->addRow();
 $row->addFooter();
 $row->addSubmit(scoreLogT('Refresh Preview'));

@@ -1659,6 +1659,32 @@ function scoreLogParseImportFile(string $path, string $extension): array
     return scoreLogCombineImportWorksheets($worksheets);
 }
 
+function scoreLogExtractImportMetadata(array $matrix, $headerRow): array
+{
+    $labels = [
+        scoreLogNormalizeImportKey(scoreLogT('Assessment Name')) => 'name',
+        scoreLogNormalizeImportKey(scoreLogT('Description'))     => 'description',
+        scoreLogNormalizeImportKey(scoreLogT('Assessment Date'))  => 'completeDate',
+        'assessmentname' => 'name',
+        'description'    => 'description',
+        'assessmentdate' => 'completeDate',
+    ];
+    $metadata = [];
+    $limit = $headerRow === null ? min(5, count($matrix)) : (int) $headerRow;
+    foreach (array_slice($matrix, 0, max(0, $limit)) as $row) {
+        $key = scoreLogNormalizeImportKey((string) ($row[0] ?? ''));
+        if ($key === '' || !isset($labels[$key])) {
+            continue;
+        }
+        $value = trim((string) ($row[1] ?? ''));
+        if ($value !== '' && !isset($metadata[$labels[$key]])) {
+            $metadata[$labels[$key]] = $value;
+        }
+    }
+
+    return $metadata;
+}
+
 function scoreLogBuildAssessmentSpreadsheet(
     array $payload,
     array $roster,
