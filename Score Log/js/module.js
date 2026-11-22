@@ -343,17 +343,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         };
 
         const syncAutoComment = (scoreInput) => {
-            const row = scoreInput ? scoreInput.closest('tr[data-student-id]') : null;
-            const textarea = row ? row.querySelector('textarea') : null;
-            if (!textarea) return;
-
-            const previousAuto = textarea.dataset.autoComment || '';
-            const grade = gradeForValue(scoreInput.value);
-            const nextAuto = grade ? grade.descriptor : '';
-            if (textarea.value.trim() === '' || textarea.value === previousAuto) {
-                textarea.value = nextAuto;
-            }
-            textarea.dataset.autoComment = nextAuto;
+            // Auto-filling the comment from the score is intentionally disabled:
+            // entering a score must not modify the comment.
+            return;
         };
 
         const updateRowStatus = (row) => {
