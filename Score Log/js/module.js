@@ -571,3 +571,35 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         init();
     }
 })();
+
+// Export the current on-screen values (including unsaved edits) without navigating away.
+window.scoreLogExportCurrent = function () {
+    var form = document.getElementById('scoreLogAssessment');
+    if (!form) {
+        return false;
+    }
+    var data = new FormData(form);
+    data.set('exportCurrent', '1');
+    fetch('/modules/Score Log/scorelog_draftProcess.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    }).then(function (response) {
+        if (!response.ok) {
+            throw new Error('export failed');
+        }
+        return response.blob();
+    }).then(function (blob) {
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = 'score-log-scores.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }).catch(function () {
+        alert('导出失败，请重试。');
+    });
+    return false;
+};

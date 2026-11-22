@@ -88,6 +88,35 @@ foreach ($columnOrder as $columnID) {
     }
 }
 
+// Export the CURRENT on-screen values (including unsaved edits) as XLSX, without navigating or saving.
+if (array_key_exists('exportCurrent', $_POST)) {
+    $exportClassID = scoreLogInputString($input, 'gibbonCourseClassID');
+    $exportScaleID = scoreLogInputString($input, 'gibbonScaleIDAttainment');
+    $exportColumnID = $columnOrder[0] ?? '';
+    if ($exportClassID === '' || $exportScaleID === '' || $exportColumnID === ''
+        || !scoreLogCanEditClass($pdo, $gibbonPersonID, $exportClassID, $gibbonSchoolYearID)) {
+        http_response_code(400);
+        exit;
+    }
+    $exportScale = $pdo->selectOne(
+        "SELECT gibbonScaleID FROM gibbonScale WHERE gibbonScaleID=:gibbonScaleID AND active='Y'",
+        ['gibbonScaleID' => $exportScaleID]
+    );
+    $exportRoster = $exportScale ? scoreLogCurrentRoster($pdo, $exportClassID) : [];
+    if (empty($exportScale) || empty($exportRoster)) {
+        http_response_code(400);
+        exit;
+    }
+    $exportPayload = scoreLogBuildMultiAssessmentPayload($input, $exportRoster);
+    $spreadsheet = scoreLogBuildAssessmentSpreadsheet($exportPayload, $exportRoster, $exportColumnID, 'scores');
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment; filename="score-log-scores-'.date('Ymd').'.xlsx"');
+    header('Cache-Control: no-store, no-cache, must-revalidate');
+    (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save('php://output');
+    $spreadsheet->disconnectWorksheets();
+    exit;
+}
+
 try {
     $connection2->beginTransaction();
 

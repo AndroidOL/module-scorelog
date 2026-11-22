@@ -1159,3 +1159,12 @@ msgstr "所选班级没有可显示的记录，请选择其他班级。"
 
 msgid "Detected assessment details"
 msgstr "识别到的评估信息"
+
+msgid "Previous Draft"
+msgstr "上一个草稿"
+
+msgid "Next Draft"
+msgstr "下一个草稿"
+
+msgid "Add comment"
+msgstr "添加评语"

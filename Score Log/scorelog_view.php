@@ -148,7 +148,8 @@ if ($scoreLogDraftID === '' && ($gibbonCourseClassID === '' || $gibbonScaleIDAtt
             ->format(function ($draft, $actions) {
                 $actions->addAction('resume', scoreLogT('Resume Draft'))
                     ->setIcon('markbook')
-                    ->setURL('/modules/Score Log/scorelog_view.php');
+                    ->setURL('/modules/Score Log/scorelog_view.php')
+                    ->displayLabel();
             });
         echo $table->render($draftRows);
     }
@@ -269,20 +270,20 @@ if ($scoreLogDraftID !== '') {
         $olderDraftID = (string) ($draftNavigation[$draftPosition + 1] ?? '');
         $newerDraftID = (string) ($draftNavigation[$draftPosition - 1] ?? '');
         if ($olderDraftID !== '') {
-            $page->navigator->addHeaderAction('previousDraft', scoreLogT('Previous'))
+            $page->navigator->addHeaderAction('previousDraft', scoreLogT('Previous Draft'))
                 ->setURL('/modules/Score Log/scorelog_view.php')
                 ->addParam('draftID', $olderDraftID)
                 ->setIcon('back')
-                ->setAttribute('aria-label', scoreLogT('Previous'))
-                ->displayLabel(false);
+                ->setAttribute('aria-label', scoreLogT('Previous Draft'))
+                ->displayLabel();
         }
         if ($newerDraftID !== '') {
-            $page->navigator->addHeaderAction('nextDraft', scoreLogT('Next'))
+            $page->navigator->addHeaderAction('nextDraft', scoreLogT('Next Draft'))
                 ->setURL('/modules/Score Log/scorelog_view.php')
                 ->addParam('draftID', $newerDraftID)
                 ->setIcon('forward')
-                ->setAttribute('aria-label', scoreLogT('Next'))
-                ->displayLabel(false);
+                ->setAttribute('aria-label', scoreLogT('Next Draft'))
+                ->displayLabel();
         }
     }
 } else {
@@ -681,6 +682,11 @@ foreach ($roster as $student) {
             ->setTitle(scoreLogT('Append comment'))
             ->setSize('sm')
             ->setColor('gray');
+    } else {
+        $commentActions = $commentColumn->addColumn()->addClass('flex items-center gap-2');
+        $commentActions->addWebLink(scoreLogT('Add comment'))
+            ->setURL('/modules/Score Log/scorelog_comments.php')
+            ->setIcon('plus');
     }
 
     $form->addHiddenValue($studentID.'-gibbonPersonID', $studentID);
@@ -693,13 +699,10 @@ $row->addSubmit(scoreLogT('Save Draft'))
     ->setSize('sm')
     ->setColor('gray')
     ->setAttribute('formnovalidate', 'formnovalidate');
-if ($scoreLogDraftID !== '') {
-    $exportScoresURL = $scoreLogBaseURL.'scorelog_importTemplate.php&draftID='.urlencode($scoreLogDraftID).'&columnID='.urlencode($columnID).'&mode=scores';
-    $row->addButton(scoreLogT('Export Scores (XLSX)'), 'window.location.href='.json_encode($exportScoresURL))
-        ->setSize('sm')
-        ->setColor('gray')
-        ->setIcon('solid', 'download');
-}
+$row->addButton(scoreLogT('Export Scores (XLSX)'), 'return window.scoreLogExportCurrent()')
+    ->setSize('sm')
+    ->setColor('gray')
+    ->setIcon('solid', 'download');
 $row->addSubmit(scoreLogT('Review and Publish'))
     ->setName('reviewPublish')
     ->setSize('sm');

@@ -112,7 +112,8 @@ $table->addActionColumn()
     ->format(function ($draft, $actions) {
         $actions->addAction('resume', scoreLogT('Resume Draft'))
             ->setIcon('markbook')
-            ->setURL('/modules/Score Log/scorelog_view.php');
+            ->setURL('/modules/Score Log/scorelog_view.php')
+            ->displayLabel();
         $actions->addAction('import', scoreLogT('Import Scores'))
             ->setIcon('upload')
             ->setURL('/modules/Score Log/scorelog_import.php')
