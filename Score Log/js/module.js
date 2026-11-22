@@ -603,3 +603,13 @@ window.scoreLogExportCurrent = function () {
     });
     return false;
 };
+
+// Disable browser autocomplete on search/filter inputs.
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('input[type="search"], input[name="search"]').forEach(function (el) {
+        el.setAttribute('autocomplete', 'off');
+        el.setAttribute('autocorrect', 'off');
+        el.setAttribute('autocapitalize', 'off');
+        el.setAttribute('spellcheck', 'false');
+    });
+});

@@ -666,28 +666,21 @@ foreach ($roster as $student) {
             (string) ($column['name'] ?? ''),
             $studentName
         ));
-    if (!empty($commentLibrary)) {
-        $commentOptions = [];
-        foreach ($commentLibrary as $libraryComment) {
-            $commentOptions[(string) $libraryComment['scoreLogCommentID']] = (string) $libraryComment['label'];
-        }
-        $commentActions = $commentColumn->addColumn()->addClass('flex items-center gap-2');
-        $commentActions->addSelect('commentLibrary['.$studentID.']')
-            ->fromArray($commentOptions)
-            ->placeholder(scoreLogT('Library...'))
-            ->setClass('scoreLogCommentLibrarySelect flex-1 min-w-0');
-        $commentActions->addButton(scoreLogT('Append'), null)
-            ->setClass('scoreLogCommentLibraryInsert shrink-0')
-            ->setAttribute('aria-label', scoreLogT('Append comment'))
-            ->setTitle(scoreLogT('Append comment'))
-            ->setSize('sm')
-            ->setColor('gray');
-    } else {
-        $commentActions = $commentColumn->addColumn()->addClass('flex items-center gap-2');
-        $commentActions->addWebLink(scoreLogT('Add comment'))
-            ->setURL('/modules/Score Log/scorelog_comments.php')
-            ->setIcon('plus');
+    $commentOptions = [];
+    foreach ($commentLibrary as $libraryComment) {
+        $commentOptions[(string) $libraryComment['scoreLogCommentID']] = (string) $libraryComment['label'];
     }
+    $commentActions = $commentColumn->addColumn()->addClass('flex items-center gap-2');
+    $commentActions->addSelect('commentLibrary['.$studentID.']')
+        ->fromArray($commentOptions)
+        ->placeholder(scoreLogT('Library...'))
+        ->setClass('scoreLogCommentLibrarySelect flex-1 min-w-0');
+    $commentActions->addButton(scoreLogT('Append'), null)
+        ->setClass('scoreLogCommentLibraryInsert shrink-0')
+        ->setAttribute('aria-label', scoreLogT('Append comment'))
+        ->setTitle(scoreLogT('Append comment'))
+        ->setSize('sm')
+        ->setColor('gray');
 
     $form->addHiddenValue($studentID.'-gibbonPersonID', $studentID);
 }
