@@ -138,7 +138,7 @@ msgstr "导入和模板操作始终针对一个明确选择的评估列。"
 #: ⁨Score Log/scorelog_view.php⁩:361 ⁨Score Log/scorelog_view.php⁩:418
 #: ⁨Score Log/scorelog_view.php⁩:531 ⁨Score Log/scorelog_importTemplate.php⁩:68
 msgid "Assessment"
-msgstr "评估"
+msgstr "评估成绩"
 
 #: ⁨Score Log/scorelog_import.php⁩:89 ⁨Score Log/scorelog_view.php⁩:177
 #: ⁨Score Log/scorelog_view.php⁩:184 ⁨Score Log/scorelog_importTemplate.php⁩:69

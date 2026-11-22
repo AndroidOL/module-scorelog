@@ -156,19 +156,21 @@ try {
             "UPDATE score_log_draft
              SET payload=:payload, revision=revision+1
              WHERE scoreLogDraftID=:scoreLogDraftID
-               AND gibbonPersonIDCreator=:gibbonPersonID
-               AND revision=:revision",
+               AND gibbonPersonIDCreator=:gibbonPersonID",
             [
                 'payload' => $payloadJson,
                 'scoreLogDraftID' => $scoreLogDraftID,
                 'gibbonPersonID' => $gibbonPersonID,
-                'revision' => $revision,
             ]
         );
         if ((int) $updated !== 1) {
-            throw new RuntimeException('conflict');
+            throw new RuntimeException('draft-unavailable');
         }
-        $newRevision = $revision + 1;
+        $revisionRow = $pdo->selectOne(
+            "SELECT revision FROM score_log_draft WHERE scoreLogDraftID=:scoreLogDraftID",
+            ['scoreLogDraftID' => $scoreLogDraftID]
+        );
+        $newRevision = (int) ($revisionRow['revision'] ?? ($revision + 1));
     } else {
         $gibbonCourseClassID = scoreLogInputString($input, 'gibbonCourseClassID');
         $gibbonScaleIDAttainment = scoreLogInputString($input, 'gibbonScaleIDAttainment');
