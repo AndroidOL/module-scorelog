@@ -15,3 +15,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
+
+/* Light dashed separators between student rows */
+#scoreLogAssessment table tbody tr + tr > td {
+    border-top: 1px dashed #e5e7eb;
+}

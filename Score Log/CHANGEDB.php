@@ -4,6 +4,11 @@
 $sql = [];
 $count = 0;
 
+// v1.5.6
+$sql[$count][0] = "1.5.6";
+$sql[$count][1] = "DO 0;end";
+$count++;
+
 // v1.5.4
 $sql[$count][0] = "1.5.4";
 $sql[$count][1] = "UPDATE gibbonAction

@@ -606,7 +606,7 @@ window.scoreLogExportCurrent = function () {
 
 // Disable browser autocomplete on search/filter inputs.
 document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('input[type="search"], input[name="search"]').forEach(function (el) {
+    document.querySelectorAll('input[type="search"], input[name="search"], input[name="searchField"]').forEach(function (el) {
         el.setAttribute('autocomplete', 'off');
         el.setAttribute('autocorrect', 'off');
         el.setAttribute('autocapitalize', 'off');
