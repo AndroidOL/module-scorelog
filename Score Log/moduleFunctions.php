@@ -1620,6 +1620,8 @@ function scoreLogParseImportFile(string $path, string $extension): array
         }
         $reader = new \PhpOffice\PhpSpreadsheet\Reader\Csv();
         $reader->setInputEncoding(scoreLogImportCsvEncoding($contents));
+        // Pin the delimiter: auto-detection mispicks spaces inside student names.
+        $reader->setDelimiter(',');
         $reader->setReadDataOnly(true);
         $spreadsheet = $reader->load($path);
 

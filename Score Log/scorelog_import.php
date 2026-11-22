@@ -95,7 +95,7 @@ if ($scoreLogDraftID === '' && $columnID === '') {
             'columnOrder'  => ['c1'],
             'students'     => [],
             'studentNames' => [],
-            'rosterIDs'    => [],
+            'rosterIDs'    => scoreLogRosterIDs($roster),
         ];
         $inserted = $pdo->insert(
             "INSERT INTO score_log_draft

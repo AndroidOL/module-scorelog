@@ -153,9 +153,9 @@ try {
              gibbonPersonIDStudent=:gibbonPersonIDStudent,
              attainmentValue=:attainmentValue,
              attainmentDescriptor=:attainmentDescriptor,
-             effortValue=NULL, effortDescriptor=NULL,
-             comment=:comment, response=NULL,
-             gibbonPersonIDLastEdit=:gibbonPersonID"
+             effortValue=:effortValue, effortDescriptor=:effortDescriptor,
+             comment=:comment, response=:response,
+             gibbonPersonIDLastEdit=:gibbonPersonIDLastEdit"
     );
 
     $insertColumn = function (array $column, int $groupingID) use (
