@@ -18,6 +18,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 use Gibbon\Forms\Form;
+use Gibbon\Forms\Prefab\DeleteForm;
 
 require_once __DIR__.'/moduleFunctions.php';
 
@@ -71,23 +72,10 @@ if ($scoreLogCommentID !== '') {
 }
 
 if ($confirmDelete && $scoreLogCommentID !== '') {
-    $form = Form::create(
-        'scoreLogCommentDelete',
-        $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_commentProcess.php',
-        'post'
-    );
-    $form->setTitle(scoreLogT('Delete Comment'));
-    $form->setDescription(sprintf(
-        scoreLogT('Delete “%s” from your private comment library?'),
-        htmlPrep((string) $comment['label'])
-    ));
+    $form = DeleteForm::createForm($session->get('absoluteURL').'/modules/Score Log/scorelog_commentProcess.php');
     $form->addHiddenValue('action', 'delete');
     $form->addHiddenValue('scoreLogCommentID', $scoreLogCommentID);
-    $row = $form->addRow();
-    $row->addSubmit(scoreLogT('Delete Comment'))
-        ->setColor('red')
-        ->onClick("return confirm('".scoreLogT('Delete this reusable comment?')."');");
-    echo $form->getOutput();
+    $page->write($form->getOutput());
     return;
 }
 
@@ -115,14 +103,11 @@ $row->addSubmit();
 echo $form->getOutput();
 
 if ($scoreLogCommentID !== '') {
-    $deleteForm = Form::create(
-        'scoreLogCommentDeleteLink',
-        $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_commentManage.php',
-        'get'
-    );
-    $deleteForm->addHiddenValue('scoreLogCommentID', $scoreLogCommentID);
-    $deleteForm->addHiddenValue('delete', 'Y');
-    $row = $deleteForm->addRow();
-    $row->addSubmit(scoreLogT('Delete Comment'))->setColor('red');
-    echo $deleteForm->getOutput();
+    $page->navigator->addHeaderAction('delete', scoreLogT('Delete Comment'))
+        ->setURL('/modules/Score Log/scorelog_commentManage.php')
+        ->addParam('scoreLogCommentID', $scoreLogCommentID)
+        ->addParam('delete', 'Y')
+        ->setIcon('delete')
+        ->modalWindow()
+        ->displayLabel();
 }

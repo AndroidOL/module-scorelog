@@ -123,7 +123,7 @@ $table->addActionColumn()
             ->addParam('mode', 'scores')
             ->directLink()
             ->setAttribute('aria-label', scoreLogT('Export Scores (XLSX)'));
-        $actions->addAction('discard', scoreLogT('Discard Draft'))
+        $actions->addAction('delete', scoreLogT('Discard Draft'))
             ->setIcon('delete')
             ->setURL('/modules/Score Log/scorelog_draftDelete.php')
             ->addParam('returnPage', 'drafts')

@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-use Gibbon\Forms\Form;
+use Gibbon\Forms\Prefab\DeleteForm;
 
 require_once __DIR__.'/moduleFunctions.php';
 
@@ -51,33 +51,9 @@ if (
     return;
 }
 
-$payload = $draft['payloadData'];
-$title = scoreLogT('Untitled draft');
-foreach ($payload['columnOrder'] as $columnID) {
-    $columnName = trim((string) ($payload['columns'][$columnID]['name'] ?? ''));
-    if ($columnName !== '') {
-        $title = $columnName;
-        break;
-    }
-}
-$form = Form::create(
-    'scoreLogDiscardDraft',
-    $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_discardProcess.php',
-    'post'
-);
-$form->setTitle(scoreLogT('Discard Draft'));
+$form = DeleteForm::createForm($session->get('absoluteURL').'/modules/Score Log/scorelog_discardProcess.php');
 $form->addHiddenValue('scoreLogDraftID', $scoreLogDraftID);
 $form->addHiddenValue('revision', (string) $draft['revision']);
 $form->addHiddenValue('returnPage', $returnPage);
-$row = $form->addRow();
-$row->addAlert(sprintf(
-    scoreLogT('Discard %s? This permanently removes the private draft and cannot be undone.'),
-    $title
-), 'warning');
-$row = $form->addRow();
-$row->addFooter();
-$row->addSubmit(scoreLogT('Discard Draft'))
-    ->setColor('red')
-    ->onClick('return confirm('.json_encode(scoreLogT('Discard this draft? This cannot be undone.')).');');
 
 $page->write($form->getOutput());

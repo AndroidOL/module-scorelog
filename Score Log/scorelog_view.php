@@ -713,20 +713,13 @@ foreach ($descriptorValues as $gradeValue => $gradeDescriptor) {
 echo '</datalist>';
 
 if ($scoreLogDraftID !== '') {
-    $discardForm = Form::create(
-        'scoreLogDiscardDraft',
-        $session->get('absoluteURL').'/index.php?q=/modules/Score Log/scorelog_discardProcess.php',
-        'post'
-    );
-    $discardForm->setTitle(scoreLogT('Discard Draft'));
-    $discardForm->setDescription(scoreLogT('Discard this private draft and return to the draft list.'));
-    $discardForm->addHiddenValue('scoreLogDraftID', $scoreLogDraftID);
-    $discardForm->addHiddenValue('revision', (string) $revision);
-    $formRow = $discardForm->addRow();
-    $formRow->addSubmit(scoreLogT('Discard Draft'))
-        ->setColor('red')
-        ->onClick('return confirm('.json_encode(scoreLogT('Discard this draft? This cannot be undone.')).');');
-    echo $discardForm->getOutput();
+    $page->navigator->addHeaderAction('discard', scoreLogT('Discard Draft'))
+        ->setURL('/modules/Score Log/scorelog_draftDelete.php')
+        ->addParam('draftID', $scoreLogDraftID)
+        ->addParam('returnPage', 'view')
+        ->setIcon('delete')
+        ->modalWindow()
+        ->displayLabel();
 }
 
 if (!empty($reusableAssessments)) {
